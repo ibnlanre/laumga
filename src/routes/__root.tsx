@@ -10,6 +10,7 @@ import { PropsWithChildren } from "react";
 import { Notifications } from "@mantine/notifications";
 
 import styles from "../styles.css?url";
+import { NotFound } from "@/components/not-found";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -66,6 +67,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  notFoundComponent: NotFound
 });
 
 //  --deep-forest: #002313;
