@@ -1,0 +1,127 @@
+@layer theme, base, mantine, components, utilities;
+
+@import "tailwindcss";
+@import "@mantine/core/styles.layer.css";
+@import "@mantine/carousel/styles.layer.css";
+@import "@mantine/dates/styles.layer.css";
+@import "@mantine/notifications/styles.layer.css";
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+@theme {
+  --color-olive: #77874b;
+  --color-pale-beige: #dce2cb;
+  --color-rust: #993300;
+  --color-gold: #e4d046;
+  --color-emerald-green: #044343;
+  --color-slate-grey: #4a5568;
+  --color-muted-gold: #d97706;
+
+  --color-deep-forest: #002313;
+  --color-institutional-green: #006838;
+  --color-vibrant-lime: #8dc63f;
+  --color-sage-green: #cbe5a7;
+  --color-mist-green: #f4f9ec;
+
+  --color-primary: #8f8f3c;
+  --color-background-light: #fdfdf6;
+  --color-background-dark: #1a1a1a;
+  --color-card-light: #ffffff;
+  --color-card-dark: #2c2c2c;
+  --color-border-light: #e5e7eb;
+  --color-border-dark: #374151;
+  --color-text-primary-light: #1f2937;
+  --color-text-primary-dark: #f9fafb;
+  --color-text-secondary-light: #6b7280;
+  --color-text-secondary-dark: #9ca3af;
+
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-display: "Newsreader", serif;
+  --font-arabic: "Amiri", sans-serif;
+  --font-handwriting: "Dancing Script", cursive;
+}
+
+.material-icons {
+  font-size: inherit;
+  vertical-align: middle;
+}
+
+.scalloped {
+  -webkit-mask-image:
+    radial-gradient(circle at 100% 50%, transparent 8px, black 9px),
+    radial-gradient(circle at 0 50%, transparent 8px, black 9px);
+  -webkit-mask-size: 51% 100%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position:
+    0 0,
+    100% 0;
+  mask-image:
+    radial-gradient(circle at 100% 50%, transparent 8px, black 9px),
+    radial-gradient(circle at 0 50%, transparent 8px, black 9px);
+  mask-size: 51% 100%;
+  mask-repeat: no-repeat;
+  mask-position:
+    0 0,
+    100% 0;
+}
+
+.drop-cap::first-letter {
+  color: #006838;
+  font-size: 4em;
+  font-weight: bold;
+  float: left;
+  line-height: 0.7;
+  margin-right: 0.1em;
+  margin-top: 0.1em;
+}
+
+.hover-reveal-item .hover-reveal-image {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8) translate(-10%, -10%);
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+  position: fixed;
+  z-index: 50;
+}
+
+.hover-reveal-item:hover .hover-reveal-image {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) translate(0, 0);
+}
+
+@keyframes pulse-lime {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(141, 198, 63, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(141, 198, 63, 0);
+  }
+}
+
+.animate-pulse-lime {
+  animation: pulse-lime 2s infinite;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
