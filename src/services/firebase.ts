@@ -20,6 +20,5 @@ export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope("profile");
 googleProvider.addScope("email");
 googleProvider.setCustomParameters({
-  client_id: import.meta.env.VITE_FIREBASE_CLIENT_ID,
   prompt: "select_account",
 });

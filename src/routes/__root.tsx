@@ -1,16 +1,21 @@
+import type { PropsWithChildren } from "react";
+import type { MantineColorsTuple } from "@mantine/core";
+
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
-import { createTheme, MantineColorsTuple } from "@mantine/core";
+import { createTheme } from "@mantine/core";
 import { ModalsProvider } from "@mantine/modals";
 import {
   ColorSchemeScript,
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
-import { PropsWithChildren } from "react";
 import { Notifications } from "@mantine/notifications";
 
 import styles from "../styles.css?url";
 import { NotFound } from "@/components/not-found";
+import { AuthProvider } from "@/contexts/auth";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/routing/query-client";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -67,7 +72,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
-  notFoundComponent: NotFound
+  notFoundComponent: NotFound,
 });
 
 //  --deep-forest: #002313;
@@ -158,10 +163,15 @@ function RootDocument({ children }: PropsWithChildren) {
         <ColorSchemeScript />
       </head>
       <body>
-        <MantineProvider theme={theme}>
-          <Notifications />
-          <ModalsProvider>{children}</ModalsProvider>
-        </MantineProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <MantineProvider theme={theme}>
+              <Notifications />
+              <ModalsProvider>{children}</ModalsProvider>
+            </MantineProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+
         {/* 
         <TanStackDevtools
           config={{

@@ -30,3 +30,13 @@ export function useLogin() {
     },
   });
 }
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: api.$use.user.resetPassword,
+    meta: {
+      errorMessage: "Failed to send reset email. Please try again.",
+      successMessage: "Reset email sent successfully.",
+    },
+  });
+}

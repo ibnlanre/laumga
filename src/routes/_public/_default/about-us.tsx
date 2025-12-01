@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/_public/about-us")({
+export const Route = createFileRoute("/_public/_default/about-us")({
   component: RouteComponent,
 });
 

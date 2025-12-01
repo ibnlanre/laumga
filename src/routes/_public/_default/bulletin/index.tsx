@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Fragment } from 'react';
 
-export const Route = createFileRoute('/_public/bulletin/')({
+export const Route = createFileRoute('/_public/_default/bulletin/')({
   component: RouteComponent,
 })
 

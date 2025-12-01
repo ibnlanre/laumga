@@ -11,23 +11,24 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
-import { Route as PublicNewsletterRouteImport } from './routes/_public/newsletter'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
-import { Route as PublicEventsRouteImport } from './routes/_public/events'
-import { Route as PublicContactUsRouteImport } from './routes/_public/contact-us'
-import { Route as PublicAboutUsRouteImport } from './routes/_public/about-us'
+import { Route as PublicDefaultRouteImport } from './routes/_public/_default'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
 import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
-import { Route as PublicBulletinIndexRouteImport } from './routes/_public/bulletin/index'
 import { Route as AuthMandateIndexRouteImport } from './routes/_auth/mandate/index'
 import { Route as PublicRegisterReviewRouteImport } from './routes/_public/register/review'
 import { Route as PublicRegisterAccountRouteImport } from './routes/_public/register/account'
-import { Route as PublicBulletinArticleRouteImport } from './routes/_public/bulletin/$article'
+import { Route as PublicDefaultNewsletterRouteImport } from './routes/_public/_default/newsletter'
+import { Route as PublicDefaultEventsRouteImport } from './routes/_public/_default/events'
+import { Route as PublicDefaultContactUsRouteImport } from './routes/_public/_default/contact-us'
+import { Route as PublicDefaultAboutUsRouteImport } from './routes/_public/_default/about-us'
 import { Route as AuthMandatePledgeRouteImport } from './routes/_auth/mandate/pledge'
 import { Route as AuthMandateDashboardRouteImport } from './routes/_auth/mandate/dashboard'
 import { Route as AuthMandateCertificateRouteImport } from './routes/_auth/mandate/certificate'
+import { Route as PublicDefaultBulletinIndexRouteImport } from './routes/_public/_default/bulletin/index'
+import { Route as PublicDefaultBulletinArticleRouteImport } from './routes/_public/_default/bulletin/$article'
 
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
@@ -36,11 +37,6 @@ const PublicRoute = PublicRouteImport.update({
 const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicNewsletterRoute = PublicNewsletterRouteImport.update({
-  id: '/newsletter',
-  path: '/newsletter',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
@@ -53,19 +49,8 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
-const PublicEventsRoute = PublicEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicContactUsRoute = PublicContactUsRouteImport.update({
-  id: '/contact-us',
-  path: '/contact-us',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicAboutUsRoute = PublicAboutUsRouteImport.update({
-  id: '/about-us',
-  path: '/about-us',
+const PublicDefaultRoute = PublicDefaultRouteImport.update({
+  id: '/_default',
   getParentRoute: () => PublicRoute,
 } as any)
 const AuthGalleryRoute = AuthGalleryRouteImport.update({
@@ -83,11 +68,6 @@ const PublicRegisterIndexRoute = PublicRegisterIndexRouteImport.update({
   path: '/register/',
   getParentRoute: () => PublicRoute,
 } as any)
-const PublicBulletinIndexRoute = PublicBulletinIndexRouteImport.update({
-  id: '/bulletin/',
-  path: '/bulletin/',
-  getParentRoute: () => PublicRoute,
-} as any)
 const AuthMandateIndexRoute = AuthMandateIndexRouteImport.update({
   id: '/_auth/mandate/',
   path: '/mandate/',
@@ -103,10 +83,25 @@ const PublicRegisterAccountRoute = PublicRegisterAccountRouteImport.update({
   path: '/register/account',
   getParentRoute: () => PublicRoute,
 } as any)
-const PublicBulletinArticleRoute = PublicBulletinArticleRouteImport.update({
-  id: '/bulletin/$article',
-  path: '/bulletin/$article',
-  getParentRoute: () => PublicRoute,
+const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
+  id: '/newsletter',
+  path: '/newsletter',
+  getParentRoute: () => PublicDefaultRoute,
+} as any)
+const PublicDefaultEventsRoute = PublicDefaultEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => PublicDefaultRoute,
+} as any)
+const PublicDefaultContactUsRoute = PublicDefaultContactUsRouteImport.update({
+  id: '/contact-us',
+  path: '/contact-us',
+  getParentRoute: () => PublicDefaultRoute,
+} as any)
+const PublicDefaultAboutUsRoute = PublicDefaultAboutUsRouteImport.update({
+  id: '/about-us',
+  path: '/about-us',
+  getParentRoute: () => PublicDefaultRoute,
 } as any)
 const AuthMandatePledgeRoute = AuthMandatePledgeRouteImport.update({
   id: '/_auth/mandate/pledge',
@@ -123,131 +118,145 @@ const AuthMandateCertificateRoute = AuthMandateCertificateRouteImport.update({
   path: '/mandate/certificate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicDefaultBulletinIndexRoute =
+  PublicDefaultBulletinIndexRouteImport.update({
+    id: '/bulletin/',
+    path: '/bulletin/',
+    getParentRoute: () => PublicDefaultRoute,
+  } as any)
+const PublicDefaultBulletinArticleRoute =
+  PublicDefaultBulletinArticleRouteImport.update({
+    id: '/bulletin/$article',
+    path: '/bulletin/$article',
+    getParentRoute: () => PublicDefaultRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/alumni': typeof AuthAlumniRoute
   '/gallery': typeof AuthGalleryRoute
-  '/about-us': typeof PublicAboutUsRoute
-  '/contact-us': typeof PublicContactUsRoute
-  '/events': typeof PublicEventsRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
-  '/newsletter': typeof PublicNewsletterRoute
   '/': typeof PublicIndexRoute
   '/mandate/certificate': typeof AuthMandateCertificateRoute
   '/mandate/dashboard': typeof AuthMandateDashboardRoute
   '/mandate/pledge': typeof AuthMandatePledgeRoute
-  '/bulletin/$article': typeof PublicBulletinArticleRoute
+  '/about-us': typeof PublicDefaultAboutUsRoute
+  '/contact-us': typeof PublicDefaultContactUsRoute
+  '/events': typeof PublicDefaultEventsRoute
+  '/newsletter': typeof PublicDefaultNewsletterRoute
   '/register/account': typeof PublicRegisterAccountRoute
   '/register/review': typeof PublicRegisterReviewRoute
   '/mandate': typeof AuthMandateIndexRoute
-  '/bulletin': typeof PublicBulletinIndexRoute
   '/register': typeof PublicRegisterIndexRoute
+  '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
+  '/bulletin': typeof PublicDefaultBulletinIndexRoute
 }
 export interface FileRoutesByTo {
   '/alumni': typeof AuthAlumniRoute
   '/gallery': typeof AuthGalleryRoute
-  '/about-us': typeof PublicAboutUsRoute
-  '/contact-us': typeof PublicContactUsRoute
-  '/events': typeof PublicEventsRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
-  '/newsletter': typeof PublicNewsletterRoute
   '/': typeof PublicIndexRoute
   '/mandate/certificate': typeof AuthMandateCertificateRoute
   '/mandate/dashboard': typeof AuthMandateDashboardRoute
   '/mandate/pledge': typeof AuthMandatePledgeRoute
-  '/bulletin/$article': typeof PublicBulletinArticleRoute
+  '/about-us': typeof PublicDefaultAboutUsRoute
+  '/contact-us': typeof PublicDefaultContactUsRoute
+  '/events': typeof PublicDefaultEventsRoute
+  '/newsletter': typeof PublicDefaultNewsletterRoute
   '/register/account': typeof PublicRegisterAccountRoute
   '/register/review': typeof PublicRegisterReviewRoute
   '/mandate': typeof AuthMandateIndexRoute
-  '/bulletin': typeof PublicBulletinIndexRoute
   '/register': typeof PublicRegisterIndexRoute
+  '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
+  '/bulletin': typeof PublicDefaultBulletinIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_public': typeof PublicRouteWithChildren
   '/_auth/alumni': typeof AuthAlumniRoute
   '/_auth/gallery': typeof AuthGalleryRoute
-  '/_public/about-us': typeof PublicAboutUsRoute
-  '/_public/contact-us': typeof PublicContactUsRoute
-  '/_public/events': typeof PublicEventsRoute
+  '/_public/_default': typeof PublicDefaultRouteWithChildren
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
-  '/_public/newsletter': typeof PublicNewsletterRoute
   '/_public/': typeof PublicIndexRoute
   '/_auth/mandate/certificate': typeof AuthMandateCertificateRoute
   '/_auth/mandate/dashboard': typeof AuthMandateDashboardRoute
   '/_auth/mandate/pledge': typeof AuthMandatePledgeRoute
-  '/_public/bulletin/$article': typeof PublicBulletinArticleRoute
+  '/_public/_default/about-us': typeof PublicDefaultAboutUsRoute
+  '/_public/_default/contact-us': typeof PublicDefaultContactUsRoute
+  '/_public/_default/events': typeof PublicDefaultEventsRoute
+  '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
   '/_public/register/account': typeof PublicRegisterAccountRoute
   '/_public/register/review': typeof PublicRegisterReviewRoute
   '/_auth/mandate/': typeof AuthMandateIndexRoute
-  '/_public/bulletin/': typeof PublicBulletinIndexRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
+  '/_public/_default/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
+  '/_public/_default/bulletin/': typeof PublicDefaultBulletinIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/alumni'
     | '/gallery'
-    | '/about-us'
-    | '/contact-us'
-    | '/events'
     | '/forgot-password'
     | '/login'
-    | '/newsletter'
     | '/'
     | '/mandate/certificate'
     | '/mandate/dashboard'
     | '/mandate/pledge'
-    | '/bulletin/$article'
+    | '/about-us'
+    | '/contact-us'
+    | '/events'
+    | '/newsletter'
     | '/register/account'
     | '/register/review'
     | '/mandate'
-    | '/bulletin'
     | '/register'
+    | '/bulletin/$article'
+    | '/bulletin'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/alumni'
     | '/gallery'
-    | '/about-us'
-    | '/contact-us'
-    | '/events'
     | '/forgot-password'
     | '/login'
-    | '/newsletter'
     | '/'
     | '/mandate/certificate'
     | '/mandate/dashboard'
     | '/mandate/pledge'
-    | '/bulletin/$article'
+    | '/about-us'
+    | '/contact-us'
+    | '/events'
+    | '/newsletter'
     | '/register/account'
     | '/register/review'
     | '/mandate'
-    | '/bulletin'
     | '/register'
+    | '/bulletin/$article'
+    | '/bulletin'
   id:
     | '__root__'
     | '/_public'
     | '/_auth/alumni'
     | '/_auth/gallery'
-    | '/_public/about-us'
-    | '/_public/contact-us'
-    | '/_public/events'
+    | '/_public/_default'
     | '/_public/forgot-password'
     | '/_public/login'
-    | '/_public/newsletter'
     | '/_public/'
     | '/_auth/mandate/certificate'
     | '/_auth/mandate/dashboard'
     | '/_auth/mandate/pledge'
-    | '/_public/bulletin/$article'
+    | '/_public/_default/about-us'
+    | '/_public/_default/contact-us'
+    | '/_public/_default/events'
+    | '/_public/_default/newsletter'
     | '/_public/register/account'
     | '/_public/register/review'
     | '/_auth/mandate/'
-    | '/_public/bulletin/'
     | '/_public/register/'
+    | '/_public/_default/bulletin/$article'
+    | '/_public/_default/bulletin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,13 +285,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/newsletter': {
-      id: '/_public/newsletter'
-      path: '/newsletter'
-      fullPath: '/newsletter'
-      preLoaderRoute: typeof PublicNewsletterRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_public/login': {
       id: '/_public/login'
       path: '/login'
@@ -297,25 +299,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/events': {
-      id: '/_public/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof PublicEventsRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/contact-us': {
-      id: '/_public/contact-us'
-      path: '/contact-us'
-      fullPath: '/contact-us'
-      preLoaderRoute: typeof PublicContactUsRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/about-us': {
-      id: '/_public/about-us'
-      path: '/about-us'
-      fullPath: '/about-us'
-      preLoaderRoute: typeof PublicAboutUsRouteImport
+    '/_public/_default': {
+      id: '/_public/_default'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof PublicDefaultRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_auth/gallery': {
@@ -339,13 +327,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicRegisterIndexRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/bulletin/': {
-      id: '/_public/bulletin/'
-      path: '/bulletin'
-      fullPath: '/bulletin'
-      preLoaderRoute: typeof PublicBulletinIndexRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_auth/mandate/': {
       id: '/_auth/mandate/'
       path: '/mandate'
@@ -367,12 +348,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicRegisterAccountRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/bulletin/$article': {
-      id: '/_public/bulletin/$article'
-      path: '/bulletin/$article'
-      fullPath: '/bulletin/$article'
-      preLoaderRoute: typeof PublicBulletinArticleRouteImport
-      parentRoute: typeof PublicRoute
+    '/_public/_default/newsletter': {
+      id: '/_public/_default/newsletter'
+      path: '/newsletter'
+      fullPath: '/newsletter'
+      preLoaderRoute: typeof PublicDefaultNewsletterRouteImport
+      parentRoute: typeof PublicDefaultRoute
+    }
+    '/_public/_default/events': {
+      id: '/_public/_default/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof PublicDefaultEventsRouteImport
+      parentRoute: typeof PublicDefaultRoute
+    }
+    '/_public/_default/contact-us': {
+      id: '/_public/_default/contact-us'
+      path: '/contact-us'
+      fullPath: '/contact-us'
+      preLoaderRoute: typeof PublicDefaultContactUsRouteImport
+      parentRoute: typeof PublicDefaultRoute
+    }
+    '/_public/_default/about-us': {
+      id: '/_public/_default/about-us'
+      path: '/about-us'
+      fullPath: '/about-us'
+      preLoaderRoute: typeof PublicDefaultAboutUsRouteImport
+      parentRoute: typeof PublicDefaultRoute
     }
     '/_auth/mandate/pledge': {
       id: '/_auth/mandate/pledge'
@@ -395,36 +397,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMandateCertificateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_public/_default/bulletin/': {
+      id: '/_public/_default/bulletin/'
+      path: '/bulletin'
+      fullPath: '/bulletin'
+      preLoaderRoute: typeof PublicDefaultBulletinIndexRouteImport
+      parentRoute: typeof PublicDefaultRoute
+    }
+    '/_public/_default/bulletin/$article': {
+      id: '/_public/_default/bulletin/$article'
+      path: '/bulletin/$article'
+      fullPath: '/bulletin/$article'
+      preLoaderRoute: typeof PublicDefaultBulletinArticleRouteImport
+      parentRoute: typeof PublicDefaultRoute
+    }
   }
 }
 
+interface PublicDefaultRouteChildren {
+  PublicDefaultAboutUsRoute: typeof PublicDefaultAboutUsRoute
+  PublicDefaultContactUsRoute: typeof PublicDefaultContactUsRoute
+  PublicDefaultEventsRoute: typeof PublicDefaultEventsRoute
+  PublicDefaultNewsletterRoute: typeof PublicDefaultNewsletterRoute
+  PublicDefaultBulletinArticleRoute: typeof PublicDefaultBulletinArticleRoute
+  PublicDefaultBulletinIndexRoute: typeof PublicDefaultBulletinIndexRoute
+}
+
+const PublicDefaultRouteChildren: PublicDefaultRouteChildren = {
+  PublicDefaultAboutUsRoute: PublicDefaultAboutUsRoute,
+  PublicDefaultContactUsRoute: PublicDefaultContactUsRoute,
+  PublicDefaultEventsRoute: PublicDefaultEventsRoute,
+  PublicDefaultNewsletterRoute: PublicDefaultNewsletterRoute,
+  PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
+  PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,
+}
+
+const PublicDefaultRouteWithChildren = PublicDefaultRoute._addFileChildren(
+  PublicDefaultRouteChildren,
+)
+
 interface PublicRouteChildren {
-  PublicAboutUsRoute: typeof PublicAboutUsRoute
-  PublicContactUsRoute: typeof PublicContactUsRoute
-  PublicEventsRoute: typeof PublicEventsRoute
+  PublicDefaultRoute: typeof PublicDefaultRouteWithChildren
   PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
-  PublicNewsletterRoute: typeof PublicNewsletterRoute
   PublicIndexRoute: typeof PublicIndexRoute
-  PublicBulletinArticleRoute: typeof PublicBulletinArticleRoute
   PublicRegisterAccountRoute: typeof PublicRegisterAccountRoute
   PublicRegisterReviewRoute: typeof PublicRegisterReviewRoute
-  PublicBulletinIndexRoute: typeof PublicBulletinIndexRoute
   PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
-  PublicAboutUsRoute: PublicAboutUsRoute,
-  PublicContactUsRoute: PublicContactUsRoute,
-  PublicEventsRoute: PublicEventsRoute,
+  PublicDefaultRoute: PublicDefaultRouteWithChildren,
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
-  PublicNewsletterRoute: PublicNewsletterRoute,
   PublicIndexRoute: PublicIndexRoute,
-  PublicBulletinArticleRoute: PublicBulletinArticleRoute,
   PublicRegisterAccountRoute: PublicRegisterAccountRoute,
   PublicRegisterReviewRoute: PublicRegisterReviewRoute,
-  PublicBulletinIndexRoute: PublicBulletinIndexRoute,
   PublicRegisterIndexRoute: PublicRegisterIndexRoute,
 }
 
