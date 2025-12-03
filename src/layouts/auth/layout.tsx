@@ -10,23 +10,16 @@ export function AuthLayout({
   backgroundColor = "bg-mist-green",
 }: AuthLayoutProps) {
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
-      <div className="flex h-full min-h-screen grow flex-col">
-        <div className="flex flex-1">
-          <div className="flex w-full flex-wrap">
-            {/* Desktop Sidebar */}
-            <div className="relative hidden w-2/5 flex-col bg-deep-forest text-white lg:flex">
-              {sidebar}
-            </div>
+    <div className="grid h-[calc(100vh-4rem)] w-full grid-cols-1 lg:grid-cols-[1fr_1.5fr] overflow-hidden">
+      <div className="relative hidden flex-col bg-deep-forest text-white lg:flex">
+        {sidebar}
+      </div>
 
-            {/* Main Content */}
-            <div
-              className={`flex w-full flex-col items-center justify-center ${backgroundColor} p-6 lg:w-3/5`}
-            >
-              {children}
-            </div>
-          </div>
-        </div>
+      {/* Scrollable Content Area - Centered */}
+      <div
+        className={`flex flex-col items-center justify-center overflow-y-auto ${backgroundColor}`}
+      >
+        {children}
       </div>
     </div>
   );

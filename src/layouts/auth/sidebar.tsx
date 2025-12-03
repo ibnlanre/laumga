@@ -12,14 +12,17 @@ export function AuthSidebar({
   bottomContent,
 }: AuthSidebarProps) {
   return (
-    <>
+    <div className="absolute inset-0 flex flex-col">
+      {/* Background image with overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        data-alt="LAUMGA background"
         style={{ backgroundImage: `url('${backgroundImage}')` }}
       />
-      <div className="absolute inset-0 bg-linear-to-t from-deep-forest/90 via-deep-forest/70 to-deep-forest/40" />
-      <div className="relative z-10 flex h-full flex-col justify-between p-12">
+      <div className="absolute inset-0 bg-linear-to-t from-deep-forest/95 via-deep-forest/75 to-deep-forest/40" />
+
+      {/* Content - relative positioning */}
+      <div className="relative z-10 flex h-full flex-col justify-between p-8 md:p-12">
+        {/* Logo at top */}
         <div className="flex">
           <img
             alt="LAUMGA Crest"
@@ -27,16 +30,34 @@ export function AuthSidebar({
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHBTD3WgPQvsf3uqULVrorUrr4lRZ1wX7rNNKYdG3dWqUMCm45rLyh8gkiJdQ2dnomhyD_rBtOSqRgkaviI7rmYI3pQ-wx6P4LFg_cYOMehn7-IL4-UiDo_polBKtShxwoCMfoZ_Tmw6SSZkFsBShKrxO8gp9u7gyKEr7PoUDU6kWPBN1VGk-kqlkJQ0YB_nnjeafLfAkW8VCzbTBEbmKDlQ8l2lFmSzsyfOkT8S9vy5nXC02fK4gfBNbVCE-THvhQMrixligYdI0"
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <h1 className="text-white tracking-light text-[32px] font-bold leading-tight font-display">
+
+        {/* Title and description - centered */}
+        <div className="flex flex-col gap-2 text-center md:text-left">
+          <h1 className="text-white tracking-light text-2xl md:text-[32px] font-bold leading-tight font-display">
             {title}
           </h1>
-          <p className="text-white/80 text-base font-normal leading-normal font-sans">
+          <p className="text-white/80 text-sm md:text-base font-normal leading-normal font-sans">
             {description}
           </p>
         </div>
-        {bottomContent && <div className="shrink-0">{bottomContent}</div>}
+
+        {/* Bottom content or login link */}
+        <div className="shrink-0 text-center md:text-left">
+          {bottomContent ? (
+            bottomContent
+          ) : (
+            <p className="text-white/80 text-sm">
+              Already a member?
+              <a
+                className="font-semibold text-vibrant-lime underline hover:text-white ml-1"
+                href="/login"
+              >
+                Log in here.
+              </a>
+            </p>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }

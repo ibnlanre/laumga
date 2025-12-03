@@ -24,14 +24,17 @@ export type User = NullableExcept<
   {
     // Identity
     email: string;
+    title: string; // Optional
     firstName: string;
     lastName: string;
-    middleName: string;
+    middleName: string; // Optional
     maidenName: string; // Optional
+    nickname: string; // Optional, auto-generated
     gender: Gender;
     dateOfBirth: string;
     nationality: string;
     phoneNumber: string;
+    address: string; // Residential address
 
     // Membership Data
     membershipId: string; // Generated (e.g., LAU/19/001)
@@ -84,9 +87,10 @@ export const user = {
       data.email,
       password
     );
-    const userId = result.user.uid;
 
+    const userId = result.user.uid;
     const userRef = doc(db, "users", userId) as UserDocumentReference;
+
     await setDoc(userRef, {
       ...data,
       created: {
