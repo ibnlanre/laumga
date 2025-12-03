@@ -1,9 +1,10 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { Fragment } from 'react/jsx-runtime'
+import { Button } from "@mantine/core";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { Fragment } from "react/jsx-runtime";
 
-export const Route = createFileRoute('/_public/_default')({
+export const Route = createFileRoute("/_public/_default")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
   return (
@@ -98,20 +99,24 @@ function RouteComponent() {
               </ul>
             </div>
             <div>
-              <h5 className="font-bold text-lg mb-4">Newsletter</h5>
-              <p className="text-sm text-gray-200 mb-3">
-                Subscribe to An-Naseehah.
+              <h3 className="font-bold text-lg mb-4">Newsletter</h3>
+              <p className="text-white/70 text-sm mb-4">
+                Stay updated with our latest news and events.
               </p>
-              <div className="flex">
+              <form className="flex gap-2">
                 <input
-                  className="grow w-full text-sm rounded-l-md border-gray-400 bg-white/20 text-white placeholder-gray-300 focus:ring-gold focus:border-gold"
-                  placeholder="Enter your email"
                   type="email"
+                  placeholder="Your email"
+                  className="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:border-vibrant-lime"
                 />
-                <button className="bg-gold text-rust px-4 py-2 text-sm rounded-r-md hover:bg-opacity-90 transition-opacity font-bold">
+                <Button
+                  size="sm"
+                  variant="filled"
+                  autoContrast
+                >
                   Subscribe
-                </button>
-              </div>
+                </Button>
+              </form>
             </div>
 
             {/* <div>

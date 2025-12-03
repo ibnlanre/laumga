@@ -20,19 +20,28 @@ code {
 }
 
 @theme {
-  --color-olive: #77874b;
   --color-pale-beige: #dce2cb;
   --color-rust: #993300;
   --color-gold: #e4d046;
-  --color-emerald-green: #044343;
   --color-slate-grey: #4a5568;
-  --color-muted-gold: #d97706;
 
+  --color-olive: #77874b;
   --color-deep-forest: #002313;
   --color-institutional-green: #006838;
   --color-vibrant-lime: #8dc63f;
   --color-sage-green: #cbe5a7;
   --color-mist-green: #f4f9ec;
+
+  --color-vibrant-lime-50: #f3fce7;
+  --color-vibrant-lime-100: #e8f5d7;
+  --color-vibrant-lime-200: #d1e8b1;
+  --color-vibrant-lime-300: #b8dc88;
+  --color-vibrant-lime-400: #a3d165;
+  --color-vibrant-lime-500: #96ca4e;
+  --color-vibrant-lime-600: #8dc63f;
+  --color-vibrant-lime-700: #7aaf32;
+  --color-vibrant-lime-800: #6b9c29;
+  --color-vibrant-lime-900: #5a871c;
 
   --color-primary: #8f8f3c;
   --color-background-light: #fdfdf6;
@@ -118,6 +127,20 @@ code {
 
 .animate-pulse-lime {
   animation: pulse-lime 2s infinite;
+}
+
+@layer utilities {
+  .bg-deep-forest-gradient {
+    background: linear-gradient(
+      180deg,
+      var(--color-deep-forest) 0%,
+      #001a0e 100%
+    );
+  }
+
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
 }
 
 @keyframes draw {

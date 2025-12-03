@@ -119,10 +119,10 @@ const mistGreen: MantineColorsTuple = [
 ];
 
 const vibrantLime: MantineColorsTuple = [
-  "#f3fce7",
+  "#f3fce7", // mist-green
   "#e8f5d7",
   "#d1e8b1",
-  "#b8dc88",
+  "#b8dc88", // sage-mint
   "#a3d165",
   "#96ca4e",
   "#8dc63f", // primary

@@ -1,10 +1,122 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { format } from "date-fns";
+import { notifications } from "@mantine/notifications";
+import { useRegistration } from "@/contexts/registration-context";
+import { useFetchChapterByState, useCreateUser } from "@/services/hooks";
+import type { User } from "@/api/user";
 
 export const Route = createFileRoute("/_public/register/review")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
+  const { personalDetails, locationAccount, previousStep, reset } =
+    useRegistration();
+  const [signature, setSignature] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const createUserMutation = useCreateUser();
+
+  // Fetch chapter based on state of residence
+  const { data: chapter } = useFetchChapterByState(
+    locationAccount?.stateOfResidence || ""
+  );
+
+  const handleBack = () => {
+    previousStep();
+    navigate({ to: "/register/account" });
+  };
+
+  const handleSubmit = async () => {
+    if (!personalDetails || !locationAccount) {
+      notifications.show({
+        title: "Missing information",
+        message: "Please complete all registration steps",
+        color: "red",
+      });
+      navigate({ to: "/register" });
+      return;
+    }
+
+    if (!signature.trim()) {
+      notifications.show({
+        title: "Signature required",
+        message: "Please provide your signature to complete registration",
+        color: "orange",
+      });
+      return;
+    }
+
+    try {
+      // Generate nickname from first name
+      const nickname = personalDetails.firstName.toLowerCase();
+
+      // Generate membership ID (simplified - in production, use a counter)
+      const year = new Date().getFullYear().toString().slice(-2);
+      const randomId = Math.floor(Math.random() * 999)
+        .toString()
+        .padStart(3, "0");
+      const membershipId = `LAU/${year}/${randomId}`;
+
+      // Prepare user data
+      const userData: User = {
+        email: locationAccount.email,
+        title: personalDetails.title || null,
+        firstName: personalDetails.firstName,
+        lastName: personalDetails.lastName,
+        middleName: personalDetails.middleName || null,
+        maidenName: null,
+        nickname,
+        gender: personalDetails.gender,
+        dateOfBirth: personalDetails.dateOfBirth,
+        nationality: personalDetails.nationality || "Nigerian",
+        phoneNumber: locationAccount.phoneNumber,
+        address: locationAccount.address,
+        membershipId,
+        passportUrl: personalDetails.passportUrl,
+        stateOfOrigin: locationAccount.stateOfOrigin,
+        stateOfResidence: locationAccount.stateOfResidence,
+        chapterId: chapter?.id || "",
+        status: "pending",
+        isAdmin: false,
+        fcmToken: null,
+        created: null,
+        modified: null,
+      };
+
+      // Create user with Firebase Auth + Firestore
+      await createUserMutation.mutateAsync({
+        data: userData,
+        password: locationAccount.password,
+      });
+
+      notifications.show({
+        title: "Registration successful!",
+        message: `Welcome to LAUMGA, ${personalDetails.firstName}! Your account is pending approval.`,
+        color: "green",
+        autoClose: 5000,
+      });
+
+      // Show success screen
+      setShowSuccess(true);
+
+      // Reset registration context
+      setTimeout(() => {
+        reset();
+        navigate({ to: "/login" });
+      }, 5000);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      notifications.show({
+        title: "Registration failed",
+        message: error?.message || "Registration failed. Please try again.",
+        color: "red",
+        autoClose: 7000,
+      });
+    }
+  };
   return (
     <div className="relative flex min-h-screen w-full flex-col group/design-root overflow-x-hidden font-display">
       <div className="flex min-h-screen">
@@ -77,76 +189,90 @@ function RouteComponent() {
               </div>
               <div className="space-y-8">
                 <div className="relative rounded-lg bg-white p-6 shadow-lg">
-                  <a
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/register" })}
                     className="absolute top-4 right-4 text-vibrant-lime transition-transform hover:scale-110"
-                    href="#"
                   >
                     <span className="material-symbols-outlined">edit</span>
-                  </a>
+                  </button>
                   <div className="flex items-center space-x-6">
                     <div className="shrink-0">
                       <img
                         alt="Passport Photo"
                         className="h-24 w-24 rounded-full border-4 border-institutional-green object-cover"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp8tPZem6_D0mEggw7LUmDwz5dlRJS4Dd9JDFaIR-8wbxMvxq4qW6zMlSHLEhwNSPU6abZbRJx5o4Xy4pXgktw8JLTEBcOIcfmR0aV__gAHklWJcsAvqiGTnAh8TCxbzx_N9rTUii1ZHSk8y3lHZnIXCUpW65mx_HQT3yIbqMHgf4_p_ntAO_HtyleHPKL4ki8soRVCjHrtIwOmwYhd2pZ-VTLW9cXSJiBUeQJpDZxanYvnpaVFtNKskhpOVn1gMtmbvGCcv0Bmb0"
+                        src={
+                          personalDetails?.passportUrl ||
+                          "https://via.placeholder.com/96"
+                        }
                       />
                     </div>
                     <div className="grow">
                       <h3 className="font-serif text-3xl text-deep-forest">
-                        Bro. Ahmed Alade
+                        {personalDetails?.gender === "male" ? "Bro. " : "Sis. "}
+                        {personalDetails?.firstName} {personalDetails?.lastName}
                       </h3>
                       <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-600 md:flex md:space-x-4">
                         <p>
                           <span className="font-semibold text-deep-forest">
                             Gender:
-                          </span>
-                          Male
+                          </span>{" "}
+                          {personalDetails?.gender === "male"
+                            ? "Male"
+                            : "Female"}
                         </p>
                         <p className="md:border-l md:pl-4">
                           <span className="font-semibold text-deep-forest">
                             Phone:
-                          </span>
-                          +234 801 234 5678
+                          </span>{" "}
+                          {locationAccount?.phoneNumber}
                         </p>
                         <p className="md:border-l md:pl-4">
                           <span className="font-semibold text-deep-forest">
                             DOB:
-                          </span>
-                          Jan 1, 1990
+                          </span>{" "}
+                          {personalDetails?.dateOfBirth
+                            ? format(
+                                new Date(personalDetails.dateOfBirth),
+                                "MMM d, yyyy"
+                              )
+                            : "N/A"}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="relative rounded-lg bg-mist-green p-6">
-                  <a
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/register/account" })}
                     className="absolute top-4 right-4 text-vibrant-lime transition-transform hover:scale-110"
-                    href="#"
                   >
                     <span className="material-symbols-outlined">edit</span>
-                  </a>
+                  </button>
                   <div className="flex items-start space-x-4">
                     <span className="material-symbols-outlined text-xl text-institutional-green">
                       location_on
                     </span>
                     <div className="grow">
                       <p className="font-semibold text-deep-forest">
-                        Registered under the Lagos State Chapter.
+                        Registered under the {chapter?.name || "Chapter"}.
                       </p>
                       <p className="text-sm text-gray-600">
-                        Based on residence in Lagos, Nigeria.
+                        Based on residence in{" "}
+                        {locationAccount?.stateOfResidence}.
                       </p>
                       <div className="mt-4 border-t border-sage-green pt-4">
                         <p>
                           <span className="font-semibold text-deep-forest">
                             Email:
-                          </span>
-                          ahmed@example.com
+                          </span>{" "}
+                          {locationAccount?.email}
                         </p>
                         <p>
                           <span className="font-semibold text-deep-forest">
                             Password:
-                          </span>
+                          </span>{" "}
                           ••••••••
                         </p>
                       </div>
@@ -180,6 +306,8 @@ function RouteComponent() {
                       id="signature"
                       placeholder="Your Full Name"
                       type="text"
+                      value={signature}
+                      onChange={(e) => setSignature(e.target.value)}
                     />
                   </div>
                 </div>
@@ -187,24 +315,34 @@ function RouteComponent() {
             </div>
             <div className="fixed bottom-0 right-0 w-[65%] bg-linear-to-t from-white via-white/90 to-white/0 p-8 pt-16">
               <div className="flex items-center justify-between">
-                <a
+                <button
+                  type="button"
+                  onClick={handleBack}
                   className="font-semibold text-deep-forest transition hover:underline"
-                  href="#"
                 >
                   ← Back to Account Details
-                </a>
-                <button className="group flex items-center justify-center gap-3 rounded-lg bg-deep-forest py-5 px-12 text-lg font-bold uppercase tracking-wider text-white transition hover:bg-opacity-90 focus:outline-none focus:ring-4 focus:ring-deep-forest/50">
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={createUserMutation.isPending || !signature.trim()}
+                  className="group flex items-center justify-center gap-3 rounded-lg bg-deep-forest py-5 px-12 text-lg font-bold uppercase tracking-wider text-white transition hover:bg-opacity-90 focus:outline-none focus:ring-4 focus:ring-deep-forest/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <span className="material-symbols-outlined text-white">
                     lock
                   </span>
-                  SUBMIT APPLICATION
+                  {createUserMutation.isPending
+                    ? "SUBMITTING..."
+                    : "SUBMIT APPLICATION"}
                 </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-white/80 opacity-0 backdrop-blur-sm transition-opacity duration-500">
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm transition-opacity duration-500 ${showSuccess ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+      >
         <div className="ml-[17.5%] text-center">
           <svg
             className="mx-auto h-24 w-24 text-vibrant-lime"
@@ -220,24 +358,28 @@ function RouteComponent() {
               strokeLinejoin="round"
               style={{
                 strokeDasharray: "100",
-                strokeDashoffset: "100",
-                animation: "draw 1.5s ease-in-out forwards",
+                strokeDashoffset: showSuccess ? "0" : "100",
+                animation: showSuccess
+                  ? "draw 1.5s ease-in-out forwards"
+                  : "none",
               }}
             ></path>
           </svg>
           <h2 className="mt-4 font-serif text-3xl text-deep-forest">
-            Welcome Home, Bro. Ahmed.
+            Welcome Home,{" "}
+            {personalDetails?.gender === "male" ? "Bro. " : "Sis. "}
+            {personalDetails?.firstName}.
           </h2>
           <p className="mt-2 text-gray-600">
             Your application is under review. Check your email for the
             verification link.
           </p>
-          <a
+          <button
+            onClick={() => navigate({ to: "/login" })}
             className="mt-8 inline-block rounded-lg border border-deep-forest px-8 py-3 font-bold text-deep-forest transition hover:bg-deep-forest hover:text-white"
-            href="#"
           >
-            Go to Dashboard
-          </a>
+            Go to Login
+          </button>
         </div>
       </div>
     </div>

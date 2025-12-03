@@ -6,7 +6,9 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint . --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@ibnlanre/builder": "^1.0.4",

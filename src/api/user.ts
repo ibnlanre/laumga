@@ -1,10 +1,15 @@
 import {
   CollectionReference,
+  collection,
   doc,
   DocumentReference,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import {
   browserLocalPersistence,
@@ -69,6 +74,55 @@ export interface UpdateUserVariables {
   updates: Partial<User>; // Flexible updates for profile edits
 }
 
+/**
+ * Fetch all users
+ */
+async function fetchAll(filters?: {
+  status?: ApprovalStatus;
+}): Promise<UserData[]> {
+  const usersRef = collection(db, "users");
+  let usersQuery = query(usersRef);
+
+  if (filters?.status) {
+    usersQuery = query(usersRef, where("status", "==", filters.status));
+  }
+
+  const snapshot = await getDocs(usersQuery);
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as UserData[];
+}
+
+/**
+ * Update user
+ */
+async function update(
+  userId: string,
+  updates: Partial<User>
+): Promise<UserData> {
+  const userRef = doc(db, "users", userId) as UserDocumentReference;
+
+  const updateData = {
+    ...updates,
+    modified: {
+      at: serverTimestamp(),
+      by: userId,
+      name: updates.firstName || null,
+      photoUrl: updates.passportUrl || null,
+    },
+  };
+
+  await updateDoc(userRef, updateData);
+
+  const userDoc = await getDoc(userRef);
+  if (!userDoc.exists()) {
+    throw new Error("User not found after update");
+  }
+
+  return { id: userDoc.id, ...userDoc.data() } as UserData;
+}
+
 export const user = {
   login: async (variables: { email: string; password: string }) => {
     const { email, password } = variables;
@@ -126,4 +180,6 @@ export const user = {
     const { token, newPassword } = variables;
     await confirmPasswordReset(auth, token, newPassword);
   },
+  fetchAll,
+  update,
 };

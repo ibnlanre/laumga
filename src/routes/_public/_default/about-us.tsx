@@ -275,7 +275,6 @@ function RouteComponent() {
               autoContrast
               variant="filled"
               className="hover:scale-101 transition-transform"
-              color="institutional-green.9"
               size="xl"
               fz="md"
               radius="xl"

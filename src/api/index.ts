@@ -26,3 +26,7 @@ export const api = createBuilder({
   upload,
   mono,
 });
+
+export type * from "./event";
+export type * from "./mandate";
+export type * from "./user";
