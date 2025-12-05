@@ -39,7 +39,9 @@ export const Route = createFileRoute("/_auth")({
 
 function AuthLayout() {
   const { userData } = useAuth();
-  const variant = userData?.isAdmin ? "admin" : "auth";
+  const isPrivileged =
+    userData?.role === "admin" || userData?.role === "super-admin";
+  const variant = isPrivileged ? "admin" : "auth";
 
   return (
     <div className="flex flex-col min-h-screen bg-mist-green-50">

@@ -229,6 +229,12 @@ function RouteComponent() {
           leftSection={<Home size={16} />}
           key={form.key("address")}
           {...form.getInputProps("address")}
+          labelProps={{
+            lh: 2,
+            fz: "sm",
+          }}
+          radius="lg"
+          size="lg"
         />
 
         {/* Account Credentials */}

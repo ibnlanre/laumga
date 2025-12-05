@@ -18,8 +18,6 @@ const monoClient = axios.create({
   },
 });
 
-const PLATFORM_FEE = 50_00; // ₦50 fixed fee in kobo
-
 /**
  * Mono Customer Schema
  */
@@ -38,6 +36,23 @@ export const monoCustomerSchema = z.object({
 
 export type MonoCustomerInput = z.infer<typeof monoCustomerSchema>;
 
+const monoSplitEntrySchema = z.object({
+  sub_account: z.string(),
+  value: z.number(),
+  max: z.number().optional(),
+});
+
+const monoSplitConfigurationSchema = z.object({
+  type: z.enum(["percentage", "fixed"]),
+  fee_bearer: z.enum(["business", "sub_accounts"]),
+  sub_accounts: z.array(monoSplitEntrySchema).min(1),
+});
+
+export type MonoSplitEntry = z.infer<typeof monoSplitEntrySchema>;
+export type MonoSplitConfiguration = z.infer<
+  typeof monoSplitConfigurationSchema
+>;
+
 /**
  * Mono Mandate Initiation Schema
  */
@@ -55,19 +70,7 @@ export const monoMandateSchema = z.object({
   redirect_url: z.url().optional(),
   start_date: z.string(), // YYYY-MM-DD
   end_date: z.string(), // YYYY-MM-DD
-  split: z
-    .object({
-      type: z.enum(["percentage", "fixed"]),
-      fee_bearer: z.enum(["business", "sub_accounts"]),
-      distribution: z.array(
-        z.object({
-          account: z.string(),
-          value: z.number(),
-          max: z.number().optional(),
-        })
-      ),
-    })
-    .optional(),
+  split: monoSplitConfigurationSchema.optional(),
   meta: z.record(z.string(), z.any()).optional(),
 });
 
@@ -80,18 +83,7 @@ export const monoDebitSchema = z.object({
   amount: z.number().min(20000),
   reference: z.string().min(10),
   narration: z.string().min(1),
-  split: z
-    .object({
-      type: z.enum(["fixed"]),
-      fee_bearer: z.literal("business"),
-      distribution: z.array(
-        z.object({
-          account: z.string(),
-          value: z.number(),
-        })
-      ),
-    })
-    .optional(),
+  split: monoSplitConfigurationSchema.optional(),
 });
 
 export type MonoDebitInput = z.infer<typeof monoDebitSchema>;
@@ -204,10 +196,11 @@ export const monoDebitResponseSchema = z.object({
       .object({
         type: z.string(),
         fee_bearer: z.string(),
-        distribution: z.array(
+        sub_accounts: z.array(
           z.object({
-            account: z.string(),
+            sub_account: z.string(),
             value: z.number(),
+            max: z.number().optional(),
           })
         ),
       })
@@ -315,39 +308,6 @@ export class MonoError extends Error {
   }
 }
 
-function calculatePlatformFee(totalAmount: number): {
-  platformFee: number;
-  clientAmount: number;
-} {
-  return {
-    platformFee: PLATFORM_FEE,
-    clientAmount: totalAmount - PLATFORM_FEE,
-  };
-}
-
-function createSplitConfiguration(
-  totalAmount: number,
-  clientSubAccountId: string,
-  platformSubAccountId: string
-) {
-  const { clientAmount, platformFee } = calculatePlatformFee(totalAmount);
-
-  return {
-    type: "fixed" as const,
-    fee_bearer: "business" as const,
-    distribution: [
-      {
-        account: clientSubAccountId,
-        value: clientAmount,
-      },
-      {
-        account: platformSubAccountId,
-        value: platformFee,
-      },
-    ],
-  };
-}
-
 /**
  * Mono API Client
  */
@@ -379,23 +339,10 @@ export const mono = {
     /**
      * Initiate a new mandate with split payment
      */
-    initiate: async (
-      data: MonoMandateInput,
-      clientSubAccountId: string,
-      platformSubAccountId: string
-    ) => {
-      const mandateData = {
-        ...data,
-        split: createSplitConfiguration(
-          data.amount,
-          clientSubAccountId,
-          platformSubAccountId
-        ),
-      };
-
+    initiate: async (data: MonoMandateInput) => {
       const response = await monoClient.post<MonoMandateResponse>(
         "/v2/payments/initiate",
-        mandateData
+        data
       );
       return response.data;
     },
@@ -443,24 +390,10 @@ export const mono = {
     /**
      * Debit a mandate with split payment
      */
-    debit: async (
-      mandateId: string,
-      data: MonoDebitInput,
-      clientSubAccountId: string,
-      platformSubAccountId: string
-    ) => {
-      const debitData = {
-        ...data,
-        split: createSplitConfiguration(
-          data.amount,
-          clientSubAccountId,
-          platformSubAccountId
-        ),
-      };
-
+    debit: async (mandateId: string, data: MonoDebitInput) => {
       const response = await monoClient.post<MonoDebitResponse>(
         `/v3/payments/mandates/${mandateId}/debit`,
-        debitData
+        data
       );
       return response.data;
     },

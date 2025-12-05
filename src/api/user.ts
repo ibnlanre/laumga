@@ -22,7 +22,12 @@ import {
 } from "firebase/auth";
 
 import { auth, db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs, type Variables } from "@/client/core-query";
+import {
+  buildQuery,
+  getQueryDoc,
+  getQueryDocs,
+  type Variables,
+} from "@/client/core-query";
 
 // Schemas
 export const genderSchema = z.enum(["male", "female"]);
@@ -32,6 +37,8 @@ export const approvalStatusSchema = z.enum([
   "rejected",
   "suspended",
 ]);
+
+export const userRoleSchema = z.enum(["member", "admin", "super-admin"]);
 
 const logEntrySchema = z.object({
   at: z.instanceof(Timestamp),
@@ -68,7 +75,7 @@ export const userSchema = z.object({
 
   // System
   status: approvalStatusSchema,
-  isAdmin: z.boolean(),
+  role: userRoleSchema,
   fcmToken: z.string().nullable(),
 
   // Meta
@@ -79,6 +86,7 @@ export const userSchema = z.object({
 export type Gender = z.infer<typeof genderSchema>;
 export type ApprovalStatus = z.infer<typeof approvalStatusSchema>;
 export type User = z.infer<typeof userSchema>;
+export type UserRole = z.infer<typeof userRoleSchema>;
 
 export type UserData = Omit<User, "id">;
 export type UserCollection = CollectionReference<UserData>;
@@ -172,7 +180,7 @@ export const user = {
         chapterId: null,
         classSet: null,
         status: "pending" as const,
-        isAdmin: false,
+        role: "member",
         fcmToken: null,
         created: {
           at: serverTimestamp(),

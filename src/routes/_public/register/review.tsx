@@ -79,7 +79,7 @@ function RouteComponent() {
       chapterId: chapter?.id || "",
       classSet: personalDetails.classSet,
       status: "pending",
-      isAdmin: false,
+      role: "member",
       fcmToken: null,
       created: null,
       modified: null,

@@ -277,17 +277,10 @@ export function useFetchPaymentPartner(partnerId?: string) {
   });
 }
 
-export function useFetchClientPartner() {
+export function useFetchActivePaymentPartner() {
   return useQuery({
-    queryKey: api.paymentPartner.getClient.$use(),
-    queryFn: () => api.$use.paymentPartner.getClient(),
-  });
-}
-
-export function useFetchPlatformPartner() {
-  return useQuery({
-    queryKey: api.paymentPartner.getPlatform.$use(),
-    queryFn: () => api.$use.paymentPartner.getPlatform(),
+    queryKey: api.paymentPartner.getActive.$use(),
+    queryFn: () => api.$use.paymentPartner.getActive(),
   });
 }
 

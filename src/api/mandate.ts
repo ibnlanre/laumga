@@ -11,18 +11,22 @@ import {
   getDocs,
   updateDoc,
   addDoc,
-  limit,
   Timestamp,
 } from "firebase/firestore";
 import type { WithId } from "@/services/types";
 import { db } from "@/services/firebase";
 import { z } from "zod/v4";
 import { user } from "./user";
-import { mono, type MonoCustomerInput } from "./mono";
 import {
+  mono,
+  type MonoCustomerInput,
+  type MonoSplitConfiguration,
+} from "./mono";
+import {
+  paymentPartner,
+  allocationTypeSchema,
+  feeBearerSchema,
   type PaymentPartner,
-  type PaymentPartnerCollection,
-  paymentPartnerSchema,
 } from "./payment-partner";
 import { addMonths, addYears } from "date-fns";
 import { formatDate } from "@/utils/date";
@@ -49,15 +53,31 @@ export type MandateStatus =
   | "cancelled" // Permanently cancelled
   | "completed"; // Mandate period ended
 
-/**
- * Fee split configuration
- * Platform takes a fixed ₦50 fee, client receives the rest
- */
-export const feeSplitSchema = z.object({
-  platformFee: z.number(), // Fixed ₦50 in kobo (5000)
-  clientAmount: z.number(), // Remaining amount after platform fee
-  totalAmount: z.number(), // Total payment amount
+const legacyFeeSplitSchema = z.object({
+  platformFee: z.number(),
+  clientAmount: z.number(),
+  totalAmount: z.number(),
 });
+
+const allocationFeeSplitSchema = z.object({
+  partnerId: z.string(),
+  partnerName: z.string(),
+  allocationType: allocationTypeSchema,
+  allocationValue: z.number(),
+  allocationMax: z.number().nullable(),
+  feeBearer: feeBearerSchema,
+  allocatedAmount: z.number(),
+  retainedAmount: z.number(),
+  totalAmount: z.number(),
+});
+
+export type LegacyFeeSplit = z.infer<typeof legacyFeeSplitSchema>;
+export type AllocationFeeSplit = z.infer<typeof allocationFeeSplitSchema>;
+
+export const feeSplitSchema = z.union([
+  legacyFeeSplitSchema,
+  allocationFeeSplitSchema,
+]);
 
 export type FeeSplit = z.infer<typeof feeSplitSchema>;
 
@@ -163,8 +183,12 @@ export const mandateTransactionSchema = z.object({
   mandateId: z.string(),
   userId: z.string(),
   amount: z.number(),
-  platformFee: z.number(), // Platform's ₦50 fee
-  clientAmount: z.number(), // Amount to client
+  platformFee: z.number().optional(), // Legacy platform fee
+  clientAmount: z.number().optional(), // Legacy client amount
+  partnerId: z.string().optional(),
+  partnerName: z.string().optional(),
+  allocatedAmount: z.number().optional(),
+  retainedAmount: z.number().optional(),
   monoReference: z.string(), // Mono payment reference
   monoDebitId: z.string(), // Mono debit transaction ID
   status: z.enum(["successful", "failed", "processing"]),
@@ -172,6 +196,7 @@ export const mandateTransactionSchema = z.object({
   failureReason: z.string().nullable(), // Error message if failed
   paidAt: z.string(),
   created: logEntrySchema,
+  splitSnapshot: feeSplitSchema.nullable().optional(),
 });
 
 export type MandateTransaction = z.infer<typeof mandateTransactionSchema>;
@@ -235,22 +260,6 @@ async function getActiveMandateDocument(
 export interface CreateMandateVariables {
   userId: string;
   data: CreateMandateInput;
-}
-
-/**
- * Constants
- */
-const PLATFORM_FEE = 50_00; // ₦50 in kobo
-
-/**
- * Utility: Calculate fee split
- */
-function calculateFeeSplit(amount: number): FeeSplit {
-  return {
-    platformFee: PLATFORM_FEE,
-    clientAmount: amount - PLATFORM_FEE,
-    totalAmount: amount,
-  };
 }
 
 /**
@@ -319,49 +328,70 @@ function generateDebitReference(mandateId: string): string {
 }
 
 /**
- * Fetch active payment partners using optimized Firebase queries
- * Returns both client and platform partners in a single operation
+ * Utility helpers for payment partner allocation
  */
-async function fetchActivePartners(): Promise<{
-  client: PaymentPartner | null;
-  platform: PaymentPartner | null;
-}> {
-  const partnersRef = collection(
-    db,
-    "paymentPartners"
-  ) as PaymentPartnerCollection;
+function ensureActivePartner(
+  partner: PaymentPartner | null
+): asserts partner is PaymentPartner {
+  if (!partner) {
+    throw new Error("Active payment partner not configured");
+  }
+}
 
-  // Query for active client partner (not platform)
-  const clientQuery = query(
-    partnersRef,
-    where("isPlatform", "==", false),
-    where("isActive", "==", true),
-    limit(1)
-  );
-  const clientSnapshot = await getDocs(clientQuery);
-  const client = clientSnapshot.empty
-    ? null
-    : paymentPartnerSchema.parse({
-        id: clientSnapshot.docs[0].id,
-        ...clientSnapshot.docs[0].data(),
-      });
+function computeAllocatedAmount(partner: PaymentPartner, totalAmount: number) {
+  const baseAllocation =
+    partner.allocationType === "percentage"
+      ? Math.round((partner.allocationValue / 100) * totalAmount)
+      : partner.allocationValue;
 
-  // Query for active platform partner
-  const platformQuery = query(
-    partnersRef,
-    where("isPlatform", "==", true),
-    where("isActive", "==", true),
-    limit(1)
-  );
-  const platformSnapshot = await getDocs(platformQuery);
-  const platform = platformSnapshot.empty
-    ? null
-    : paymentPartnerSchema.parse({
-        id: platformSnapshot.docs[0].id,
-        ...platformSnapshot.docs[0].data(),
-      });
+  const withCap =
+    partner.allocationMax !== null
+      ? Math.min(baseAllocation, partner.allocationMax)
+      : baseAllocation;
 
-  return { client, platform };
+  return Math.min(withCap, totalAmount);
+}
+
+function buildPartnerAllocation(
+  partner: PaymentPartner,
+  totalAmount: number
+): {
+  snapshot: AllocationFeeSplit;
+  split: MonoSplitConfiguration;
+} {
+  const allocatedAmount = computeAllocatedAmount(partner, totalAmount);
+  const retainedAmount = Math.max(totalAmount - allocatedAmount, 0);
+
+  const snapshot: AllocationFeeSplit = {
+    partnerId: partner.id,
+    partnerName: partner.name,
+    allocationType: partner.allocationType,
+    allocationValue: partner.allocationValue,
+    allocationMax: partner.allocationMax,
+    feeBearer: partner.feeBearer,
+    allocatedAmount,
+    retainedAmount,
+    totalAmount,
+  };
+
+  const subAccountValue =
+    partner.allocationType === "percentage"
+      ? partner.allocationValue
+      : snapshot.allocatedAmount;
+
+  const split: MonoSplitConfiguration = {
+    type: partner.allocationType,
+    fee_bearer: partner.feeBearer,
+    sub_accounts: [
+      {
+        sub_account: partner.monoSubAccountId,
+        value: subAccountValue,
+        ...(partner.allocationMax ? { max: partner.allocationMax } : undefined),
+      },
+    ],
+  };
+
+  return { snapshot, split };
 }
 
 /**
@@ -379,13 +409,8 @@ export const mandate = {
     const userData = await user.fetch(userId);
     if (!userData) throw new Error("User not found");
 
-    // Fetch payment partners using optimized queries
-    const { client: clientPartner, platform: platformPartner } =
-      await fetchActivePartners();
-
-    if (!clientPartner || !platformPartner) {
-      throw new Error("Payment partners not configured");
-    }
+    const activePartner = await paymentPartner.getActive();
+    ensureActivePartner(activePartner);
 
     // Generate reference and calculate dates
     const reference = generateMandateReference(userId);
@@ -393,9 +418,12 @@ export const mandate = {
     const endDate = calculateEndDate(startDate, data.duration);
     const nextChargeDate = calculateNextChargeDate(startDate, data.frequency);
 
-    // Determine tier and fee split
+    // Determine tier and partner allocation snapshot
     const tier = determineTier(data.amount);
-    const feeSplit = calculateFeeSplit(data.amount);
+    const { split, snapshot } = buildPartnerAllocation(
+      activePartner,
+      data.amount
+    );
 
     // Create Mono customer
     let monoCustomerId: string;
@@ -419,28 +447,29 @@ export const mandate = {
     }
 
     // Initiate Mono mandate with sub-account IDs
-    const mandateResponse = await mono.mandate.initiate(
-      {
-        amount: data.amount,
-        type: "recurring-debit",
-        method: "mandate",
-        mandate_type: "emandate",
-        debit_type: data.frequency === "one-time" ? "variable" : "variable",
-        description: `LAUMGA ${data.frequency} contribution - ${userData.firstName} ${userData.lastName}`,
-        reference,
-        customer: { id: monoCustomerId },
-        redirect_url: `${window.location.origin}/mandate/dashboard`,
-        start_date: formatDate(startDate, "yyyy-MM-dd"),
-        end_date: formatDate(endDate, "yyyy-MM-dd"),
-        meta: {
-          userId,
-          tier,
-          platformFee: feeSplit.platformFee.toString(),
-        },
+    const mandateResponse = await mono.mandate.initiate({
+      amount: data.amount,
+      type: "recurring-debit",
+      method: "mandate",
+      mandate_type: "emandate",
+      debit_type: data.frequency === "one-time" ? "variable" : "variable",
+      description: `LAUMGA ${data.frequency} contribution - ${userData.firstName} ${userData.lastName}`,
+      reference,
+      customer: { id: monoCustomerId },
+      redirect_url: `${window.location.origin}/mandate/dashboard`,
+      start_date: formatDate(startDate, "yyyy-MM-dd"),
+      end_date: formatDate(endDate, "yyyy-MM-dd"),
+      split,
+      meta: {
+        userId,
+        tier,
+        partnerId: snapshot.partnerId,
+        allocationType: snapshot.allocationType,
+        allocationValue: snapshot.allocationValue,
+        allocationMax: snapshot.allocationMax,
+        feeBearer: snapshot.feeBearer,
       },
-      clientPartner.monoSubAccountId,
-      platformPartner.monoSubAccountId
-    );
+    });
 
     // Create mandate document
     const mandateRef = doc(
@@ -469,7 +498,7 @@ export const mandate = {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       nextChargeDate: nextChargeDate.toISOString(),
-      feeSplit,
+      feeSplit: snapshot,
       totalCollected: 0,
       totalTransactions: 0,
       created: {
@@ -567,28 +596,24 @@ export const mandate = {
       throw new Error("Mandate is not ready for debiting");
     }
 
-    // Fetch payment partners using optimized queries
-    const { client: clientPartner, platform: platformPartner } =
-      await fetchActivePartners();
+    const activePartner = await paymentPartner.getActive();
+    ensureActivePartner(activePartner);
 
-    if (!clientPartner || !platformPartner) {
-      throw new Error("Payment partners not configured");
-    }
+    const { split, snapshot } = buildPartnerAllocation(
+      activePartner,
+      mandateData.amount
+    );
 
     // Generate debit reference
     const debitReference = generateDebitReference(mandateId);
 
     // Process debit with Mono
-    const debitResponse = await mono.mandate.debit(
-      mandateData.monoMandateId!,
-      {
-        amount: mandateData.amount,
-        reference: debitReference,
-        narration: `LAUMGA ${mandateData.frequency} contribution`,
-      },
-      clientPartner.monoSubAccountId,
-      platformPartner.monoSubAccountId
-    );
+    const debitResponse = await mono.mandate.debit(mandateData.monoMandateId!, {
+      amount: mandateData.amount,
+      reference: debitReference,
+      narration: `LAUMGA ${mandateData.frequency} contribution`,
+      split,
+    });
 
     // Create transaction record
     const transactionRef = collection(
@@ -600,9 +625,10 @@ export const mandate = {
       mandateId,
       userId: mandateData.userId,
       amount: mandateData.amount,
-      platformFee: mandateData.feeSplit?.platformFee ?? PLATFORM_FEE,
-      clientAmount:
-        mandateData.feeSplit?.clientAmount ?? mandateData.amount - PLATFORM_FEE,
+      partnerId: snapshot.partnerId,
+      partnerName: snapshot.partnerName,
+      allocatedAmount: snapshot.allocatedAmount,
+      retainedAmount: snapshot.retainedAmount,
       monoReference: debitReference,
       monoDebitId: debitResponse.data.reference_number,
       status: debitResponse.data.status as
@@ -620,6 +646,7 @@ export const mandate = {
         name: null,
         photoUrl: null,
       },
+      splitSnapshot: snapshot,
     };
 
     const transactionDoc = await addDoc(transactionRef, transaction);

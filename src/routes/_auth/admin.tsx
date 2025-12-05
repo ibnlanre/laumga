@@ -1,17 +1,26 @@
-import {
-  Outlet, createFileRoute,
-  // notFound
-} from "@tanstack/react-router";
-// import { auth } from "@/services/firebase";
-// import { user } from "@/api/user";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { auth } from "@/services/firebase";
+import { user } from "@/api/user";
 
 export const Route = createFileRoute("/_auth/admin")({
-  beforeLoad: async () => {
-    // const currentUser = auth.currentUser;
-    // if (!currentUser) throw notFound();
+  beforeLoad: async ({ location }) => {
+    const currentUser = auth.currentUser;
 
-    // const userData = await user.fetch(currentUser.uid);
-    // if (!userData?.isAdmin) throw notFound();
+    if (!currentUser) {
+      throw redirect({
+        to: "/login",
+        search: { redirect: location.href },
+      });
+    }
+
+    const userData = await user.fetch(currentUser.uid);
+
+    const canAccess =
+      userData?.role === "admin" || userData?.role === "super-admin";
+
+    if (!canAccess) {
+      throw redirect({ to: "/login" });
+    }
   },
   component: AdminLayout,
 });
