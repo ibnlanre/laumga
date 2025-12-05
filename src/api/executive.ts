@@ -9,6 +9,10 @@ import {
   deleteDoc,
   query,
   where,
+  serverTimestamp,
+  CollectionReference,
+  DocumentReference,
+  type WithFieldValue,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 
@@ -28,8 +32,8 @@ export const executiveSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   isActive: z.boolean().default(true),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const createExecutiveSchema = executiveSchema.omit({
@@ -44,25 +48,29 @@ export type Executive = z.infer<typeof executiveSchema>;
 export type CreateExecutiveData = z.infer<typeof createExecutiveSchema>;
 export type UpdateExecutiveData = z.infer<typeof updateExecutiveSchema>;
 
+export type ExecutiveData = Omit<Executive, "id">;
+export type ExecutiveCollectionReference = CollectionReference<ExecutiveData>;
+export type ExecutiveDocumentReference = DocumentReference<ExecutiveData>;
+
 const EXECUTIVES_COLLECTION = "executives";
 
 /**
  * Create executive member
  */
-async function create(data: CreateExecutiveData): Promise<Executive> {
+async function create(data: CreateExecutiveData) {
   const validated = createExecutiveSchema.parse(data);
-  const now = Date.now();
 
   const executiveData = {
     ...validated,
-    createdAt: now,
-    updatedAt: now,
-  };
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } satisfies WithFieldValue<ExecutiveData> as unknown as ExecutiveData;
 
-  const docRef = await addDoc(
-    collection(db, EXECUTIVES_COLLECTION),
-    executiveData
-  );
+  const executivesRef = collection(
+    db,
+    EXECUTIVES_COLLECTION
+  ) as ExecutiveCollectionReference;
+  const docRef = await addDoc(executivesRef, executiveData);
 
   return {
     id: docRef.id,
@@ -73,16 +81,17 @@ async function create(data: CreateExecutiveData): Promise<Executive> {
 /**
  * Update executive member
  */
-async function update(
-  id: string,
-  data: UpdateExecutiveData
-): Promise<Executive> {
+async function update(id: string, data: UpdateExecutiveData) {
   const validated = updateExecutiveSchema.parse(data);
-  const executiveRef = doc(db, EXECUTIVES_COLLECTION, id);
+  const executiveRef = doc(
+    db,
+    EXECUTIVES_COLLECTION,
+    id
+  ) as ExecutiveDocumentReference;
 
   const updateData = {
     ...validated,
-    updatedAt: Date.now(),
+    updatedAt: serverTimestamp(),
   };
 
   await updateDoc(executiveRef, updateData);
@@ -102,8 +111,11 @@ async function fetchAll(filters?: {
   tier?: Executive["tier"];
   tenureYear?: string;
   isActive?: boolean;
-}): Promise<Executive[]> {
-  const executivesRef = collection(db, EXECUTIVES_COLLECTION);
+}) {
+  const executivesRef = collection(
+    db,
+    EXECUTIVES_COLLECTION
+  ) as ExecutiveCollectionReference;
   let executivesQuery = query(executivesRef);
 
   // Filter by active status
@@ -127,25 +139,32 @@ async function fetchAll(filters?: {
     );
   }
 
-  // Order by tier (presidential first)
-  const tierOrder = { presidential: 0, council: 1, directorate: 2 };
   const snapshot = await getDocs(executivesQuery);
   const executives = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Executive[];
+  }));
 
-  // Sort by tier hierarchy
-  executives.sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
+  // Order by tier (presidential first)
+  const tierOrder = { presidential: 0, council: 1, directorate: 2 };
+  
+  // Parse first to ensure data integrity, then sort
+  const parsedExecutives = executiveSchema.array().parse(executives);
+  
+  parsedExecutives.sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
 
-  return executiveSchema.array().parse(executives);
+  return parsedExecutives;
 }
 
 /**
  * Fetch executive by ID
  */
 async function fetchById(id: string): Promise<Executive | null> {
-  const executiveRef = doc(db, EXECUTIVES_COLLECTION, id);
+  const executiveRef = doc(
+    db,
+    EXECUTIVES_COLLECTION,
+    id
+  ) as ExecutiveDocumentReference;
   const executiveDoc = await getDoc(executiveRef);
 
   if (!executiveDoc.exists()) {
@@ -164,7 +183,10 @@ async function fetchById(id: string): Promise<Executive | null> {
  * Fetch executive by user ID
  */
 async function fetchByUserId(userId: string): Promise<Executive | null> {
-  const executivesRef = collection(db, EXECUTIVES_COLLECTION);
+  const executivesRef = collection(
+    db,
+    EXECUTIVES_COLLECTION
+  ) as ExecutiveCollectionReference;
   const executiveQuery = query(
     executivesRef,
     where("userId", "==", userId),
@@ -197,7 +219,10 @@ async function fetchCurrent(): Promise<Executive[]> {
  * Fetch all tenure years
  */
 async function fetchTenureYears(): Promise<string[]> {
-  const executivesRef = collection(db, EXECUTIVES_COLLECTION);
+  const executivesRef = collection(
+    db,
+    EXECUTIVES_COLLECTION
+  ) as ExecutiveCollectionReference;
   const snapshot = await getDocs(executivesRef);
 
   const years = new Set<string>();
@@ -215,7 +240,11 @@ async function fetchTenureYears(): Promise<string[]> {
  * Delete executive member
  */
 async function remove(id: string): Promise<void> {
-  const executiveRef = doc(db, EXECUTIVES_COLLECTION, id);
+  const executiveRef = doc(
+    db,
+    EXECUTIVES_COLLECTION,
+    id
+  ) as ExecutiveDocumentReference;
   await deleteDoc(executiveRef);
 }
 

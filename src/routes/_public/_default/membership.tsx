@@ -1,6 +1,16 @@
 import { Button } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Star, Shield, Users } from "lucide-react";
+import {
+  Check,
+  Star,
+  Shield,
+  Users,
+  Sparkles,
+  HandHeart,
+  GraduationCap,
+  Calendar,
+  Landmark,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/membership")({
   component: RouteComponent,
@@ -87,9 +97,7 @@ function RouteComponent() {
 
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sage-green">
-                <span className="material-symbols-outlined text-3xl text-institutional-green">
-                  self_improvement
-                </span>
+                <Sparkles className="h-8 w-8 text-institutional-green" />
               </div>
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Spiritual Growth
@@ -336,11 +344,9 @@ function RouteComponent() {
           </div>
 
           <div className="mt-16 grid gap-8 md:grid-cols-2">
-            <div className="rounded-xl bg-sage-green p-8">
-              <span className="material-symbols-outlined text-4xl text-institutional-green">
-                volunteer_activism
-              </span>
-              <h3 className="mt-4 text-2xl font-bold text-deep-forest">
+            <div className="rounded-xl bg-mist-green p-8 text-center">
+              <HandHeart className="h-10 w-10 text-institutional-green mx-auto" />
+              <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Welfare Programs
               </h3>
               <p className="mt-3 text-gray-700">
@@ -350,11 +356,9 @@ function RouteComponent() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-sage-green p-8">
-              <span className="material-symbols-outlined text-4xl text-institutional-green">
-                school
-              </span>
-              <h3 className="mt-4 text-2xl font-bold text-deep-forest">
+            <div className="rounded-xl bg-mist-green p-8 text-center">
+              <GraduationCap className="h-10 w-10 text-institutional-green mx-auto" />
+              <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Educational Support
               </h3>
               <p className="mt-3 text-gray-700">
@@ -364,11 +368,9 @@ function RouteComponent() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-sage-green p-8">
-              <span className="material-symbols-outlined text-4xl text-institutional-green">
-                event
-              </span>
-              <h3 className="mt-4 text-2xl font-bold text-deep-forest">
+            <div className="rounded-xl bg-mist-green p-8 text-center">
+              <Calendar className="h-10 w-10 text-institutional-green mx-auto" />
+              <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Annual Convention
               </h3>
               <p className="mt-3 text-gray-700">
@@ -378,11 +380,9 @@ function RouteComponent() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-sage-green p-8">
-              <span className="material-symbols-outlined text-4xl text-institutional-green">
-                account_balance
-              </span>
-              <h3 className="mt-4 text-2xl font-bold text-deep-forest">
+            <div className="rounded-xl bg-mist-green p-8 text-center">
+              <Landmark className="h-10 w-10 text-institutional-green mx-auto" />
+              <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Campus MSSN Support
               </h3>
               <p className="mt-3 text-gray-700">

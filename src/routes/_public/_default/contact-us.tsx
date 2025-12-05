@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MapPin, Phone, Mail, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/contact-us")({
   component: RouteComponent,
@@ -24,9 +25,7 @@ function RouteComponent() {
             <h2 className="text-2xl font-bold mb-8">Contact Information</h2>
             <ul className="space-y-6">
               <li className="flex items-start gap-4">
-                <span className="material-symbols-outlined text-2xl text-vibrant-lime mt-1">
-                  location_on
-                </span>
+                <MapPin className="h-6 w-6 text-vibrant-lime mt-1" />
                 <div>
                   <h3 className="font-semibold">Our Location</h3>
                   <p className="text-gray-200">
@@ -35,9 +34,7 @@ function RouteComponent() {
                 </div>
               </li>
               <li className="flex items-start gap-4">
-                <span className="material-symbols-outlined text-2xl text-vibrant-lime mt-1">
-                  call
-                </span>
+                <Phone className="h-6 w-6 text-vibrant-lime mt-1" />
                 <div>
                   <h3 className="font-semibold">Phone Number</h3>
                   <a
@@ -49,9 +46,7 @@ function RouteComponent() {
                 </div>
               </li>
               <li className="flex items-start gap-4">
-                <span className="material-symbols-outlined text-2xl text-vibrant-lime mt-1">
-                  email
-                </span>
+                <Mail className="h-6 w-6 text-vibrant-lime mt-1" />
                 <div>
                   <h3 className="font-semibold">Email Address</h3>
                   <a
@@ -209,9 +204,7 @@ function RouteComponent() {
               <span className="font-semibold text-deep-forest">
                 How do I pay my alumni dues?
               </span>
-              <span className="material-symbols-outlined text-vibrant-lime transition-transform">
-                add
-              </span>
+              <Plus className="h-5 w-5 text-vibrant-lime transition-transform" />
             </button>
             <div className="px-5 pb-5 text-gray-600">
               <p>
@@ -228,9 +221,7 @@ function RouteComponent() {
               <span className="font-semibold text-deep-forest">
                 What are the benefits of membership?
               </span>
-              <span className="material-symbols-outlined text-vibrant-lime transition-transform">
-                add
-              </span>
+              <Plus className="h-5 w-5 text-vibrant-lime transition-transform" />
             </button>
             <div
               className="px-5 pb-5 text-gray-600"
@@ -251,9 +242,7 @@ function RouteComponent() {
               <span className="font-semibold text-deep-forest">
                 How can I get involved in upcoming events?
               </span>
-              <span className="material-symbols-outlined text-vibrant-lime transition-transform">
-                add
-              </span>
+              <Plus className="h-5 w-5 text-vibrant-lime transition-transform" />
             </button>
             <div
               className="px-5 pb-5 text-gray-600"

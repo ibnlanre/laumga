@@ -37,9 +37,9 @@ export const articleSchema = z.object({
   isPublished: z.boolean().default(false),
   publishedAt: z.any().optional(),
   viewCount: z.number().default(0),
-  createdAt: z.string(),
+  createdAt: z.any(),
   createdBy: z.string(),
-  updatedAt: z.string(),
+  updatedAt: z.any(),
   updatedBy: z.string(),
 });
 

@@ -32,7 +32,7 @@ export const chapterSchema = z.object({
   presidentName: z.string(),
   meetingVenue: z.string().optional(),
   meetingSchedule: z.string().optional(),
-  contactEmail: z.string().email().optional(),
+  contactEmail: z.email().optional(),
   contactPhone: z.string().optional(),
   memberCount: z.number().default(0),
   isActive: z.boolean().default(true),

@@ -1,7 +1,14 @@
 import { Button, Badge, Skeleton, Modal } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Calendar, MapPin, Users, Share2, ArrowLeft } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Share2,
+  ArrowLeft,
+  CalendarOff,
+} from "lucide-react";
 import { format } from "date-fns";
 
 import {
@@ -41,9 +48,7 @@ function EventDetailPage() {
   if (!event) {
     return (
       <main className="container mx-auto px-4 lg:px-6 py-16 text-center">
-        <span className="material-symbols-outlined text-6xl text-deep-forest/30 mb-4">
-          event_busy
-        </span>
+        <CalendarOff className="h-24 w-24 text-deep-forest/30 mb-4 mx-auto" />
         <h1 className="text-3xl font-bold text-deep-forest mb-4">
           Event Not Found
         </h1>

@@ -14,7 +14,6 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
-import { Route as PublicDefaultRouteImport } from './routes/_public/_default'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
 import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
@@ -61,10 +60,6 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
-const PublicDefaultRoute = PublicDefaultRouteImport.update({
-  id: '/_default',
-  getParentRoute: () => PublicRoute,
-} as any)
 const AuthGalleryRoute = AuthGalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -101,29 +96,29 @@ const PublicRegisterAccountRoute = PublicRegisterAccountRouteImport.update({
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
-  id: '/newsletter',
+  id: '/_default/newsletter',
   path: '/newsletter',
-  getParentRoute: () => PublicDefaultRoute,
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultMembershipRoute = PublicDefaultMembershipRouteImport.update({
-  id: '/membership',
+  id: '/_default/membership',
   path: '/membership',
-  getParentRoute: () => PublicDefaultRoute,
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultEventsRoute = PublicDefaultEventsRouteImport.update({
-  id: '/events',
+  id: '/_default/events',
   path: '/events',
-  getParentRoute: () => PublicDefaultRoute,
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultContactUsRoute = PublicDefaultContactUsRouteImport.update({
-  id: '/contact-us',
+  id: '/_default/contact-us',
   path: '/contact-us',
-  getParentRoute: () => PublicDefaultRoute,
+  getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultAboutUsRoute = PublicDefaultAboutUsRouteImport.update({
-  id: '/about-us',
+  id: '/_default/about-us',
   path: '/about-us',
-  getParentRoute: () => PublicDefaultRoute,
+  getParentRoute: () => PublicRoute,
 } as any)
 const AuthMandatePledgeRoute = AuthMandatePledgeRouteImport.update({
   id: '/mandate/pledge',
@@ -162,9 +157,9 @@ const AuthAdminArticlesRoute = AuthAdminArticlesRouteImport.update({
 } as any)
 const PublicDefaultBulletinIndexRoute =
   PublicDefaultBulletinIndexRouteImport.update({
-    id: '/bulletin/',
+    id: '/_default/bulletin/',
     path: '/bulletin/',
-    getParentRoute: () => PublicDefaultRoute,
+    getParentRoute: () => PublicRoute,
   } as any)
 const PublicDefaultEventsEventIdRoute =
   PublicDefaultEventsEventIdRouteImport.update({
@@ -174,9 +169,9 @@ const PublicDefaultEventsEventIdRoute =
   } as any)
 const PublicDefaultBulletinArticleRoute =
   PublicDefaultBulletinArticleRouteImport.update({
-    id: '/bulletin/$article',
+    id: '/_default/bulletin/$article',
     path: '/bulletin/$article',
-    getParentRoute: () => PublicDefaultRoute,
+    getParentRoute: () => PublicRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -239,7 +234,6 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_auth/alumni': typeof AuthAlumniRoute
   '/_auth/gallery': typeof AuthGalleryRoute
-  '/_public/_default': typeof PublicDefaultRouteWithChildren
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/': typeof PublicIndexRoute
@@ -325,7 +319,6 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_auth/alumni'
     | '/_auth/gallery'
-    | '/_public/_default'
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/'
@@ -393,13 +386,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
-    '/_public/_default': {
-      id: '/_public/_default'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof PublicDefaultRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_auth/gallery': {
       id: '/_auth/gallery'
       path: '/gallery'
@@ -454,35 +440,35 @@ declare module '@tanstack/react-router' {
       path: '/newsletter'
       fullPath: '/newsletter'
       preLoaderRoute: typeof PublicDefaultNewsletterRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/_default/membership': {
       id: '/_public/_default/membership'
       path: '/membership'
       fullPath: '/membership'
       preLoaderRoute: typeof PublicDefaultMembershipRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/_default/events': {
       id: '/_public/_default/events'
       path: '/events'
       fullPath: '/events'
       preLoaderRoute: typeof PublicDefaultEventsRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/_default/contact-us': {
       id: '/_public/_default/contact-us'
       path: '/contact-us'
       fullPath: '/contact-us'
       preLoaderRoute: typeof PublicDefaultContactUsRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/_default/about-us': {
       id: '/_public/_default/about-us'
       path: '/about-us'
       fullPath: '/about-us'
       preLoaderRoute: typeof PublicDefaultAboutUsRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_auth/mandate/pledge': {
       id: '/_auth/mandate/pledge'
@@ -538,7 +524,7 @@ declare module '@tanstack/react-router' {
       path: '/bulletin'
       fullPath: '/bulletin'
       preLoaderRoute: typeof PublicDefaultBulletinIndexRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
     '/_public/_default/events/$eventId': {
       id: '/_public/_default/events/$eventId'
@@ -552,7 +538,7 @@ declare module '@tanstack/react-router' {
       path: '/bulletin/$article'
       fullPath: '/bulletin/$article'
       preLoaderRoute: typeof PublicDefaultBulletinArticleRouteImport
-      parentRoute: typeof PublicDefaultRoute
+      parentRoute: typeof PublicRoute
     }
   }
 }
@@ -598,48 +584,36 @@ const PublicDefaultEventsRouteChildren: PublicDefaultEventsRouteChildren = {
 const PublicDefaultEventsRouteWithChildren =
   PublicDefaultEventsRoute._addFileChildren(PublicDefaultEventsRouteChildren)
 
-interface PublicDefaultRouteChildren {
+interface PublicRouteChildren {
+  PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
+  PublicLoginRoute: typeof PublicLoginRoute
+  PublicIndexRoute: typeof PublicIndexRoute
   PublicDefaultAboutUsRoute: typeof PublicDefaultAboutUsRoute
   PublicDefaultContactUsRoute: typeof PublicDefaultContactUsRoute
   PublicDefaultEventsRoute: typeof PublicDefaultEventsRouteWithChildren
   PublicDefaultMembershipRoute: typeof PublicDefaultMembershipRoute
   PublicDefaultNewsletterRoute: typeof PublicDefaultNewsletterRoute
+  PublicRegisterAccountRoute: typeof PublicRegisterAccountRoute
+  PublicRegisterReviewRoute: typeof PublicRegisterReviewRoute
+  PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
   PublicDefaultBulletinArticleRoute: typeof PublicDefaultBulletinArticleRoute
   PublicDefaultBulletinIndexRoute: typeof PublicDefaultBulletinIndexRoute
 }
 
-const PublicDefaultRouteChildren: PublicDefaultRouteChildren = {
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicForgotPasswordRoute: PublicForgotPasswordRoute,
+  PublicLoginRoute: PublicLoginRoute,
+  PublicIndexRoute: PublicIndexRoute,
   PublicDefaultAboutUsRoute: PublicDefaultAboutUsRoute,
   PublicDefaultContactUsRoute: PublicDefaultContactUsRoute,
   PublicDefaultEventsRoute: PublicDefaultEventsRouteWithChildren,
   PublicDefaultMembershipRoute: PublicDefaultMembershipRoute,
   PublicDefaultNewsletterRoute: PublicDefaultNewsletterRoute,
-  PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
-  PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,
-}
-
-const PublicDefaultRouteWithChildren = PublicDefaultRoute._addFileChildren(
-  PublicDefaultRouteChildren,
-)
-
-interface PublicRouteChildren {
-  PublicDefaultRoute: typeof PublicDefaultRouteWithChildren
-  PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
-  PublicLoginRoute: typeof PublicLoginRoute
-  PublicIndexRoute: typeof PublicIndexRoute
-  PublicRegisterAccountRoute: typeof PublicRegisterAccountRoute
-  PublicRegisterReviewRoute: typeof PublicRegisterReviewRoute
-  PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
-}
-
-const PublicRouteChildren: PublicRouteChildren = {
-  PublicDefaultRoute: PublicDefaultRouteWithChildren,
-  PublicForgotPasswordRoute: PublicForgotPasswordRoute,
-  PublicLoginRoute: PublicLoginRoute,
-  PublicIndexRoute: PublicIndexRoute,
   PublicRegisterAccountRoute: PublicRegisterAccountRoute,
   PublicRegisterReviewRoute: PublicRegisterReviewRoute,
   PublicRegisterIndexRoute: PublicRegisterIndexRoute,
+  PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
+  PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,
 }
 
 const PublicRouteWithChildren =

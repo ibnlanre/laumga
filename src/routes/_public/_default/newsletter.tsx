@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MailOpen, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/newsletter")({
   component: RouteComponent,
@@ -10,9 +11,7 @@ function RouteComponent() {
       <section className="w-full bg-deep-forest text-white">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center sm:gap-8 sm:px-10">
           <div className="relative">
-            <span className="material-symbols-outlined text-7xl text-white/80">
-              mark_email_unread
-            </span>
+            <MailOpen className="h-20 w-20 text-white/80" />
             <div className="absolute -right-1 top-0 h-4 w-4 rounded-full border-2 border-deep-forest bg-vibrant-lime"></div>
           </div>
           <div className="flex flex-col gap-2">
@@ -136,9 +135,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>
@@ -168,9 +165,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>
@@ -197,9 +192,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>
@@ -229,9 +222,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>
@@ -258,9 +249,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>
@@ -290,9 +279,7 @@ function RouteComponent() {
                   <button className="flex h-10 w-full items-center justify-center rounded-full border border-deep-forest text-deep-forest transition-colors group-hover:bg-vibrant-lime group-hover:border-vibrant-lime group-hover:text-deep-forest">
                     <span className="text-sm font-bold">Download PDF</span>
                   </button>
-                  <span className="material-symbols-outlined ml-3 cursor-pointer text-stone-400 hover:text-deep-forest">
-                    share
-                  </span>
+                  <Share2 className="ml-3 h-5 w-5 cursor-pointer text-stone-400 hover:text-deep-forest" />
                 </div>
               </div>
             </div>

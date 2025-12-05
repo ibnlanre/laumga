@@ -15,7 +15,7 @@ const PLATFORM_FEE = 50_00; // ₦50 fixed fee in kobo
  * Mono Customer Schema
  */
 export const monoCustomerSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   type: z.enum(["individual", "business"]).optional(),
   first_name: z.string().min(1),
   last_name: z.string().min(1),
@@ -43,7 +43,7 @@ export const monoMandateSchema = z.object({
   customer: z.object({
     id: z.string(),
   }),
-  redirect_url: z.string().url().optional(),
+  redirect_url: z.url().optional(),
   start_date: z.string(), // YYYY-MM-DD
   end_date: z.string(), // YYYY-MM-DD
   split: z

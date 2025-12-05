@@ -18,7 +18,7 @@ import { db } from "@/services/firebase";
  */
 export const newsletterSubscriptionSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   subscribedAt: z.number(),
@@ -51,8 +51,8 @@ export const newsletterIssueSchema = z.object({
   volume: z.number(),
   issueNumber: z.number(),
   title: z.string(),
-  pdfUrl: z.string().url(),
-  coverImageUrl: z.string().url(),
+  pdfUrl: z.url(),
+  coverImageUrl: z.url(),
   leadStoryTitle: z.string(),
   highlights: z.array(z.string()),
   publishedAt: z.number(),

@@ -22,6 +22,10 @@ import {
   Shield,
   TrendingUp,
   Star,
+  Edit,
+  BarChart3,
+  Vote,
+  LayoutDashboard,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -243,9 +247,7 @@ export function MandatePledgeForm() {
         >
           <div className="space-y-4">
             <div className="inline-flex rounded-full bg-gray-100 p-3">
-              <span className="material-symbols-outlined text-gray-600">
-                edit
-              </span>
+              <Edit className="h-6 w-6 text-gray-600" />
             </div>
             <div>
               <h3 className="font-serif text-2xl font-bold text-deep-forest">
@@ -291,9 +293,7 @@ export function MandatePledgeForm() {
           </div>
           <div className="space-y-3">
             <div className="inline-flex rounded-full bg-institutional-green/20 p-4">
-              <span className="material-symbols-outlined text-institutional-green">
-                insert_chart
-              </span>
+              <BarChart3 className="h-6 w-6 text-institutional-green" />
             </div>
             <h4 className="font-semibold text-deep-forest">Monthly Reports</h4>
             <p className="text-sm text-gray-600">
@@ -302,9 +302,7 @@ export function MandatePledgeForm() {
           </div>
           <div className="space-y-3">
             <div className="inline-flex rounded-full bg-deep-forest/20 p-4">
-              <span className="material-symbols-outlined text-deep-forest">
-                how_to_vote
-              </span>
+              <Vote className="h-6 w-6 text-deep-forest" />
             </div>
             <h4 className="font-semibold text-deep-forest">Community Voting</h4>
             <p className="text-sm text-gray-600">
@@ -313,9 +311,7 @@ export function MandatePledgeForm() {
           </div>
           <div className="space-y-3">
             <div className="inline-flex rounded-full bg-vibrant-lime/20 p-4">
-              <span className="material-symbols-outlined text-deep-forest">
-                dashboard
-              </span>
+              <LayoutDashboard className="h-6 w-6 text-deep-forest" />
             </div>
             <h4 className="font-semibold text-deep-forest">
               Digital Dashboard

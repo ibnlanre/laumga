@@ -104,12 +104,14 @@ Use the `@ibnlanre/builder` library for all API interactions:
 - Eliminate duplicate code, dummy data, and commented-out code, except if it contains useful context.
 - Do not use `any` or `unknown` types; always use strict typing. Exceptions must be reviewed.
 - `validateSearch` must use Zod schemas with `zodValidator`.
+- Avoid reimplementing file upload logic; utilize or extend `src/api/upload.ts` for Firebase Storage uploads.
+- Employ Mantine form contexts for multi-step forms to eliminate prop drilling or manual context management.
 
 ## Key Files & Examples
 
 - **Route Pattern:** `src/routes/_public/index.tsx`
 - **Hooks with Builder Keys:** `src/services/hooks.ts`
-- **Uploads with Firebase Storage:** `src/api/upload.ts`
+- **Uploads with Firebase Storage:** `src/api/upload.ts` (use for file uploads)
 
 ---
 

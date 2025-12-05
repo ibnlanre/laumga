@@ -1,6 +1,36 @@
 import { Button } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  GraduationCap,
+  Calendar,
+  Users,
+  Award,
+  Church,
+  Briefcase,
+  CheckCircle,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useFetchArticles, useFetchEvents } from "@/services/hooks";
+import { format } from "date-fns";
+
+const formatDate = (date: any, formatStr: string) => {
+  if (!date) return "";
+  try {
+    if (typeof date?.toDate === "function") {
+      return format(date.toDate(), formatStr);
+    }
+    if (
+      typeof date === "number" ||
+      typeof date === "string" ||
+      date instanceof Date
+    ) {
+      return format(new Date(date), formatStr);
+    }
+    return "";
+  } catch (e) {
+    return "";
+  }
+};
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
@@ -9,6 +39,12 @@ export const Route = createFileRoute("/_public/")({
 //  <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/5 bg-sage-green h-[40vh] md:h-auto my-auto md:my-0"></div>
 
 function RouteComponent() {
+  const { data: articles } = useFetchArticles({
+    limit: 3,
+    isPublished: true,
+  });
+  const { data: events } = useFetchEvents({ upcoming: true });
+
   return (
     <main>
       <section className="relative w-full flex items-center justify-center text-center bg-gray-900">
@@ -84,36 +120,28 @@ function RouteComponent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-white flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-4xl">
-                  school
-                </span>
+                <GraduationCap className="h-10 w-10" />
               </div>
               <p className="text-4xl font-bold">15,000+</p>
               <p className="mt-1 font-sans">Graduates</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-white flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-4xl">
-                  calendar_today
-                </span>
+                <Calendar className="h-10 w-10" />
               </div>
               <p className="text-4xl font-bold">25</p>
               <p className="mt-1 font-sans">Years of Service</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-white flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-4xl">
-                  groups
-                </span>
+                <Users className="h-10 w-10" />
               </div>
               <p className="text-4xl font-bold">12</p>
               <p className="mt-1 font-sans">Active Chapters</p>
             </div>
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-white flex items-center justify-center mb-3">
-                <span className="material-symbols-outlined text-4xl">
-                  workspace_premium
-                </span>
+                <Award className="h-10 w-10" />
               </div>
               <p className="text-4xl font-bold">50+</p>
               <p className="mt-1 font-sans">Scholarships</p>
@@ -130,9 +158,7 @@ function RouteComponent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="bg-mist-green rounded-xl shadow-sm p-8 text-center group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-b-4 border-transparent hover:border-vibrant-lime">
               <div className="flex justify-center mb-4">
-                <span className="material-symbols-outlined text-6xl text-institutional-green">
-                  diversity_3
-                </span>
+                <Users className="h-16 w-16 text-institutional-green" />
               </div>
               <h3 className="font-bold text-2xl text-deep-forest mb-3">
                 Brotherhood
@@ -144,9 +170,7 @@ function RouteComponent() {
             </div>
             <div className="bg-mist-green rounded-xl shadow-sm p-8 text-center group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-b-4 border-transparent hover:border-vibrant-lime">
               <div className="flex justify-center mb-4">
-                <span className="material-symbols-outlined text-6xl text-institutional-green">
-                  mosque
-                </span>
+                <Church className="h-16 w-16 text-institutional-green" />
               </div>
               <h3 className="font-bold text-2xl text-deep-forest mb-3">
                 Spirituality
@@ -158,9 +182,7 @@ function RouteComponent() {
             </div>
             <div className="bg-mist-green rounded-xl shadow-sm p-8 text-center group transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-b-4 border-transparent hover:border-vibrant-lime">
               <div className="flex justify-center mb-4">
-                <span className="material-symbols-outlined text-6xl text-institutional-green">
-                  work
-                </span>
+                <Briefcase className="h-16 w-16 text-institutional-green" />
               </div>
               <h3 className="font-bold text-2xl text-deep-forest mb-3">
                 Professionalism
@@ -183,32 +205,24 @@ function RouteComponent() {
               </h2>
               <ul className="space-y-4 text-lg">
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-vibrant-lime mr-3 mt-1">
-                    check_circle
-                  </span>
+                  <CheckCircle className="h-6 w-6 text-vibrant-lime mr-3 mt-1 shrink-0" />
                   <span>Access a global professional and social network.</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-vibrant-lime mr-3 mt-1">
-                    check_circle
-                  </span>
+                  <CheckCircle className="h-6 w-6 text-vibrant-lime mr-3 mt-1 shrink-0" />
                   <span>
                     Get reminders about events, seminars, and workshops.
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-vibrant-lime mr-3 mt-1">
-                    check_circle
-                  </span>
+                  <CheckCircle className="h-6 w-6 text-vibrant-lime mr-3 mt-1 shrink-0" />
                   <span>
                     Contribute to scholarship and community development
                     projects.
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-vibrant-lime mr-3 mt-1">
-                    check_circle
-                  </span>
+                  <CheckCircle className="h-6 w-6 text-vibrant-lime mr-3 mt-1 shrink-0" />
                   <span>
                     Receive regular updates and our An-Naseehah newsletter.
                   </span>
@@ -242,63 +256,35 @@ function RouteComponent() {
             News &amp; Bulletins
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden group">
-              <img
-                alt="Article thumbnail"
-                className="h-48 w-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZbN3rjZnb8Sd-eoQMM5CwbGI4DGVr_b2RfWlO7NbmimH4P7-NiirvvsxViy1fBJ4JfFXg91JSmKkBeJgzY8MYhXa36RZxGaXdvUJPKj5lK0AkY2rl8d_NTLnqi51w6QY_wrvN-N5uS2p8B6NlQ3mBTCqW8iN1vPQb5te07s4M_P5cADs5lIdpdNollE0t7fl0z5ZRqO1a_pwd_yxnbLafzHbd-Y6CdMGuADuZufQlL1MCLT1kjcmXxAlkqmVVi2Fc81tf096pQYs"
-              />
-              <div className="p-6">
-                <p className="text-sm text-gray-500 mb-2">April 22, 2019</p>
-                <h3 className="font-bold text-lg text-gray-800 mb-3">
-                  HUMAN UNDER THE SIEGE OF CRISIS
-                </h3>
-                <a
-                  className="font-semibold text-olive hover:underline"
-                  href="#"
-                >
-                  Read Article →
-                </a>
+            {articles?.map((article) => (
+              <div
+                key={article.id}
+                className="bg-white rounded-lg shadow-md overflow-hidden group"
+              >
+                <img
+                  alt={article.title}
+                  className="h-48 w-full object-cover"
+                  src={article.coverImageUrl}
+                />
+                <div className="p-6">
+                  <p className="text-sm text-gray-500 mb-2">
+                    {formatDate(
+                      article.publishedAt || article.createdAt,
+                      "MMMM d, yyyy"
+                    )}
+                  </p>
+                  <h3 className="font-bold text-lg text-gray-800 mb-3">
+                    {article.title}
+                  </h3>
+                  <Link
+                    className="font-semibold text-olive hover:underline"
+                    to={`/bulletin/${article.slug}` as any}
+                  >
+                    Read Article →
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden group">
-              <img
-                alt="Article thumbnail"
-                className="h-48 w-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIUeQu3tas8TenIY03EDUV1IVH6iFs2gIJPwyPvsNUYKeVZtIVVZDpQDdcR3OX3zgtQjPVvpgAD6kucbAyr3h4kXUUMCHrMMkNs-N23mHYRJu_j_XCzIB7mboB5YapJcvkEwUl8zA4zpZFu4MBitOE5qIV7AW_Q-XNFb_BVC6f6kXRcJendqY1ejSvQ940-A0ymt5VAcMQduDVsqAm-wuRYBrN4hqWv86uQXjl1sF9xYDF36Cu4FR_9ZBgMevn2wBNgzA8klR5m8k"
-              />
-              <div className="p-6">
-                <p className="text-sm text-gray-500 mb-2">March 23, 2016</p>
-                <h3 className="font-bold text-lg text-gray-800 mb-3">
-                  THE RETURN OF THE ISLAMIC CALIPHATE
-                </h3>
-                <a
-                  className="font-semibold text-olive hover:underline"
-                  href="#"
-                >
-                  Read Article →
-                </a>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden group">
-              <img
-                alt="Article thumbnail"
-                className="h-48 w-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzbQ6b4vQoW3yFDO72LTmXuIHr7OsqK6u8COx7vurmqvB5nKneSWpT8IChwu7dbdFvMYjK-DbL5Q_TjQmNZGt_dyxvQQa6fGNabAwZQWNJpG1wk79ns0Bsoi0eW04GcNuGt-_7L7pp7rhFBnHY2v3Yec6aAX0jyeavzoLiHK9k43zLlDf3v5fgO4YAayLXm3bvqTEkW3yD4MvCTkrbAjipeMvMzzUVBYe9fkxM8shTcf3QxwwbTyycYngTYBygn-NT6t6DdP1OZ9E"
-              />
-              <div className="p-6">
-                <p className="text-sm text-gray-500 mb-2">March 23, 2016</p>
-                <h3 className="font-bold text-lg text-gray-800 mb-3">
-                  DENIGRATION OF THE SPECIAL GARMENT
-                </h3>
-                <a
-                  className="font-semibold text-olive hover:underline"
-                  href="#"
-                >
-                  Read Article →
-                </a>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -309,64 +295,33 @@ function RouteComponent() {
             Upcoming Events
           </h2>
           <div className="max-w-4xl mx-auto space-y-4">
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4 border-b">
-              <div className="text-center w-20">
-                <p className="text-3xl font-bold text-olive">18</p>
-                <p className="text-sm font-semibold text-gray-500">APR</p>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-gray-800">
-                  LAUMGA Convention 2019
-                </h3>
-                <p className="text-sm text-gray-600">Ogbomoso</p>
-              </div>
-              <a
-                className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
-                href="#"
+            {events?.map((event) => (
+              <div
+                key={event.id}
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4 border-b last:border-b-0"
               >
-                Register
-              </a>
-            </div>
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4 border-b">
-              <div className="text-center w-20">
-                <p className="text-3xl font-bold text-olive">14</p>
-                <p className="text-sm font-semibold text-gray-500">APR</p>
+                <div className="text-center w-20">
+                  <p className="text-3xl font-bold text-olive">
+                    {formatDate(event.date, "d")}
+                  </p>
+                  <p className="text-sm font-semibold text-gray-500 uppercase">
+                    {formatDate(event.date, "MMM")}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800">
+                    {event.title}
+                  </h3>
+                  <p className="text-sm text-gray-600">{event.location}</p>
+                </div>
+                <Link
+                  className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
+                  to={`/events/${event.id}` as any}
+                >
+                  Details
+                </Link>
               </div>
-              <div>
-                <h3 className="font-bold text-lg text-gray-800">
-                  12TH LAUMGA National Convention
-                </h3>
-                <p className="text-sm text-gray-600">
-                  MKO Lecture Theatre, LAUTECH
-                </p>
-              </div>
-              <a
-                className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
-                href="#"
-              >
-                Details
-              </a>
-            </div>
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4">
-              <div className="text-center w-20">
-                <p className="text-3xl font-bold text-olive">11</p>
-                <p className="text-sm font-semibold text-gray-500">JUN</p>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-gray-800">
-                  Ramadan Lecture - Economic Crunch
-                </h3>
-                <p className="text-sm text-gray-600">
-                  250 Seater Lecture Theater, LAUTECH
-                </p>
-              </div>
-              <a
-                className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
-                href="#"
-              >
-                Details
-              </a>
-            </div>
+            ))}
           </div>
         </div>
       </section>

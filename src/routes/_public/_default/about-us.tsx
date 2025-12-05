@@ -1,5 +1,14 @@
 import { Button } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Users,
+  HandHeart,
+  Landmark,
+  GraduationCap,
+  Sparkles,
+  Briefcase,
+  Globe,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/about-us")({
   component: RouteComponent,
@@ -99,9 +108,7 @@ function RouteComponent() {
 
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr gap-px mx-auto bg-sage-green py-px xl:px-px lg:max-w-7xl">
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                groups
-              </span>
+              <Users className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Foster Unity
               </h3>
@@ -110,9 +117,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                volunteer_activism
-              </span>
+              <HandHeart className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Promote Welfare
               </h3>
@@ -121,9 +126,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                account_balance
-              </span>
+              <Landmark className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Support MSSN
               </h3>
@@ -132,9 +135,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                school
-              </span>
+              <GraduationCap className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Academic Excellence
               </h3>
@@ -144,9 +145,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                self_improvement
-              </span>
+              <Sparkles className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Spiritual Development
               </h3>
@@ -156,9 +155,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                work
-              </span>
+              <Briefcase className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Professional Networking
               </h3>
@@ -167,9 +164,7 @@ function RouteComponent() {
               </p>
             </div>
             <div className="bg-gray-50 p-8 text-left md:col-span-2 lg:col-span-3">
-              <span className="material-symbols-outlined text-4xl text-institutional-green block">
-                public
-              </span>
+              <Globe className="h-10 w-10 text-institutional-green" />
               <h3 className="mt-4 text-xl font-bold text-deep-forest">
                 Community Service
               </h3>

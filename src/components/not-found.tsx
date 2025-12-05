@@ -1,3 +1,5 @@
+import { ArrowUpRight } from "lucide-react";
+
 export function NotFound() {
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-deep-forest font-display">
@@ -23,9 +25,7 @@ export function NotFound() {
                   <span className="truncate group-hover:text-deep-forest">
                     Return to Home
                   </span>
-                  <span className="material-symbols-outlined text-lg transition-transform duration-300 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-deep-forest">
-                    north_east
-                  </span>
+                  <ArrowUpRight className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-deep-forest" />
                 </button>
                 <div className="flex flex-col items-start gap-3 text-sm font-medium text-white sm:flex-row sm:gap-6">
                   <a

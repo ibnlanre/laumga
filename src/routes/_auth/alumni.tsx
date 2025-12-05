@@ -2,7 +2,7 @@ import { TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { SearchCheckIcon } from "lucide-react";
+import { SearchCheckIcon, MapPin, User } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/alumni")({
   component: RouteComponent,
@@ -108,9 +108,7 @@ function RouteComponent() {
                 Prof. Taofiq Adedosu
               </h2>
               <div className="flex items-center justify-center md:justify-start gap-2 text-stone-500 dark:text-stone-400">
-                <span className="material-symbols-outlined text-lg">
-                  location_on
-                </span>
+                <MapPin className="h-5 w-5" />
                 <p className="text-base">Lagos Chapter</p>
               </div>
               <p className="text-stone-600 dark:text-stone-300 italic text-lg mt-2 font-display">
@@ -196,7 +194,7 @@ function RouteComponent() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -213,7 +211,7 @@ function RouteComponent() {
 
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -230,7 +228,7 @@ function RouteComponent() {
 
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -247,7 +245,7 @@ function RouteComponent() {
 
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -264,7 +262,7 @@ function RouteComponent() {
 
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -280,7 +278,7 @@ function RouteComponent() {
             </div>
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -296,7 +294,7 @@ function RouteComponent() {
             </div>
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">
@@ -312,7 +310,7 @@ function RouteComponent() {
             </div>
             <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <span className="material-symbols-outlined">person</span>
+                <User className="h-6 w-6" />
               </div>
               <div>
                 <p className="font-bold text-deep-forest dark:text-white">

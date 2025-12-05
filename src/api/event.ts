@@ -10,6 +10,10 @@ import {
   where,
   orderBy,
   increment,
+  CollectionReference,
+  serverTimestamp,
+  DocumentReference,
+  type WithFieldValue,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 
@@ -21,21 +25,21 @@ export const eventSchema = z.object({
   title: z.string(),
   description: z.string(),
   excerpt: z.string().optional(),
-  date: z.number(), // timestamp
-  endDate: z.number().optional(), // timestamp
+  date: z.string(), // timestamp
+  endDate: z.string().optional(), // timestamp
   time: z.string().optional(), // e.g., "2:00 PM - 4:00 PM"
   location: z.string(),
   type: z.enum(["convention", "seminar", "iftar", "sports", "dawah", "other"]),
   category: z.string().optional(), // e.g., "Community", "Educational"
   status: z.enum(["draft", "published", "cancelled"]).default("draft"),
-  imageUrl: z.string().url(),
-  registrationLink: z.string().url().optional(),
+  imageUrl: z.url(),
+  registrationLink: z.url().optional(),
   maxAttendees: z.number().optional(),
   currentAttendees: z.number().default(0),
   organizer: z.string(),
   isPublic: z.boolean().default(true),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const createEventSchema = eventSchema.omit({
@@ -48,8 +52,13 @@ export const createEventSchema = eventSchema.omit({
 export const updateEventSchema = createEventSchema.partial();
 
 export type Event = z.infer<typeof eventSchema>;
+export type EventType = Event["type"];
 export type CreateEventData = z.infer<typeof createEventSchema>;
 export type UpdateEventData = z.infer<typeof updateEventSchema>;
+
+export type EventData = Omit<Event, "id">;
+export type EventCollectionReference = CollectionReference<EventData>;
+export type EventDocumentReference = DocumentReference<EventData>;
 
 /**
  * Event Registration Schema
@@ -59,12 +68,18 @@ export const eventRegistrationSchema = z.object({
   eventId: z.string(),
   userId: z.string(),
   userName: z.string(),
-  userEmail: z.string().email(),
-  registeredAt: z.number(),
+  userEmail: z.email(),
+  registeredAt: z.string(),
   attended: z.boolean().default(false),
 });
 
 export type EventRegistration = z.infer<typeof eventRegistrationSchema>;
+
+export type EventRegistrationData = Omit<EventRegistration, "id">;
+export type EventRegistrationCollectionReference =
+  CollectionReference<EventRegistrationData>;
+export type EventRegistrationDocumentReference =
+  DocumentReference<EventRegistrationData>;
 
 const EVENTS_COLLECTION = "events";
 const REGISTRATIONS_COLLECTION = "eventRegistrations";
@@ -72,11 +87,11 @@ const REGISTRATIONS_COLLECTION = "eventRegistrations";
 /**
  * Fetch all events
  */
-async function fetchAll(filters?: {
-  type?: Event["type"];
-  upcoming?: boolean;
-}): Promise<Event[]> {
-  const eventsRef = collection(db, EVENTS_COLLECTION);
+async function fetchAll(filters?: { type?: EventType; upcoming?: boolean }) {
+  const eventsRef = collection(
+    db,
+    EVENTS_COLLECTION
+  ) as EventCollectionReference;
   let eventsQuery = query(eventsRef, orderBy("date", "desc"));
 
   // Filter by type
@@ -86,15 +101,11 @@ async function fetchAll(filters?: {
 
   // Filter upcoming events
   if (filters?.upcoming) {
-    const now = Date.now();
-    eventsQuery = query(eventsQuery, where("date", ">=", now));
+    eventsQuery = query(eventsQuery, where("date", ">=", serverTimestamp()));
   }
 
   const snapshot = await getDocs(eventsQuery);
-  const events = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Event[];
+  const events = snapshot.docs.map((doc) => doc.data());
 
   return eventSchema.array().parse(events);
 }
@@ -103,36 +114,35 @@ async function fetchAll(filters?: {
  * Fetch event by ID
  */
 async function fetchById(id: string): Promise<Event | null> {
-  const eventRef = doc(db, EVENTS_COLLECTION, id);
+  const eventRef = doc(db, EVENTS_COLLECTION, id) as EventDocumentReference;
   const eventDoc = await getDoc(eventRef);
 
   if (!eventDoc.exists()) {
     return null;
   }
 
-  const event = {
-    id: eventDoc.id,
-    ...eventDoc.data(),
-  };
-
+  const event = { id: eventDoc.id, ...eventDoc.data() };
   return eventSchema.parse(event);
 }
 
 /**
  * Create a new event
  */
-async function create(data: CreateEventData): Promise<Event> {
+async function create(data: CreateEventData) {
   const validated = createEventSchema.parse(data);
-  const now = Date.now();
 
   const eventData = {
     ...validated,
     currentAttendees: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } satisfies WithFieldValue<EventData> as unknown as EventData;
 
-  const docRef = await addDoc(collection(db, EVENTS_COLLECTION), eventData);
+  const eventsRef = collection(
+    db,
+    EVENTS_COLLECTION
+  ) as EventCollectionReference;
+  const docRef = await addDoc(eventsRef, eventData);
 
   return {
     id: docRef.id,
@@ -143,13 +153,13 @@ async function create(data: CreateEventData): Promise<Event> {
 /**
  * Update an event
  */
-async function update(id: string, data: UpdateEventData): Promise<Event> {
+async function update(id: string, data: UpdateEventData) {
   const validated = updateEventSchema.parse(data);
   const eventRef = doc(db, EVENTS_COLLECTION, id);
 
   const updateData = {
     ...validated,
-    updatedAt: Date.now(),
+    updatedAt: serverTimestamp(),
   };
 
   await updateDoc(eventRef, updateData);
@@ -166,7 +176,7 @@ async function update(id: string, data: UpdateEventData): Promise<Event> {
  * Delete an event
  */
 async function deleteEvent(id: string): Promise<void> {
-  const eventRef = doc(db, EVENTS_COLLECTION, id);
+  const eventRef = doc(db, EVENTS_COLLECTION, id) as EventDocumentReference;
   await updateDoc(eventRef, { status: "cancelled" });
 }
 
@@ -181,7 +191,10 @@ async function register(params: {
   const { eventId, userId, userData } = params;
 
   // Check if already registered
-  const registrationsRef = collection(db, REGISTRATIONS_COLLECTION);
+  const registrationsRef = collection(
+    db,
+    REGISTRATIONS_COLLECTION
+  ) as EventRegistrationCollectionReference;
   const existingQuery = query(
     registrationsRef,
     where("eventId", "==", eventId),
@@ -209,14 +222,18 @@ async function register(params: {
     userId,
     userName: userData.name,
     userEmail: userData.email,
-    registeredAt: Date.now(),
+    registeredAt: serverTimestamp(),
     attended: false,
-  };
+  } satisfies WithFieldValue<EventRegistrationData> as unknown as EventRegistrationData;
 
   const docRef = await addDoc(registrationsRef, registrationData);
 
   // Update attendee count
-  const eventRef = doc(db, EVENTS_COLLECTION, eventId);
+  const eventRef = doc(
+    db,
+    EVENTS_COLLECTION,
+    eventId
+  ) as EventDocumentReference;
   await updateDoc(eventRef, {
     currentAttendees: increment(1),
   });
@@ -230,9 +247,12 @@ async function register(params: {
 /**
  * Fetch user's registered events
  */
-async function fetchUserEvents(userId: string): Promise<Event[]> {
+async function fetchUserEvents(userId: string) {
   // Get user's registrations
-  const registrationsRef = collection(db, REGISTRATIONS_COLLECTION);
+  const registrationsRef = collection(
+    db,
+    REGISTRATIONS_COLLECTION
+  ) as EventRegistrationCollectionReference;
   const registrationsQuery = query(
     registrationsRef,
     where("userId", "==", userId)
@@ -249,17 +269,19 @@ async function fetchUserEvents(userId: string): Promise<Event[]> {
   const events: Event[] = [];
   for (let i = 0; i < eventIds.length; i += 10) {
     const batch = eventIds.slice(i, i + 10);
-    const eventsQuery = query(
-      collection(db, EVENTS_COLLECTION),
-      where("__name__", "in", batch)
-    );
+
+    const eventsRef = collection(
+      db,
+      EVENTS_COLLECTION
+    ) as EventCollectionReference;
+    const eventsQuery = query(eventsRef, where("__name__", "in", batch));
     const eventsSnapshot = await getDocs(eventsQuery);
 
     eventsSnapshot.docs.forEach((doc) => {
       events.push({
         id: doc.id,
         ...doc.data(),
-      } as Event);
+      });
     });
   }
 
@@ -273,7 +295,10 @@ async function isUserRegistered(
   eventId: string,
   userId: string
 ): Promise<boolean> {
-  const registrationsRef = collection(db, REGISTRATIONS_COLLECTION);
+  const registrationsRef = collection(
+    db,
+    REGISTRATIONS_COLLECTION
+  ) as EventRegistrationCollectionReference;
   const registrationsQuery = query(
     registrationsRef,
     where("eventId", "==", eventId),

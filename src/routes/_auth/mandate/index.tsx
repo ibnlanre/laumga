@@ -1,8 +1,23 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  CheckCircle,
+  Heart,
+  GraduationCap,
+  Handshake,
+  Flower2,
+  HardHat,
+  Shield,
+  Edit,
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  Vote,
+  LayoutDashboard,
+} from "lucide-react";
 
-export const Route = createFileRoute('/_auth/mandate/')({
+export const Route = createFileRoute("/_auth/mandate/")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
   return (
@@ -71,26 +86,20 @@ function RouteComponent() {
               </p>
               <ul className="mt-8 space-y-4">
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-sage-green mt-1 mr-3">
-                    check_circle
-                  </span>
+                  <CheckCircle className="text-sage-green mt-1 mr-3 h-6 w-6 shrink-0" />
                   <span>
                     To provide scholarships and educational grants to deserving
                     students.
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-sage-green mt-1 mr-3">
-                    check_circle
-                  </span>
+                  <CheckCircle className="text-sage-green mt-1 mr-3 h-6 w-6 shrink-0" />
                   <span>
                     To offer welfare and healthcare support to members in need.
                   </span>
                 </li>
                 <li className="flex items-start">
-                  <span className="material-symbols-outlined text-sage-green mt-1 mr-3">
-                    check_circle
-                  </span>
+                  <CheckCircle className="text-sage-green mt-1 mr-3 h-6 w-6 shrink-0" />
                   <span>
                     To create networking and mentorship opportunities for
                     professional growth.
@@ -121,9 +130,7 @@ function RouteComponent() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-white rounded-heavy shadow-2xl shadow-black/10 flex flex-col items-center p-8 text-center relative overflow-hidden">
                 <div className="bg-institutional-green/10 p-5 rounded-full mb-6">
-                  <span className="material-symbols-outlined text-institutional-green text-5xl">
-                    volunteer_activism
-                  </span>
+                  <Heart className="text-institutional-green h-12 w-12" />
                 </div>
                 <h3 className="text-xl font-bold text-deep-forest">
                   Welfare Support Fund
@@ -136,9 +143,7 @@ function RouteComponent() {
               </div>
               <div className="bg-white rounded-heavy shadow-2xl shadow-black/10 flex flex-col items-center p-8 text-center relative overflow-hidden">
                 <div className="bg-institutional-green/10 p-5 rounded-full mb-6">
-                  <span className="material-symbols-outlined text-institutional-green text-5xl">
-                    school
-                  </span>
+                  <GraduationCap className="text-institutional-green h-12 w-12" />
                 </div>
                 <h3 className="text-xl font-bold text-deep-forest">
                   Education &amp; Scholarship
@@ -151,9 +156,7 @@ function RouteComponent() {
               </div>
               <div className="bg-white rounded-heavy shadow-2xl shadow-black/10 flex flex-col items-center p-8 text-center relative overflow-hidden">
                 <div className="bg-institutional-green/10 p-5 rounded-full mb-6">
-                  <span className="material-symbols-outlined text-institutional-green text-5xl">
-                    handshake
-                  </span>
+                  <Handshake className="text-institutional-green h-12 w-12" />
                 </div>
                 <h3 className="text-xl font-bold text-deep-forest">
                   Community Empowerment
@@ -202,40 +205,34 @@ function RouteComponent() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="bg-mist-green rounded-2xl p-6 flex flex-col text-deep-forest relative scalloped">
-                <span className="material-symbols-outlined text-institutional-green">
-                  local_florist
-                </span>
+                <Flower2 className="text-institutional-green h-6 w-6" />
                 <h3 className="text-2xl font-bold mt-4">Supporter</h3>
                 <p className="text-5xl font-black mt-auto">₦5,000</p>
                 <p className="font-semibold">Per Month</p>
                 <button className="absolute bottom-6 right-6 bg-deep-forest text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-institutional-green transition-colors">
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  <ArrowRight className="h-6 w-6" />
                 </button>
               </div>
               <div className="bg-sage-green rounded-2xl p-6 flex flex-col text-deep-forest relative scalloped">
-                <span className="material-symbols-outlined text-institutional-green">
-                  construction
-                </span>
+                <HardHat className="text-institutional-green h-6 w-6" />
                 <h3 className="text-2xl font-bold mt-4">Builder</h3>
                 <p className="text-5xl font-black mt-auto">₦10,000</p>
                 <p className="font-semibold">Per Month</p>
                 <button className="absolute bottom-6 right-6 bg-deep-forest text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-institutional-green transition-colors">
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  <ArrowRight className="h-6 w-6" />
                 </button>
               </div>
               <div className="bg-institutional-green rounded-2xl p-6 flex flex-col text-white relative scalloped">
-                <span className="material-symbols-outlined">shield</span>
+                <Shield className="h-6 w-6" />
                 <h3 className="text-2xl font-bold mt-4">Guardian</h3>
                 <p className="text-5xl font-black mt-auto">₦25,000</p>
                 <p className="font-semibold">Per Month</p>
                 <button className="absolute bottom-6 right-6 bg-white text-deep-forest rounded-full w-12 h-12 flex items-center justify-center hover:bg-vibrant-lime transition-colors">
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  <ArrowRight className="h-6 w-6" />
                 </button>
               </div>
               <div className="bg-white rounded-2xl p-6 flex flex-col text-deep-forest relative border-2 border-dashed border-deep-forest scalloped">
-                <span className="material-symbols-outlined text-deep-forest">
-                  edit
-                </span>
+                <Edit className="text-deep-forest h-6 w-6" />
                 <h3 className="text-2xl font-bold mt-4">Custom Pledge</h3>
                 <p className="text-lg mt-auto mb-2">Enter your own amount</p>
                 <div className="relative">
@@ -249,7 +246,7 @@ function RouteComponent() {
                   />
                 </div>
                 <button className="absolute bottom-6 right-6 bg-deep-forest text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-institutional-green transition-colors">
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  <ArrowRight className="h-6 w-6" />
                 </button>
               </div>
             </div>
@@ -259,36 +256,28 @@ function RouteComponent() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center text-deep-forest">
               <div className="flex flex-col items-center">
-                <span className="material-symbols-outlined text-4xl mb-3 text-institutional-green">
-                  verified
-                </span>
+                <BadgeCheck className="h-10 w-10 mb-3 text-institutional-green" />
                 <h4 className="font-bold">Shariah Compliant</h4>
                 <p className="text-sm mt-1">
                   All funds are managed according to Islamic principles.
                 </p>
               </div>
               <div className="flex flex-col items-center">
-                <span className="material-symbols-outlined text-4xl mb-3 text-institutional-green">
-                  assessment
-                </span>
+                <BarChart3 className="h-10 w-10 mb-3 text-institutional-green" />
                 <h4 className="font-bold">Monthly Reports</h4>
                 <p className="text-sm mt-1">
                   Receive detailed impact and financial reports every month.
                 </p>
               </div>
               <div className="flex flex-col items-center">
-                <span className="material-symbols-outlined text-4xl mb-3 text-institutional-green">
-                  how_to_vote
-                </span>
+                <Vote className="h-10 w-10 mb-3 text-institutional-green" />
                 <h4 className="font-bold">Community Voting</h4>
                 <p className="text-sm mt-1">
                   Mandate holders have a say in major project selections.
                 </p>
               </div>
               <div className="flex flex-col items-center">
-                <span className="material-symbols-outlined text-4xl mb-3 text-institutional-green">
-                  dashboard
-                </span>
+                <LayoutDashboard className="h-10 w-10 mb-3 text-institutional-green" />
                 <h4 className="font-bold">Digital Dashboard</h4>
                 <p className="text-sm mt-1">
                   Track your contributions and see their impact in real-time.

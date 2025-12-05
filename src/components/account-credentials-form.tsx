@@ -1,5 +1,6 @@
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
+import { Phone, Home, Info, Mail } from "lucide-react";
 import {
   TextInput,
   PasswordInput,
@@ -113,9 +114,7 @@ export function AccountCredentialsForm({
             label="Phone Number"
             placeholder="080XXXXXXXX"
             type="tel"
-            leftSection={
-              <span className="material-symbols-outlined">phone</span>
-            }
+            leftSection={<Phone className="h-5 w-5" />}
             {...form.getInputProps("phoneNumber")}
           />
         </Group>
@@ -123,13 +122,13 @@ export function AccountCredentialsForm({
         <TextInput
           label="Address"
           placeholder="Your residential address"
-          leftSection={<span className="material-symbols-outlined">home</span>}
+          leftSection={<Home className="h-5 w-5" />}
           {...form.getInputProps("address")}
         />
 
         <Alert
           title="Location Notice"
-          icon={<span className="material-symbols-outlined">info</span>}
+          icon={<Info className="h-5 w-5" />}
           variant="light"
           color="green"
         >
@@ -148,7 +147,7 @@ export function AccountCredentialsForm({
           label="Email Address"
           placeholder="you@laumga.org"
           type="email"
-          leftSection={<span className="material-symbols-outlined">mail</span>}
+          leftSection={<Mail className="h-5 w-5" />}
           {...form.getInputProps("email")}
         />
 

@@ -1,6 +1,7 @@
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Mail, Lock } from "lucide-react";
 import { LoginSchema, type LoginFormValues } from "@/services/validation";
 import {
   TextInput,
@@ -61,9 +62,7 @@ export function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
-                rightSection={
-                  <span className="material-symbols-outlined">mail</span>
-                }
+                rightSection={<Mail className="h-5 w-5" />}
                 classNames={{
                   input:
                     "border-0 border-b-2 border-deep-forest bg-transparent focus:border-vibrant-lime focus:ring-vibrant-lime/50",
@@ -79,9 +78,7 @@ export function LoginForm() {
                 {...form.getInputProps("password")}
                 autoComplete="current-password"
                 required
-                rightSection={
-                  <span className="material-symbols-outlined">lock</span>
-                }
+                rightSection={<Lock className="h-5 w-5" />}
                 classNames={{
                   input:
                     "border-0 border-b-2 border-deep-forest bg-transparent focus:border-vibrant-lime focus:ring-vibrant-lime/50",

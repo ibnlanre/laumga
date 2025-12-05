@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/api";
 import type { ApprovalStatus } from "@/api/user";
 
@@ -620,5 +620,41 @@ export function useDeleteGallery() {
       errorMessage: "Failed to delete gallery.",
       successMessage: "Gallery deleted successfully.",
     },
+  });
+}
+
+/**
+ * Feed Hooks
+ */
+
+export function useUserFeed(userId: string, limit = 20) {
+  return useInfiniteQuery({
+    queryKey: ["feed", "user", userId] as const,
+    queryFn: ({ pageParam }) =>
+      api.$use.feed.fetchUserFeed({ userId, limit, cursor: pageParam }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as string | undefined,
+    enabled: !!userId,
+  });
+}
+
+export function useMandateFeed(mandateId: string, limit = 20) {
+  return useInfiniteQuery({
+    queryKey: ["feed", "mandate", mandateId] as const,
+    queryFn: ({ pageParam }) =>
+      api.$use.feed.fetchMandateFeed({ mandateId, limit, cursor: pageParam }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as string | undefined,
+    enabled: !!mandateId,
+  });
+}
+
+export function useGlobalFeed(limit = 20) {
+  return useInfiniteQuery({
+    queryKey: ["feed", "global"] as const,
+    queryFn: ({ pageParam }) =>
+      api.$use.feed.fetchGlobalFeed({ limit, cursor: pageParam }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as string | undefined,
   });
 }

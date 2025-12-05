@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/gallery")({
   component: RouteComponent,
@@ -148,9 +149,7 @@ function RouteComponent() {
               <div className="flex-[1.5_1.5_0px] w-full overflow-hidden">
                 <div className="flex items-center gap-4">
                   <button className="text-deep-forest/50 hover:text-deep-forest">
-                    <span className="material-symbols-outlined">
-                      arrow_back
-                    </span>
+                    <ChevronLeft className="h-6 w-6" />
                   </button>
                   <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div
@@ -179,9 +178,7 @@ function RouteComponent() {
                     />
                   </div>
                   <button className="text-deep-forest/50 hover:text-deep-forest">
-                    <span className="material-symbols-outlined">
-                      arrow_forward
-                    </span>
+                    <ChevronRight className="h-6 w-6" />
                   </button>
                 </div>
               </div>

@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Fragment } from 'react';
+import { createFileRoute } from "@tanstack/react-router";
+import { Fragment } from "react";
+import { Search, ArrowRight } from "lucide-react";
 
-export const Route = createFileRoute('/_public/_default/bulletin/')({
+export const Route = createFileRoute("/_public/_default/bulletin/")({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
   return (
@@ -142,7 +143,7 @@ function RouteComponent() {
                 </div>
               </div>
               <div className="flex flex-col bg-white rounded-lg shadow-sm overflow-hidden card-hover">
-                <div className="w-full h-48 bg-sage-green overflow-hidden"/>
+                <div className="w-full h-48 bg-sage-green overflow-hidden" />
                 <div className="p-5 flex flex-col grow">
                   <p className="text-xs font-bold uppercase tracking-wider bg-mist-green text-institutional-green rounded-full px-3 py-1 self-start mb-3">
                     General
@@ -203,9 +204,7 @@ function RouteComponent() {
                   type="text"
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-                  <span className="material-symbols-outlined text-vibrant-lime">
-                    search
-                  </span>
+                  <Search className="h-5 w-5 text-vibrant-lime" />
                 </div>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -250,9 +249,7 @@ function RouteComponent() {
                     type="email"
                   />
                   <button className="shrink-0 h-10 w-12 flex items-center justify-center bg-vibrant-lime rounded-r-full text-deep-forest">
-                    <span className="material-symbols-outlined">
-                      arrow_forward
-                    </span>
+                    <ArrowRight className="h-5 w-5" />
                   </button>
                 </div>
               </div>
