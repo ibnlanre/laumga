@@ -5,7 +5,7 @@ import { Calendar, MapPin, Users, Search, CalendarOff } from "lucide-react";
 import { formatDate } from "@/utils/date";
 
 import { useFetchEvents } from "@/services/hooks";
-import { FilterOperator, type Variables } from "@/client/core-query";
+import { type Variables } from "@/client/core-query";
 import type { EventData } from "@/api/event";
 import type { Event, EventType } from "@/api/event";
 
@@ -36,7 +36,7 @@ function EventsPage() {
   if (selectedType !== "all") {
     eventVariables.filterBy!.push({
       field: "type",
-      operator: FilterOperator.EqualTo,
+      operator: "==",
       value: selectedType,
     });
   }
@@ -44,7 +44,7 @@ function EventsPage() {
   if (showUpcoming) {
     eventVariables.filterBy!.push({
       field: "date",
-      operator: FilterOperator.GreaterThanOrEqualTo,
+      operator: ">=",
       value: new Date(),
     });
   }

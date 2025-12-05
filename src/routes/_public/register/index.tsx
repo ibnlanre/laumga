@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@mantine/form";
-import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   TextInput,
   Tooltip,
@@ -13,10 +12,7 @@ import {
 } from "@mantine/core";
 import { ArrowRight, Info, Upload } from "lucide-react";
 import { DateInput, YearPickerInput } from "@mantine/dates";
-import {
-  PersonalDetailsSchema,
-  type PersonalDetailsFormValues,
-} from "@/api/registration";
+import { type PersonalDetailsFormValues } from "@/api/registration";
 import { upload } from "@/api/upload";
 import { useRegistration } from "@/contexts/registration-context";
 import { RegistrationLayout } from "@/components/registration-layout";
@@ -46,7 +42,7 @@ function RouteComponent() {
       phoneNumber: "",
       classSet: null,
     },
-    validate: zod4Resolver(PersonalDetailsSchema),
+    // validate: zod4Resolver(PersonalDetailsSchema), // TODO: Return back
   });
 
   const handlePhotoChange = async (file: File | null) => {

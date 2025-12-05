@@ -128,7 +128,7 @@ export type CreateMandateInput = z.infer<typeof createMandateSchema>;
 const mandateCertificateSettingsSchema = z.object({
   chairmanName: z.string().min(1),
   chairmanTitle: z.string().min(1),
-  signatureUrl: z.string().url().nullable(),
+  signatureUrl: z.url().nullable(),
   updated: logEntrySchema.nullable(),
 });
 

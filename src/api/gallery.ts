@@ -31,7 +31,7 @@ export const gallerySchema = z.object({
   title: z.string(),
   year: z.string(),
   category: z.string(),
-  coverImageUrl: z.string().url(),
+  coverImageUrl: z.url(),
   description: z.string(),
   isFeatured: z.boolean().default(false),
   mediaCount: z.number().default(0),
@@ -61,7 +61,7 @@ export type GalleryCollection = CollectionReference<GalleryData>;
 export const galleryMediaSchema = z.object({
   id: z.string(),
   collectionId: z.string(),
-  url: z.string().url(),
+  url: z.url(),
   caption: z.string().optional(),
   uploadedBy: z.string(),
   uploadedByName: z.string().optional(),
@@ -168,7 +168,10 @@ async function updateCollection(
 async function fetchCollections(
   variables?: Variables<GalleryData>
 ): Promise<Gallery[]> {
-  const galleriesRef = collection(db, GALLERIES_COLLECTION) as GalleryCollection;
+  const galleriesRef = collection(
+    db,
+    GALLERIES_COLLECTION
+  ) as GalleryCollection;
 
   const q = buildQuery(galleriesRef, variables);
   const docs = await getQueryDocs(q);

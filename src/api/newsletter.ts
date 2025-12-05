@@ -17,7 +17,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
-import { buildQuery, getQueryDocs, type Variables } from "@/client/core-query";
+import { buildQuery, getQueryDoc, getQueryDocs, type Variables } from "@/client/core-query";
 
 /**
  * Newsletter Subscription Schema
@@ -50,7 +50,7 @@ export type NewsletterSubscription = z.infer<
 export type CreateSubscriptionData = z.infer<typeof createSubscriptionSchema>;
 
 export type SubscriptionData = Omit<NewsletterSubscription, "id">;
-export type SubscriptionCollectionReference =
+export type SubscriptionCollection =
   CollectionReference<SubscriptionData>;
 export type SubscriptionDocumentReference = DocumentReference<SubscriptionData>;
 
@@ -62,8 +62,8 @@ export const newsletterIssueSchema = z.object({
   volume: z.number(),
   issueNumber: z.number(),
   title: z.string(),
-  pdfUrl: z.string().url(),
-  coverImageUrl: z.string().url(),
+  pdfUrl: z.url(),
+  coverImageUrl: z.url(),
   leadStoryTitle: z.string(),
   highlights: z.array(z.string()),
   publishedAt: z.instanceof(Timestamp),
@@ -83,7 +83,7 @@ export type NewsletterIssue = z.infer<typeof newsletterIssueSchema>;
 export type CreateIssueData = z.infer<typeof createIssueSchema>;
 
 export type IssueData = Omit<NewsletterIssue, "id">;
-export type IssueCollectionReference = CollectionReference<IssueData>;
+export type IssueCollection = CollectionReference<IssueData>;
 export type IssueDocumentReference = DocumentReference<IssueData>;
 
 const SUBSCRIPTIONS_COLLECTION = "newsletterSubscriptions";
@@ -94,14 +94,14 @@ const ISSUES_COLLECTION = "newsletterIssues";
  */
 async function subscribe(
   data: CreateSubscriptionData
-): Promise<NewsletterSubscription> {
+) {
   const validated = createSubscriptionSchema.parse(data);
 
   // Check if email already exists
   const subscriptionsRef = collection(
     db,
     SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollectionReference;
+  ) as SubscriptionCollection;
 
   const existingQuery = query(
     subscriptionsRef,
@@ -132,21 +132,13 @@ async function subscribe(
     } as NewsletterSubscription;
   }
 
-  // Create new subscription
-  const subscriptionData = {
+  const docRef = await addDoc(subscriptionsRef, {
     ...validated,
     subscribedAt: serverTimestamp(),
     isActive: true,
-  } satisfies WithFieldValue<SubscriptionData> as unknown as SubscriptionData;
+  });
 
-  const docRef = await addDoc(subscriptionsRef, subscriptionData);
-
-  // Fetch to get the resolved timestamp
-  const newDoc = await getDoc(docRef);
-  return {
-    id: newDoc.id,
-    ...newDoc.data(),
-  } as NewsletterSubscription;
+  return await getQueryDoc(docRef);
 }
 
 /**
@@ -156,7 +148,7 @@ async function unsubscribe(email: string): Promise<void> {
   const subscriptionsRef = collection(
     db,
     SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollectionReference;
+  ) as SubscriptionCollection;
 
   const subscriptionQuery = query(
     subscriptionsRef,
@@ -182,7 +174,7 @@ async function fetchSubscriptions(): Promise<NewsletterSubscription[]> {
   const subscriptionsRef = collection(
     db,
     SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollectionReference;
+  ) as SubscriptionCollection;
 
   const subscriptionsQuery = query(
     subscriptionsRef,
@@ -212,10 +204,7 @@ async function createIssue(data: CreateIssueData): Promise<NewsletterIssue> {
     updatedAt: serverTimestamp(),
   } satisfies WithFieldValue<IssueData> as unknown as IssueData;
 
-  const issuesRef = collection(
-    db,
-    ISSUES_COLLECTION
-  ) as IssueCollectionReference;
+  const issuesRef = collection(db, ISSUES_COLLECTION) as IssueCollection;
   const docRef = await addDoc(issuesRef, issueData);
 
   // Fetch to get resolved timestamps
@@ -232,10 +221,7 @@ async function createIssue(data: CreateIssueData): Promise<NewsletterIssue> {
 async function fetchIssues(
   variables?: Variables<IssueData>
 ): Promise<NewsletterIssue[]> {
-  const issuesRef = collection(
-    db,
-    ISSUES_COLLECTION
-  ) as IssueCollectionReference;
+  const issuesRef = collection(db, ISSUES_COLLECTION) as IssueCollection;
 
   const q = buildQuery(issuesRef, variables);
   const docs = await getQueryDocs(q);

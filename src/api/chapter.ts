@@ -59,7 +59,7 @@ export type CreateChapterData = z.infer<typeof createChapterSchema>;
 export type UpdateChapterData = z.infer<typeof updateChapterSchema>;
 
 export type ChapterData = Omit<Chapter, "id">;
-export type ChapterCollectionReference = CollectionReference<ChapterData>;
+export type ChapterCollection = CollectionReference<ChapterData>;
 export type ChapterDocumentReference = DocumentReference<ChapterData>;
 
 const CHAPTERS_COLLECTION = "chapters";
@@ -74,7 +74,7 @@ async function create(data: CreateChapterData) {
   const chaptersRef = collection(
     db,
     CHAPTERS_COLLECTION
-  ) as ChapterCollectionReference;
+  ) as ChapterCollection;
   const existingQuery = query(
     chaptersRef,
     where("state", "==", validated.state)
@@ -137,7 +137,7 @@ async function fetchAll(filters?: {
   const chaptersRef = collection(
     db,
     CHAPTERS_COLLECTION
-  ) as ChapterCollectionReference;
+  ) as ChapterCollection;
   let chaptersQuery = query(chaptersRef, orderBy("name", "asc"));
 
   // Filter by active status
@@ -197,7 +197,7 @@ async function fetchByState(state: string): Promise<Chapter | null> {
   const chaptersRef = collection(
     db,
     CHAPTERS_COLLECTION
-  ) as ChapterCollectionReference;
+  ) as ChapterCollection;
   const chapterQuery = query(chaptersRef, where("state", "==", state));
   const snapshot = await getDocs(chapterQuery);
 

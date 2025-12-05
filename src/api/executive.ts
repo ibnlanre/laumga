@@ -51,7 +51,7 @@ export type CreateExecutiveData = z.infer<typeof createExecutiveSchema>;
 export type UpdateExecutiveData = z.infer<typeof updateExecutiveSchema>;
 
 export type ExecutiveData = Omit<Executive, "id">;
-export type ExecutiveCollectionReference = CollectionReference<ExecutiveData>;
+export type ExecutiveCollection = CollectionReference<ExecutiveData>;
 export type ExecutiveDocumentReference = DocumentReference<ExecutiveData>;
 
 const EXECUTIVES_COLLECTION = "executives";
@@ -71,7 +71,7 @@ async function create(data: CreateExecutiveData) {
   const executivesRef = collection(
     db,
     EXECUTIVES_COLLECTION
-  ) as ExecutiveCollectionReference;
+  ) as ExecutiveCollection;
   const docRef = await addDoc(executivesRef, executiveData);
 
   return {
@@ -113,7 +113,7 @@ async function fetchAll(variables?: Variables<ExecutiveData>) {
   const executivesRef = collection(
     db,
     EXECUTIVES_COLLECTION
-  ) as ExecutiveCollectionReference;
+  ) as ExecutiveCollection;
 
   const q = buildQuery(executivesRef, variables);
   const docs = await getQueryDocs(q);
@@ -156,7 +156,7 @@ async function fetchByUserId(userId: string): Promise<Executive | null> {
   const executivesRef = collection(
     db,
     EXECUTIVES_COLLECTION
-  ) as ExecutiveCollectionReference;
+  ) as ExecutiveCollection;
   const executiveQuery = query(
     executivesRef,
     where("userId", "==", userId),
@@ -197,7 +197,7 @@ async function fetchTenureYears(): Promise<string[]> {
   const executivesRef = collection(
     db,
     EXECUTIVES_COLLECTION
-  ) as ExecutiveCollectionReference;
+  ) as ExecutiveCollection;
   const snapshot = await getDocs(executivesRef);
 
   const years = new Set<string>();

@@ -17,12 +17,7 @@ import {
   type DocumentReference,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
-import {
-  buildQuery,
-  FilterOperator,
-  getQueryDocs,
-  type Variables,
-} from "@/client/core-query";
+import { buildQuery, getQueryDoc, getQueryDocs, type Variables } from "@/client/core-query";
 
 export const articleSchema = z.object({
   id: z.string(),
@@ -105,13 +100,7 @@ async function create(data: CreateArticleData) {
   }
 
   const docRef = await addDoc(articlesRef, articleData);
-
-  // Fetch to return the fully resolved object
-  const newDoc = await getDoc(docRef);
-  return {
-    id: newDoc.id,
-    ...newDoc.data(),
-  };
+  return await getQueryDoc(docRef);
 }
 
 /**
@@ -265,9 +254,7 @@ async function fetchRelated(id: string, maxResults: number = 3) {
  */
 async function search(searchQuery: string) {
   const articles = await fetchAll({
-    filterBy: [
-      { field: "isPublished", operator: FilterOperator.EqualTo, value: true },
-    ],
+    filterBy: [{ field: "isPublished", operator: "==", value: true }],
   });
 
   const searchLower = searchQuery.toLowerCase();

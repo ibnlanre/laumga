@@ -1,13 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
-import { Search, ArrowRight, Loader2 } from "lucide-react";
+import { Search, ArrowRight, Loader2, BookOpen } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useFetchArticles, useSearchArticles } from "@/services/hooks";
-import { FilterOperator, type Variables } from "@/client/core-query";
+import { type Variables } from "@/client/core-query";
 import type { ArticleData } from "@/api/article";
 import { useDebouncedValue } from "@mantine/hooks";
 import { formatDate } from "@/utils/date";
+import { EmptyState } from "@/components/empty-state";
 
 const bulletinSearchSchema = z.object({
   category: z
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/_public/_default/bulletin/")({
 function RouteComponent() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { category, search } = Route.useSearch();
+
   const [searchInput, setSearchInput] = useState(search || "");
   const [debouncedSearch] = useDebouncedValue(searchInput, 500);
 
@@ -41,7 +43,7 @@ function RouteComponent() {
     filterBy: [
       {
         field: "isPublished",
-        operator: FilterOperator.EqualTo,
+        operator: "==",
         value: true,
       },
     ],
@@ -50,7 +52,7 @@ function RouteComponent() {
   if (category) {
     articleVariables.filterBy!.push({
       field: "category",
-      operator: FilterOperator.EqualTo,
+      operator: "==",
       value: category,
     });
   }
@@ -227,13 +229,19 @@ function RouteComponent() {
             </section>
           )}
 
-          <section className="container mx-auto px-6 pb-24">
+          <section className="container mx-auto px-6 py-24">
             <div className="flex flex-col lg:flex-row gap-12">
               <div className="w-full lg:w-2/3 xl:w-3/4">
                 {displayArticles?.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-xl text-gray-500">No articles found.</p>
-                  </div>
+                  <EmptyState
+                    icon={BookOpen}
+                    title="No articles found"
+                    message={
+                      search
+                        ? "Try adjusting your search or browse all articles"
+                        : "No articles are available at the moment. Please check back later."
+                    }
+                  />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {(debouncedSearch ? displayArticles : gridArticles)?.map(
@@ -293,21 +301,27 @@ function RouteComponent() {
                     </h4>
                     <ul className="space-y-4">
                       {/* Placeholder for trending - could be fetched or just static for now if no API */}
-                      {articles
-                        ?.slice(0, 3)
-                        .map((article: any, index: number) => (
-                          <li
-                            key={article.id}
-                            className="flex items-start gap-4"
-                          >
-                            <span className="font-display text-4xl font-bold text-vibrant-lime leading-none">
-                              {index + 1}
-                            </span>
-                            <p className="font-body text-sm font-medium leading-tight text-deep-forest/80 hover:text-deep-forest transition cursor-pointer line-clamp-2">
-                              {article.title}
-                            </p>
-                          </li>
-                        ))}
+                      {articles && articles.length > 0 ? (
+                        articles
+                          ?.slice(0, 3)
+                          .map((article: any, index: number) => (
+                            <li
+                              key={article.id}
+                              className="flex items-start gap-4"
+                            >
+                              <span className="font-display text-4xl font-bold text-vibrant-lime leading-none">
+                                {index + 1}
+                              </span>
+                              <p className="font-body text-sm font-medium leading-tight text-deep-forest/80 hover:text-deep-forest transition cursor-pointer line-clamp-2">
+                                {article.title}
+                              </p>
+                            </li>
+                          ))
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          No trending articles yet.
+                        </p>
+                      )}
                     </ul>
                   </div>
                   <div className="bg-deep-forest text-white p-6 rounded-lg text-center">

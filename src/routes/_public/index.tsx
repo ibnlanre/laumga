@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useFetchArticles, useFetchEvents } from "@/services/hooks";
-import { FilterOperator, type Variables } from "@/client/core-query";
+import { type Variables } from "@/client/core-query";
 import type { ArticleData } from "@/api/article";
 import type { EventData } from "@/api/event";
 import { formatDate } from "@/utils/date";
@@ -30,16 +30,16 @@ function RouteComponent() {
 
   const { data: articles } = useFetchArticles(articleVariables);
 
-  const eventsVariables = {
+  const eventsVariables: Variables<EventData> = {
     filterBy: [
       {
         field: "date",
-        operator: FilterOperator.GreaterThanOrEqualTo,
+        operator: ">=",
         value: new Date(),
       },
     ],
     sortBy: [{ field: "date", value: "asc" }],
-  } as unknown as Variables<EventData>;
+  };
 
   const { data: events } = useFetchEvents(eventsVariables);
 

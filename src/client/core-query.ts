@@ -25,9 +25,12 @@ export const FilterOperator = Object.freeze({
 /**
  * Query filters for building Firestore queries
  */
-export type FilterBy<DocumentType> = Array<{
+export type FilterBy<
+  DocumentType,
+  Operator extends WhereFilterOp = WhereFilterOp,
+> = Array<{
   field: Extract<keyof DocumentType, string>;
-  operator: WhereFilterOp;
+  operator: Operator;
   value: any;
 }>;
 

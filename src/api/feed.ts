@@ -47,7 +47,7 @@ export const feedItemSchema = z.union([mandateFeedSchema, userFeedSchema]);
 export type FeedItem = z.infer<typeof feedItemSchema>;
 
 export type FeedItemData = Omit<FeedItem, "id">;
-export type FeedCollectionReference = CollectionReference<FeedItemData>;
+export type FeedCollection = CollectionReference<FeedItemData>;
 export type FeedDocumentReference = CollectionReference<FeedItemData>;
 
 export interface FeedQueryResult {
@@ -74,7 +74,7 @@ async function fetchUserFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams & { userId: string }): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollectionReference;
+  const feedRef = collection(db, "feed") as FeedCollection;
 
   let feedQuery = query(
     feedRef,
@@ -119,7 +119,7 @@ async function fetchMandateFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams & { mandateId: string }): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollectionReference;
+  const feedRef = collection(db, "feed") as FeedCollection;
 
   let feedQuery = query(
     feedRef,
@@ -164,7 +164,7 @@ async function fetchGlobalFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams = {}): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollectionReference;
+  const feedRef = collection(db, "feed") as FeedCollection;
 
   let feedQuery = query(
     feedRef,
@@ -204,7 +204,7 @@ async function fetchGlobalFeed({
 async function getCursorDocument(
   cursorId: string
 ): Promise<QueryDocumentSnapshot | null> {
-  const feedRef = collection(db, "feed") as FeedCollectionReference;
+  const feedRef = collection(db, "feed") as FeedCollection;
   const snapshot = await getDocs(
     query(feedRef, where("__name__", "==", cursorId))
   );

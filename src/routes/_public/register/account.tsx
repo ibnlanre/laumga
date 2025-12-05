@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@mantine/form";
-import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   TextInput,
   Select,
@@ -12,10 +11,7 @@ import {
 import { useState } from "react";
 import { Home, MapPin, Mail, ArrowLeft, Globe } from "lucide-react";
 import { PasswordStrengthCheck } from "@/components/password-strength-check";
-import {
-  LocationAccountSchema,
-  type LocationAccountFormValues,
-} from "@/api/registration";
+import { type LocationAccountFormValues } from "@/api/registration";
 import { useCountryOptions, useStateOptions } from "@/services/location";
 import { useRegistration } from "@/contexts/registration-context";
 import { useFetchChapterByState } from "@/services/hooks";
@@ -43,7 +39,7 @@ function RouteComponent() {
       password: "",
       agreeToTerms: false,
     },
-    validate: zod4Resolver(LocationAccountSchema),
+    // validate: zod4Resolver(LocationAccountSchema), // TODO: Return back
   });
 
   const {
@@ -103,10 +99,8 @@ function RouteComponent() {
               key={form.key("countryOfOrigin")}
               {...form.getInputProps("countryOfOrigin")}
               searchable
-              required
               withAsterisk
               leftSection={<Globe size={16} />}
-              description="Return to Personal Details to change this selection."
               labelProps={{
                 lh: 2,
                 fz: "sm",
@@ -121,7 +115,6 @@ function RouteComponent() {
                 placeholder="Select your state..."
                 data={originStateOptions}
                 searchable
-                required
                 withAsterisk
                 key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
@@ -141,7 +134,6 @@ function RouteComponent() {
               <TextInput
                 label="State/Region of Origin"
                 placeholder="e.g. California, Ontario, etc."
-                required
                 withAsterisk
                 key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
@@ -161,7 +153,6 @@ function RouteComponent() {
               placeholder="Select country..."
               data={countryOptions}
               searchable
-              required
               withAsterisk
               leftSection={<Globe size={16} />}
               key={form.key("countryOfResidence")}
@@ -185,7 +176,6 @@ function RouteComponent() {
                 placeholder="Select your state..."
                 data={residenceStateOptions}
                 searchable
-                required
                 withAsterisk
                 key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
@@ -205,7 +195,6 @@ function RouteComponent() {
               <TextInput
                 label="State/Region of Residence"
                 placeholder="e.g. Texas, London, etc."
-                required
                 withAsterisk
                 key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
@@ -236,7 +225,6 @@ function RouteComponent() {
         <TextInput
           label="Residential Address"
           placeholder="Your full address"
-          required
           withAsterisk
           leftSection={<Home size={16} />}
           key={form.key("address")}
@@ -254,7 +242,6 @@ function RouteComponent() {
               label="Email Address"
               placeholder="aminah.alfaruq@email.com"
               type="email"
-              required
               withAsterisk
               leftSection={<Mail size={16} />}
               key={form.key("email")}
@@ -273,7 +260,6 @@ function RouteComponent() {
                 placeholder="••••••••••••"
                 visible={showPassword}
                 onVisibilityChange={setShowPassword}
-                required
                 withAsterisk
                 key={form.key("password")}
                 {...form.getInputProps("password")}
