@@ -91,21 +91,29 @@ Use the `@ibnlanre/builder` library for all API interactions:
 
 ## Common Pitfalls
 
-- Do not edit `src/routeTree.gen.ts`.
-- Do not store validation schemas in global files—keep them in domain modules.
-- Do not manually create query/mutation keys—always use the builder's `$use` and `$get` methods.
-- Do not commit secrets (refer to `.env.example` for environment variables).
-- Avoid invoking `notifications.show` directly; rely on the `meta` field in API hooks.
-- Use Firebase-generated document IDs instead of custom or random IDs.
-- Leverage Mantine's built-in components (tabs, steppers, accordions) instead of custom implementations.
-- Use `@mantine/modals` for modal management instead of the basic Mantine Modal component.
-- Do not use deprecated APIs or patterns; refer to the latest documentation.
-- Do not add comments that state the obvious or explain well-written code.
-- Eliminate duplicate code, dummy data, and commented-out code, except if it contains useful context.
-- Do not use `any` or `unknown` types; always use strict typing. Exceptions must be reviewed.
-- `validateSearch` must use Zod schemas with `zodValidator`.
-- Avoid reimplementing file upload logic; utilize or extend `src/api/upload.ts` for Firebase Storage uploads.
-- Employ Mantine form contexts for multi-step forms to eliminate prop drilling or manual context management.
+- Avoid editing `src/routeTree.gen.ts` manually, as it is auto-generated.
+- Keep validation schemas in domain-specific modules (e.g., `src/api/mandate.ts`) rather than global files.
+- Use the `@ibnlanre/builder` library's `$use` and `$get` methods for queries and mutations; do not create keys manually.
+- Do not commit secrets; reference `.env.example` for environment variables.
+- Rely on the `meta` field in API hooks for notifications instead of calling `notifications.show` directly.
+- Use Firebase-generated document IDs exclusively; avoid custom or random IDs.
+- Implement tabular data displays with the `DataTable` component only.
+- Prefer Mantine's built-in components (e.g., tabs, steppers, accordions) over custom implementations.
+- Manage modals using `@mantine/modals` instead of the basic Mantine Modal.
+- Stick to current APIs and patterns; avoid deprecated ones by consulting the latest documentation.
+- Remove obvious comments, duplicate code, dummy data, and commented-out code unless it provides essential context.
+- Enforce strict typing; prohibit `any` or `unknown` types without review.
+- Ensure `validateSearch` uses Zod schemas validated with `zodValidator`.
+- Extend or reuse `src/api/upload.ts` for Firebase Storage uploads; do not reimplement.
+- Use Mantine form contexts for multi-step forms to prevent prop drilling.
+- Avoid nesting function components inside other function components.
+- Exclude functions from `useEffect` dependency arrays.
+- Replace "required" props on Mantine form inputs with `withAsterisk`.
+- Prohibit barrel exports for components, hooks, or API functions.
+- Import directly from source files; avoid re-exports from index files (except when the source is an index file).
+- Ensure all components and pages function with real data.
+- Connect all modals and forms to actual API endpoints, handling responses appropriately.
+- Do not use percentage-based widths; use fixed widths or Tailwind's responsive utilities instead; except when absolutely necessary.
 
 ## Key Files & Examples
 
@@ -116,4 +124,3 @@ Use the `@ibnlanre/builder` library for all API interactions:
 ---
 
 If any section is unclear or incomplete, provide feedback to improve these instructions. Keep updates concise and actionable.
-

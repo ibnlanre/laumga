@@ -1,4 +1,3 @@
-import type { NullableExcept } from "@/services/types";
 import type { CollectionReference } from "firebase/firestore";
 import {
   collection,
@@ -9,35 +8,47 @@ import {
   getDocs,
   startAfter,
   QueryDocumentSnapshot,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
-import type { MandateTier } from "./mandate";
-import type { Gender } from "./user";
+import { z } from "zod/v4";
 
-type MandateFeed = NullableExcept<
-  {
-    type: "mandate";
-    location: string; // "Lagos", "Abuja", or "Global"
-    timestamp: string;
-    tier: MandateTier; // Optional: show "Someone became a Guardian"
-    gender: Gender; // Optional: "Brother" or "Sister"
-    userId: string; // Optional: link to profile (if public)
-  },
-  "type" | "location" | "gender"
->;
+// Schemas
+const mandateTierSchema = z.enum([
+  "supporter",
+  "builder",
+  "guardian",
+  "custom",
+]);
+const genderSchema = z.enum(["male", "female"]);
 
-type UserFeed = NullableExcept<
-  {
-    type: "user";
-    location: string; // "Lagos", "Abuja", or "Global"
-    timestamp: string;
-  },
-  "type" | "location"
->;
+export const mandateFeedSchema = z.object({
+  id: z.string(),
+  type: z.literal("mandate"),
+  location: z.string(),
+  timestamp: z.instanceof(Timestamp),
+  tier: mandateTierSchema.nullable(),
+  gender: genderSchema,
+  userId: z.string().nullable(),
+});
 
-export type FeedItem = MandateFeed | UserFeed;
+export type MandateFeed = z.infer<typeof mandateFeedSchema>;
 
-export type FeedCollection = CollectionReference<FeedItem>;
+export const userFeedSchema = z.object({
+  id: z.string(),
+  type: z.literal("user"),
+  location: z.string(),
+  timestamp: z.instanceof(Timestamp),
+});
+
+export type UserFeed = z.infer<typeof userFeedSchema>;
+
+export const feedItemSchema = z.union([mandateFeedSchema, userFeedSchema]);
+export type FeedItem = z.infer<typeof feedItemSchema>;
+
+export type FeedItemData = Omit<FeedItem, "id">;
+export type FeedCollectionReference = CollectionReference<FeedItemData>;
+export type FeedDocumentReference = CollectionReference<FeedItemData>;
 
 export interface FeedQueryResult {
   items: FeedItem[];
@@ -63,7 +74,7 @@ async function fetchUserFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams & { userId: string }): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollection;
+  const feedRef = collection(db, "feed") as FeedCollectionReference;
 
   let feedQuery = query(
     feedRef,
@@ -87,10 +98,12 @@ async function fetchUserFeed({
   }
 
   const snapshot = await getDocs(feedQuery);
-  const items = snapshot.docs.slice(0, limit).map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as FeedItem[];
+  const items = snapshot.docs.slice(0, limit).map((doc) =>
+    feedItemSchema.parse({
+      id: doc.id,
+      ...doc.data(),
+    })
+  );
 
   const nextCursor =
     snapshot.docs.length > limit ? snapshot.docs[limit - 1].id : null;
@@ -106,11 +119,12 @@ async function fetchMandateFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams & { mandateId: string }): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollection;
+  const feedRef = collection(db, "feed") as FeedCollectionReference;
 
   let feedQuery = query(
     feedRef,
     where("type", "==", "mandate"),
+    where("location", "==", mandateId),
     orderBy("timestamp", "desc"),
     limitQuery(limit + 1)
   );
@@ -121,6 +135,7 @@ async function fetchMandateFeed({
       feedQuery = query(
         feedRef,
         where("type", "==", "mandate"),
+        where("location", "==", mandateId),
         orderBy("timestamp", "desc"),
         startAfter(cursorDoc),
         limitQuery(limit + 1)
@@ -129,10 +144,12 @@ async function fetchMandateFeed({
   }
 
   const snapshot = await getDocs(feedQuery);
-  const items = snapshot.docs.slice(0, limit).map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as FeedItem[];
+  const items = snapshot.docs.slice(0, limit).map((doc) =>
+    feedItemSchema.parse({
+      id: doc.id,
+      ...doc.data(),
+    })
+  );
 
   const nextCursor =
     snapshot.docs.length > limit ? snapshot.docs[limit - 1].id : null;
@@ -147,7 +164,7 @@ async function fetchGlobalFeed({
   limit = 20,
   cursor,
 }: FeedQueryParams = {}): Promise<FeedQueryResult> {
-  const feedRef = collection(db, "feed") as FeedCollection;
+  const feedRef = collection(db, "feed") as FeedCollectionReference;
 
   let feedQuery = query(
     feedRef,
@@ -168,10 +185,12 @@ async function fetchGlobalFeed({
   }
 
   const snapshot = await getDocs(feedQuery);
-  const items = snapshot.docs.slice(0, limit).map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as FeedItem[];
+  const items = snapshot.docs.slice(0, limit).map((doc) =>
+    feedItemSchema.parse({
+      id: doc.id,
+      ...doc.data(),
+    })
+  );
 
   const nextCursor =
     snapshot.docs.length > limit ? snapshot.docs[limit - 1].id : null;
@@ -185,7 +204,7 @@ async function fetchGlobalFeed({
 async function getCursorDocument(
   cursorId: string
 ): Promise<QueryDocumentSnapshot | null> {
-  const feedRef = collection(db, "feed") as FeedCollection;
+  const feedRef = collection(db, "feed") as FeedCollectionReference;
   const snapshot = await getDocs(
     query(feedRef, where("__name__", "==", cursorId))
   );

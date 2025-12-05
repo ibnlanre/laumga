@@ -1,25 +1,27 @@
 import { Group, Burger, Drawer, Button, Anchor, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 interface NavItem {
   label: string;
   href: string;
 }
 
+type HeaderVariant = "public" | "auth" | "admin";
+
 interface HeaderProps {
-  variant: "public" | "auth" | "admin";
+  variant: HeaderVariant;
   className?: string;
 }
 
-const NAV_ITEMS: Record<HeaderProps["variant"], NavItem[]> = {
+const NAV_ITEMS: Record<HeaderVariant, NavItem[]> = {
   public: [
     { label: "Home", href: "/" },
     { label: "About Us", href: "/about-us" },
     { label: "Membership", href: "/membership" },
     { label: "Events", href: "/events" },
-    { label: "News", href: "/news" },
-    { label: "Contact", href: "/contact" },
+    { label: "News", href: "/bulletin" },
+    { label: "Contact", href: "/contact-us" },
   ],
   auth: [
     { label: "My Mandate", href: "/mandate" },
@@ -38,8 +40,18 @@ const NAV_ITEMS: Record<HeaderProps["variant"], NavItem[]> = {
 
 export function Header({ variant, className = "" }: HeaderProps) {
   const [opened, { toggle, close }] = useDisclosure(false);
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+
   const items = NAV_ITEMS[variant];
   const isPublic = variant === "public";
+
+  const isActive = (href: string) => {
+    if (href === "/") {
+      return currentPath === "/";
+    }
+    return currentPath.startsWith(href);
+  };
 
   return (
     <>
@@ -67,7 +79,11 @@ export function Header({ variant, className = "" }: HeaderProps) {
                   component={Link}
                   to={item.href}
                   underline="never"
-                  className="text-gray-700 hover:text-vibrant-lime-600 font-medium transition-colors"
+                  className={`font-medium transition-colors ${
+                    isActive(item.href)
+                      ? "text-vibrant-lime-600 font-bold"
+                      : "text-gray-700 hover:text-vibrant-lime-600"
+                  }`}
                 >
                   {item.label}
                 </Anchor>
@@ -132,7 +148,11 @@ export function Header({ variant, className = "" }: HeaderProps) {
               to={item.href}
               onClick={close}
               underline="never"
-              className="text-gray-700 hover:text-vibrant-lime-600 font-medium text-lg py-2"
+              className={`font-medium text-lg py-2 ${
+                isActive(item.href)
+                  ? "text-vibrant-lime-600 font-bold"
+                  : "text-gray-700 hover:text-vibrant-lime-600"
+              }`}
             >
               {item.label}
             </Anchor>

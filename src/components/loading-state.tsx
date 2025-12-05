@@ -23,7 +23,7 @@ export function LoadingState({
 
   return (
     <div className="flex flex-col items-center justify-center py-12">
-      <Loader size="lg" color="institutional-green" />
+      <Loader size="lg" />
       <Text c="dimmed" size="sm" mt="md">
         {message}
       </Text>

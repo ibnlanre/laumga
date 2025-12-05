@@ -2,29 +2,12 @@ import { useState } from "react";
 import { Button, Badge, Skeleton, TextInput } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, MapPin, Users, Search, CalendarOff } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/utils/date";
 
 import { useFetchEvents } from "@/services/hooks";
-import type { Event, EventType } from "@/api";
-
-const formatDate = (date: any, formatStr: string) => {
-  if (!date) return "";
-  try {
-    if (typeof date?.toDate === "function") {
-      return format(date.toDate(), formatStr);
-    }
-    if (
-      typeof date === "number" ||
-      typeof date === "string" ||
-      date instanceof Date
-    ) {
-      return format(new Date(date), formatStr);
-    }
-    return "";
-  } catch (e) {
-    return "";
-  }
-};
+import { FilterOperator, type Variables } from "@/client/core-query";
+import type { EventData } from "@/api/event";
+import type { Event, EventType } from "@/api/event";
 
 export const Route = createFileRoute("/_public/_default/events")({
   component: EventsPage,
@@ -45,10 +28,28 @@ function EventsPage() {
   const [showUpcoming, setShowUpcoming] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: events, isLoading } = useFetchEvents({
-    type: selectedType === "all" ? undefined : selectedType,
-    upcoming: showUpcoming,
-  });
+  const eventVariables: Variables<EventData> = {
+    filterBy: [],
+    sortBy: [{ field: "date", value: "asc" }],
+  };
+
+  if (selectedType !== "all") {
+    eventVariables.filterBy!.push({
+      field: "type",
+      operator: FilterOperator.EqualTo,
+      value: selectedType,
+    });
+  }
+
+  if (showUpcoming) {
+    eventVariables.filterBy!.push({
+      field: "date",
+      operator: FilterOperator.GreaterThanOrEqualTo,
+      value: new Date(),
+    });
+  }
+
+  const { data: events, isLoading } = useFetchEvents(eventVariables);
 
   const filteredEvents = events?.filter((event) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase())

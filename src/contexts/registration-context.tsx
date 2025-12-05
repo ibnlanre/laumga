@@ -3,7 +3,7 @@ import type {
   PersonalDetailsFormValues,
   LocationAccountFormValues,
   CompleteRegistrationData,
-} from "@/services/registration-schemas";
+} from "@/api/registration";
 
 /**
  * Registration steps
@@ -114,7 +114,7 @@ export function RegistrationProvider({
     return {
       ...state.personalDetails,
       ...state.locationAccount,
-      signature: "", // Will be filled in step 3
+      membershipPledge: false, // Will be filled in step 3
     };
   }, [state.personalDetails, state.locationAccount]);
 

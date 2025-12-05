@@ -11,26 +11,10 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useFetchArticles, useFetchEvents } from "@/services/hooks";
-import { format } from "date-fns";
-
-const formatDate = (date: any, formatStr: string) => {
-  if (!date) return "";
-  try {
-    if (typeof date?.toDate === "function") {
-      return format(date.toDate(), formatStr);
-    }
-    if (
-      typeof date === "number" ||
-      typeof date === "string" ||
-      date instanceof Date
-    ) {
-      return format(new Date(date), formatStr);
-    }
-    return "";
-  } catch (e) {
-    return "";
-  }
-};
+import { FilterOperator, type Variables } from "@/client/core-query";
+import type { ArticleData } from "@/api/article";
+import type { EventData } from "@/api/event";
+import { formatDate } from "@/utils/date";
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
@@ -39,11 +23,25 @@ export const Route = createFileRoute("/_public/")({
 //  <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/5 bg-sage-green h-[40vh] md:h-auto my-auto md:my-0"></div>
 
 function RouteComponent() {
-  const { data: articles } = useFetchArticles({
-    limit: 3,
-    isPublished: true,
-  });
-  const { data: events } = useFetchEvents({ upcoming: true });
+  const articleVariables = {
+    filterBy: [{ field: "isPublished", operator: "==", value: true }],
+    sortBy: [{ field: "publishedAt", value: "desc" }],
+  } as unknown as Variables<ArticleData>;
+
+  const { data: articles } = useFetchArticles(articleVariables);
+
+  const eventsVariables = {
+    filterBy: [
+      {
+        field: "date",
+        operator: FilterOperator.GreaterThanOrEqualTo,
+        value: new Date(),
+      },
+    ],
+    sortBy: [{ field: "date", value: "asc" }],
+  } as unknown as Variables<EventData>;
+
+  const { data: events } = useFetchEvents(eventsVariables);
 
   return (
     <main>
@@ -250,81 +248,85 @@ function RouteComponent() {
         </div>
       </section>
 
-      <section className="bg-mist-green py-16 sm:py-24">
-        <div className="container mx-auto px-4 lg:px-6">
-          <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
-            News &amp; Bulletins
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles?.map((article) => (
-              <div
-                key={article.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden group"
-              >
-                <img
-                  alt={article.title}
-                  className="h-48 w-full object-cover"
-                  src={article.coverImageUrl}
-                />
-                <div className="p-6">
-                  <p className="text-sm text-gray-500 mb-2">
-                    {formatDate(
-                      article.publishedAt || article.createdAt,
-                      "MMMM d, yyyy"
-                    )}
-                  </p>
-                  <h3 className="font-bold text-lg text-gray-800 mb-3">
-                    {article.title}
-                  </h3>
+      {articles && articles.length > 0 && (
+        <section className="bg-mist-green py-16 sm:py-24">
+          <div className="container mx-auto px-4 lg:px-6">
+            <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
+              News &amp; Bulletins
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {articles?.slice(0, 3).map((article) => (
+                <div
+                  key={article.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden group"
+                >
+                  <img
+                    alt={article.title}
+                    className="h-48 w-full object-cover"
+                    src={article.coverImageUrl}
+                  />
+                  <div className="p-6">
+                    <p className="text-sm text-gray-500 mb-2">
+                      {formatDate(
+                        article.publishedAt || article.createdAt,
+                        "MMMM d, yyyy"
+                      )}
+                    </p>
+                    <h3 className="font-bold text-lg text-gray-800 mb-3">
+                      {article.title}
+                    </h3>
+                    <Link
+                      className="font-semibold text-olive hover:underline"
+                      to={`/bulletin/${article.slug}` as any}
+                    >
+                      Read Article →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {events && events.length > 0 && (
+        <section className="bg-white py-16 sm:py-24">
+          <div className="container mx-auto px-4 lg:px-6">
+            <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
+              Upcoming Events
+            </h2>
+            <div className="max-w-4xl mx-auto space-y-4">
+              {events?.map((event) => (
+                <div
+                  key={event.id}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4 border-b last:border-b-0"
+                >
+                  <div className="text-center w-20">
+                    <p className="text-3xl font-bold text-olive">
+                      {formatDate(event.date, "d")}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-500 uppercase">
+                      {formatDate(event.date, "MMM")}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-gray-800">
+                      {event.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">{event.location}</p>
+                  </div>
                   <Link
-                    className="font-semibold text-olive hover:underline"
-                    to={`/bulletin/${article.slug}` as any}
+                    className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
+                    to={`/events/${event.id}` as any}
                   >
-                    Read Article →
+                    Details
                   </Link>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-16 sm:py-24">
-        <div className="container mx-auto px-4 lg:px-6">
-          <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
-            Upcoming Events
-          </h2>
-          <div className="max-w-4xl mx-auto space-y-4">
-            {events?.map((event) => (
-              <div
-                key={event.id}
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-4 md:gap-6 p-4 border-b last:border-b-0"
-              >
-                <div className="text-center w-20">
-                  <p className="text-3xl font-bold text-olive">
-                    {formatDate(event.date, "d")}
-                  </p>
-                  <p className="text-sm font-semibold text-gray-500 uppercase">
-                    {formatDate(event.date, "MMM")}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-gray-800">
-                    {event.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">{event.location}</p>
-                </div>
-                <Link
-                  className="text-olive px-4 py-2 text-sm font-medium rounded-md border border-olive hover:bg-olive hover:text-white transition-colors"
-                  to={`/events/${event.id}` as any}
-                >
-                  Details
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   CalendarOff,
 } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate, formatTime } from "@/utils/date";
 
 import {
   useFetchEvent,
@@ -18,23 +18,26 @@ import {
 } from "@/services/hooks";
 import { useAuth } from "@/contexts/auth";
 import { notifications } from "@mantine/notifications";
+import { isPast } from "date-fns";
 
 export const Route = createFileRoute("/_public/_default/events/$eventId")({
   component: EventDetailPage,
 });
 
 function EventDetailPage() {
-  const { eventId } = Route.useParams();
   const navigate = useNavigate();
-  const { currentUser, userData } = useAuth();
+  const registerMutation = useRegisterForEvent();
+  
   const [opened, { open, close }] = useDisclosure(false);
+
+  const { eventId } = Route.useParams();
+  const { currentUser, userData } = useAuth();
 
   const { data: event, isLoading } = useFetchEvent(eventId);
   const { data: isRegistered } = useCheckEventRegistration(
     eventId,
     currentUser?.uid || ""
   );
-  const registerMutation = useRegisterForEvent();
 
   if (isLoading) {
     return (
@@ -59,10 +62,10 @@ function EventDetailPage() {
     );
   }
 
-  const eventDate = new Date(event.date);
+  const eventDate = event.date.toDate();
   const isFull =
     event.maxAttendees && event.currentAttendees >= event.maxAttendees;
-  const isPast = eventDate < new Date();
+  const isPastEvent = isPast(eventDate);
 
   const handleRegister = async () => {
     if (!currentUser || !userData) {
@@ -75,28 +78,16 @@ function EventDetailPage() {
       return;
     }
 
-    try {
-      await registerMutation.mutateAsync({
-        eventId: event.id,
-        userId: currentUser.uid,
-        userData: {
-          name: `${userData.firstName} ${userData.lastName}`,
-          email: userData.email,
-        },
-      });
-      notifications.show({
-        title: "Success!",
-        message: "You've been registered for this event",
-        color: "green",
-      });
-      close();
-    } catch (error: any) {
-      notifications.show({
-        title: "Error",
-        message: error.message || "Failed to register",
-        color: "red",
-      });
-    }
+    await registerMutation.mutateAsync({
+      eventId: event.id,
+      userId: currentUser.uid,
+      userData: {
+        name: `${userData.firstName} ${userData.lastName}`,
+        email: userData.email,
+      },
+    });
+
+    close();
   };
 
   const handleShare = async () => {
@@ -186,12 +177,11 @@ function EventDetailPage() {
                     <Calendar className="size-5 text-institutional-green mt-0.5" />
                     <div>
                       <p className="font-semibold text-deep-forest">
-                        {format(eventDate, "MMMM d, yyyy")}
+                        {formatDate(eventDate, "MMMM d, yyyy")}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {format(eventDate, "h:mm a")}
-                        {event.endDate &&
-                          ` - ${format(new Date(event.endDate), "h:mm a")}`}
+                        {formatTime(eventDate)}
+                        {event.endDate && ` - ${formatTime(event.endDate)}`}
                       </p>
                     </div>
                   </div>
@@ -236,7 +226,7 @@ function EventDetailPage() {
                   <Button fullWidth variant="outline" color="green" disabled>
                     ✓ You're Registered
                   </Button>
-                ) : isPast ? (
+                ) : isPastEvent ? (
                   <Button fullWidth variant="outline" disabled>
                     Event Ended
                   </Button>

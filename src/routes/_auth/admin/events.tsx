@@ -1,24 +1,21 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import {
-  Card,
   Title,
   Text,
   Badge,
   Button,
   Group,
   Stack,
-  TextInput,
-  Select,
-  Table,
   ActionIcon,
   Tooltip,
   Modal,
   Grid,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { Search, Eye, Check, X, Trash2, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { DataTable } from "@/components/data-table";
+import { Eye, Check, X, Trash2, Calendar } from "lucide-react";
+import { formatDate } from "@/utils/date";
 
 import {
   useFetchEvents,
@@ -36,9 +33,6 @@ export const Route = createFileRoute("/_auth/admin/events")({
 });
 
 function EventsAdmin() {
-  const { status } = Route.useSearch();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(status || "all");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
@@ -46,17 +40,122 @@ function EventsAdmin() {
   const updateEventMutation = useUpdateEvent();
   const deleteEventMutation = useDeleteEvent();
 
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const columnHelper = createColumnHelper<Event>();
 
-    const matchesStatus =
-      statusFilter === "all" || event.status === statusFilter;
+  const columns = [
+    columnHelper.accessor("title", {
+      header: "Event",
+      cell: (info) => (
+        <div className="max-w-md">
+          <Text size="sm" fw={500}>
+            {info.getValue()}
+          </Text>
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {info.row.original.description}
+          </Text>
+        </div>
+      ),
+    }),
 
-    return matchesSearch && matchesStatus;
-  });
+    columnHelper.accessor("date", {
+      header: "Date",
+      cell: (info) => (
+        <Group gap="xs">
+          <Calendar className="size-4 text-gray-400" />
+          <Text size="sm">{formatDate(info.getValue(), "MMM dd, yyyy")}</Text>
+        </Group>
+      ),
+    }),
+
+    columnHelper.accessor("location", {
+      header: "Location",
+      cell: (info) => <Text size="sm">{info.getValue()}</Text>,
+    }),
+
+    columnHelper.accessor("category", {
+      header: "Category",
+      cell: (info) => (
+        <Badge size="sm" variant="light">
+          {info.getValue()}
+        </Badge>
+      ),
+    }),
+
+    columnHelper.accessor("status", {
+      header: "Status",
+      cell: (info) => (
+        <Badge
+          size="sm"
+          color={getStatusColor(info.getValue())}
+          variant="light"
+        >
+          {info.getValue()}
+        </Badge>
+      ),
+    }),
+
+    columnHelper.accessor("createdAt", {
+      header: "Created",
+      cell: (info) => (
+        <Text size="xs" c="dimmed">
+          {formatDate(info.getValue(), "MMM dd, yyyy")}
+        </Text>
+      ),
+    }),
+
+    columnHelper.display({
+      id: "actions",
+      header: "Actions",
+      cell: (info) => (
+        <Group gap="xs">
+          <Tooltip label="View details">
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              onClick={() => viewEventDetails(info.row.original)}
+            >
+              <Eye className="size-4" />
+            </ActionIcon>
+          </Tooltip>
+          {info.row.original.status === "draft" && (
+            <Tooltip label="Publish">
+              <ActionIcon
+                variant="subtle"
+                color="green"
+                onClick={() =>
+                  handleStatusChange(info.row.original.id, "published")
+                }
+              >
+                <Check className="size-4" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {info.row.original.status === "published" && (
+            <Tooltip label="Cancel">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={() =>
+                  handleStatusChange(info.row.original.id, "cancelled")
+                }
+              >
+                <X className="size-4" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          <Tooltip label="Delete">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => handleDelete(info.row.original.id)}
+            >
+              <Trash2 className="size-4" />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    }),
+  ] as ColumnDef<Event>[];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,52 +176,19 @@ function EventsAdmin() {
   };
 
   const handleStatusChange = async (eventId: string, newStatus: string) => {
-    try {
-      await updateEventMutation.mutateAsync({
-        eventId: eventId,
-        updates: { status: newStatus },
-      });
+    await updateEventMutation.mutateAsync({
+      eventId: eventId,
+      updates: { status: newStatus },
+    });
 
-      notifications.show({
-        title: "Status updated",
-        message: `Event status changed to ${newStatus}`,
-        color: "green",
-        autoClose: 5000,
-      });
-
-      setDetailsOpened(false);
-    } catch (error: any) {
-      notifications.show({
-        title: "Update failed",
-        message: error?.message || "Failed to update event status",
-        color: "red",
-        autoClose: 7000,
-      });
-    }
+    setDetailsOpened(false);
   };
 
   const handleDelete = async (eventId: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
 
-    try {
-      await deleteEventMutation.mutateAsync(eventId);
-
-      notifications.show({
-        title: "Event deleted",
-        message: "Event has been successfully deleted",
-        color: "green",
-        autoClose: 5000,
-      });
-
-      setDetailsOpened(false);
-    } catch (error: any) {
-      notifications.show({
-        title: "Delete failed",
-        message: error?.message || "Failed to delete event",
-        color: "red",
-        autoClose: 7000,
-      });
-    }
+    await deleteEventMutation.mutateAsync(eventId);
+    setDetailsOpened(false);
   };
 
   if (isLoading) {
@@ -140,147 +206,30 @@ function EventsAdmin() {
         </Text>
       </div>
 
-      <Card shadow="sm" p="lg" radius="md" withBorder className="mb-6">
-        <Group justify="space-between" mb="md">
-          <TextInput
-            placeholder="Search events..."
-            leftSection={<Search className="size-4" />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1, maxWidth: 400 }}
-          />
-          <Select
-            placeholder="Filter by status"
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value || "all")}
-            data={[
+      <DataTable
+        columns={columns}
+        data={events}
+        enableSearch
+        enableFilters
+        enableSorting
+        enablePagination
+        enableColumnOrdering
+        filters={[
+          {
+            key: "status",
+            label: "Filter by status",
+            options: [
               { value: "all", label: "All Events" },
               { value: "published", label: "Published" },
               { value: "draft", label: "Draft" },
               { value: "cancelled", label: "Cancelled" },
-            ]}
-            style={{ width: 200 }}
-          />
-        </Group>
-
-        <Table.ScrollContainer minWidth={800}>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Event</Table.Th>
-                <Table.Th>Date</Table.Th>
-                <Table.Th>Location</Table.Th>
-                <Table.Th>Category</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Created</Table.Th>
-                <Table.Th>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filteredEvents.length === 0 ? (
-                <Table.Tr>
-                  <Table.Td colSpan={7} className="text-center py-8">
-                    <Text c="dimmed">No events found</Text>
-                  </Table.Td>
-                </Table.Tr>
-              ) : (
-                filteredEvents.map((event) => (
-                  <Table.Tr key={event.id}>
-                    <Table.Td>
-                      <div>
-                        <Text size="sm" fw={500}>
-                          {event.title}
-                        </Text>
-                        <Text size="xs" c="dimmed" lineClamp={1}>
-                          {event.description}
-                        </Text>
-                      </div>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <Calendar className="size-4 text-gray-400" />
-                        <Text size="sm">
-                          {format(new Date(event.date), "MMM dd, yyyy")}
-                        </Text>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{event.location}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge size="sm" variant="light">
-                        {event.category}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        size="sm"
-                        color={getStatusColor(event.status)}
-                        variant="light"
-                      >
-                        {event.status}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="xs" c="dimmed">
-                        {format(new Date(event.createdAt), "MMM dd, yyyy")}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <Tooltip label="View details">
-                          <ActionIcon
-                            variant="subtle"
-                            color="blue"
-                            onClick={() => viewEventDetails(event)}
-                          >
-                            <Eye className="size-4" />
-                          </ActionIcon>
-                        </Tooltip>
-                        {event.status === "draft" && (
-                          <Tooltip label="Publish">
-                            <ActionIcon
-                              variant="subtle"
-                              color="green"
-                              onClick={() =>
-                                handleStatusChange(event.id, "published")
-                              }
-                            >
-                              <Check className="size-4" />
-                            </ActionIcon>
-                          </Tooltip>
-                        )}
-                        {event.status === "published" && (
-                          <Tooltip label="Cancel">
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() =>
-                                handleStatusChange(event.id, "cancelled")
-                              }
-                            >
-                              <X className="size-4" />
-                            </ActionIcon>
-                          </Tooltip>
-                        )}
-                        <Tooltip label="Delete">
-                          <ActionIcon
-                            variant="subtle"
-                            color="red"
-                            onClick={() => handleDelete(event.id)}
-                          >
-                            <Trash2 className="size-4" />
-                          </ActionIcon>
-                        </Tooltip>
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Card>
+            ],
+          },
+        ]}
+        searchPlaceholder="Search events..."
+        pageSize={10}
+        loading={isLoading}
+      />
 
       {/* Event Details Modal */}
       <Modal
@@ -310,7 +259,7 @@ function EventsAdmin() {
                   Date
                 </Text>
                 <Text size="sm">
-                  {format(new Date(selectedEvent.date), "MMMM dd, yyyy")}
+                  {formatDate(selectedEvent.date, "MMMM dd, yyyy")}
                 </Text>
               </Grid.Col>
               <Grid.Col span={6}>

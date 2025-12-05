@@ -8,14 +8,15 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   increment,
   CollectionReference,
   serverTimestamp,
   DocumentReference,
   type WithFieldValue,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import { buildQuery, getQueryDocs, type Variables } from "@/client/core-query";
 
 /**
  * Event Schema
@@ -25,8 +26,8 @@ export const eventSchema = z.object({
   title: z.string(),
   description: z.string(),
   excerpt: z.string().optional(),
-  date: z.string(), // timestamp
-  endDate: z.string().optional(), // timestamp
+  date: z.instanceof(Timestamp), // timestamp
+  endDate: z.instanceof(Timestamp).optional(), // timestamp
   time: z.string().optional(), // e.g., "2:00 PM - 4:00 PM"
   location: z.string(),
   type: z.enum(["convention", "seminar", "iftar", "sports", "dawah", "other"]),
@@ -38,8 +39,8 @@ export const eventSchema = z.object({
   currentAttendees: z.number().default(0),
   organizer: z.string(),
   isPublic: z.boolean().default(true),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp),
 });
 
 export const createEventSchema = eventSchema.omit({
@@ -69,7 +70,7 @@ export const eventRegistrationSchema = z.object({
   userId: z.string(),
   userName: z.string(),
   userEmail: z.email(),
-  registeredAt: z.string(),
+  registeredAt: z.instanceof(Timestamp),
   attended: z.boolean().default(false),
 });
 
@@ -87,27 +88,15 @@ const REGISTRATIONS_COLLECTION = "eventRegistrations";
 /**
  * Fetch all events
  */
-async function fetchAll(filters?: { type?: EventType; upcoming?: boolean }) {
+async function fetchAll(variables?: Variables<EventData>) {
   const eventsRef = collection(
     db,
     EVENTS_COLLECTION
   ) as EventCollectionReference;
-  let eventsQuery = query(eventsRef, orderBy("date", "desc"));
+  const q = buildQuery(eventsRef, variables);
+  const docs = await getQueryDocs(q);
 
-  // Filter by type
-  if (filters?.type) {
-    eventsQuery = query(eventsQuery, where("type", "==", filters.type));
-  }
-
-  // Filter upcoming events
-  if (filters?.upcoming) {
-    eventsQuery = query(eventsQuery, where("date", ">=", serverTimestamp()));
-  }
-
-  const snapshot = await getDocs(eventsQuery);
-  const events = snapshot.docs.map((doc) => doc.data());
-
-  return eventSchema.array().parse(events);
+  return eventSchema.array().parse(docs);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import {
   collection,
   doc,
@@ -10,7 +10,11 @@ import {
   query,
   where,
   orderBy,
+  Timestamp,
+  serverTimestamp,
+  CollectionReference,
 } from "firebase/firestore";
+import { buildQuery, getQueryDocs, type Variables } from "@/client/core-query";
 import {
   ref,
   uploadBytes,
@@ -27,12 +31,12 @@ export const gallerySchema = z.object({
   title: z.string(),
   year: z.string(),
   category: z.string(),
-  coverImageUrl: z.url(),
+  coverImageUrl: z.string().url(),
   description: z.string(),
   isFeatured: z.boolean().default(false),
   mediaCount: z.number().default(0),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp),
 });
 
 export const createGallerySchema = gallerySchema.omit({
@@ -48,17 +52,20 @@ export type Gallery = z.infer<typeof gallerySchema>;
 export type CreateGalleryData = z.infer<typeof createGallerySchema>;
 export type UpdateGalleryData = z.infer<typeof updateGallerySchema>;
 
+export type GalleryData = Omit<Gallery, "id">;
+export type GalleryCollection = CollectionReference<GalleryData>;
+
 /**
  * Gallery Media Schema
  */
 export const galleryMediaSchema = z.object({
   id: z.string(),
   collectionId: z.string(),
-  url: z.url(),
+  url: z.string().url(),
   caption: z.string().optional(),
   uploadedBy: z.string(),
   uploadedByName: z.string().optional(),
-  createdAt: z.number(),
+  createdAt: z.instanceof(Timestamp),
 });
 
 export const createMediaSchema = galleryMediaSchema.omit({
@@ -80,13 +87,17 @@ async function uploadImage(
   file: File,
   path: string = STORAGE_PATH
 ): Promise<string> {
-  const fileName = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+  const fileName = z.string().slugify().parse(file.name);
   const storageRef = ref(storage, `${path}/${fileName}`);
 
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
-
-  return downloadURL;
+  try {
+    // Check if the file already exists by attempting to get its download URL
+    return await getDownloadURL(storageRef);
+  } catch (error) {
+    // File does not exist, proceed with upload
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  }
 }
 
 /**
@@ -106,13 +117,12 @@ async function deleteImage(url: string): Promise<void> {
  */
 async function createCollection(data: CreateGalleryData): Promise<Gallery> {
   const validated = createGallerySchema.parse(data);
-  const now = Date.now();
 
   const galleryData = {
     ...validated,
     mediaCount: 0,
-    createdAt: now,
-    updatedAt: now,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
 
   const docRef = await addDoc(
@@ -120,10 +130,11 @@ async function createCollection(data: CreateGalleryData): Promise<Gallery> {
     galleryData
   );
 
+  const newDoc = await getDoc(docRef);
   return {
-    id: docRef.id,
-    ...galleryData,
-  };
+    id: newDoc.id,
+    ...newDoc.data(),
+  } as Gallery;
 }
 
 /**
@@ -138,7 +149,7 @@ async function updateCollection(
 
   const updateData = {
     ...validated,
-    updatedAt: Date.now(),
+    updatedAt: serverTimestamp(),
   };
 
   await updateDoc(galleryRef, updateData);
@@ -154,39 +165,15 @@ async function updateCollection(
 /**
  * Fetch all gallery collections
  */
-async function fetchCollections(filters?: {
-  year?: string;
-  category?: string;
-  isFeatured?: boolean;
-}): Promise<Gallery[]> {
-  const galleriesRef = collection(db, GALLERIES_COLLECTION);
-  let galleriesQuery = query(galleriesRef, orderBy("createdAt", "desc"));
+async function fetchCollections(
+  variables?: Variables<GalleryData>
+): Promise<Gallery[]> {
+  const galleriesRef = collection(db, GALLERIES_COLLECTION) as GalleryCollection;
 
-  if (filters?.year) {
-    galleriesQuery = query(galleriesQuery, where("year", "==", filters.year));
-  }
+  const q = buildQuery(galleriesRef, variables);
+  const docs = await getQueryDocs(q);
 
-  if (filters?.category) {
-    galleriesQuery = query(
-      galleriesQuery,
-      where("category", "==", filters.category)
-    );
-  }
-
-  if (filters?.isFeatured !== undefined) {
-    galleriesQuery = query(
-      galleriesQuery,
-      where("isFeatured", "==", filters.isFeatured)
-    );
-  }
-
-  const snapshot = await getDocs(galleriesQuery);
-  const galleries = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Gallery[];
-
-  return gallerySchema.array().parse(galleries);
+  return gallerySchema.array().parse(docs);
 }
 
 /**
@@ -231,7 +218,7 @@ async function addMedia(data: CreateMediaData): Promise<GalleryMedia> {
 
   const mediaData = {
     ...validated,
-    createdAt: Date.now(),
+    createdAt: serverTimestamp(),
   };
 
   const docRef = await addDoc(collection(db, MEDIA_COLLECTION), mediaData);
@@ -244,10 +231,11 @@ async function addMedia(data: CreateMediaData): Promise<GalleryMedia> {
     await updateDoc(galleryRef, { mediaCount: currentCount + 1 });
   }
 
+  const newDoc = await getDoc(docRef);
   return {
-    id: docRef.id,
-    ...mediaData,
-  };
+    id: newDoc.id,
+    ...newDoc.data(),
+  } as GalleryMedia;
 }
 
 /**
@@ -265,7 +253,7 @@ async function fetchMedia(collectionId: string): Promise<GalleryMedia[]> {
   const media = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as GalleryMedia[];
+  }));
 
   return galleryMediaSchema.array().parse(media);
 }

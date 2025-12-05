@@ -8,10 +8,13 @@ export const PersonalDetailsSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   middleName: z.string().optional(),
+  maidenName: z.string().optional(),
+  nickname: z.string().optional(),
   gender: z.enum(["male", "female"], { message: "Gender is required" }),
-  passportUrl: z.string().min(1, "Passport photo is required"),
+  profilePictureUrl: z.string().optional(),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
-  nationality: z.string().optional().default("Nigerian"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  classSet: z.string().nullable(),
 });
 
 export type PersonalDetailsFormValues = z.infer<typeof PersonalDetailsSchema>;
@@ -21,9 +24,10 @@ export type PersonalDetailsFormValues = z.infer<typeof PersonalDetailsSchema>;
  * (Already exists as AccountCredentialsSchema in validation.ts)
  */
 export const LocationAccountSchema = z.object({
+  countryOfOrigin: z.string().min(1, "Country of origin is required"),
   stateOfOrigin: z.string().min(1, "State of origin is required"),
-  stateOfResidence: z.string().min(1, "State of residence is required"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  countryOfResidence: z.string().min(1, "Country of residence is required"),
+  stateOfResidence: z.string().min(1, "State/Region of residence is required"),
   address: z.string().min(10, "Address must be at least 10 characters"),
   email: z.email("Invalid email address").min(1, "Email is required"),
   password: z
@@ -43,10 +47,15 @@ export const LocationAccountSchema = z.object({
 export type LocationAccountFormValues = z.infer<typeof LocationAccountSchema>;
 
 /**
- * Step 3: Review & Signature Schema
+ * Step 3: Review & Pledge Schema
  */
 export const ReviewSubmitSchema = z.object({
-  signature: z.string().min(1, "Signature is required"),
+  membershipPledge: z
+    .boolean()
+    .refine(
+      (val) => val === true,
+      "You must acknowledge the membership pledge"
+    ),
 });
 
 export type ReviewSubmitFormValues = z.infer<typeof ReviewSubmitSchema>;
@@ -58,12 +67,6 @@ export type ReviewSubmitFormValues = z.infer<typeof ReviewSubmitSchema>;
 export const CompleteRegistrationSchema = PersonalDetailsSchema.extend(
   LocationAccountSchema.shape
 ).extend(ReviewSubmitSchema.shape);
-
-// export const CompleteRegistrationSchema = z.object({
-//   ...PersonalDetailsSchema.shape,
-//   ...LocationAccountSchema.shape,
-//   ...ReviewSubmitSchema.shape,
-// });
 
 export type CompleteRegistrationData = z.infer<
   typeof CompleteRegistrationSchema

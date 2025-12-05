@@ -10,11 +10,13 @@ import {
   query,
   where,
   serverTimestamp,
+  Timestamp,
   CollectionReference,
   DocumentReference,
   type WithFieldValue,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import { buildQuery, getQueryDocs, type Variables } from "@/client/core-query";
 
 /**
  * Executive Schema
@@ -23,17 +25,17 @@ export const executiveSchema = z.object({
   id: z.string(),
   userId: z.string(),
   displayName: z.string(),
-  photoUrl: z.string().url(),
+  photoUrl: z.url(),
   role: z.string(),
   tier: z.enum(["presidential", "council", "directorate"]),
   tenureYear: z.string(),
   portfolio: z.string().optional(),
   quote: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   phone: z.string().optional(),
   isActive: z.boolean().default(true),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp),
 });
 
 export const createExecutiveSchema = executiveSchema.omit({
@@ -107,50 +109,18 @@ async function update(id: string, data: UpdateExecutiveData) {
 /**
  * Fetch all executives
  */
-async function fetchAll(filters?: {
-  tier?: Executive["tier"];
-  tenureYear?: string;
-  isActive?: boolean;
-}) {
+async function fetchAll(variables?: Variables<ExecutiveData>) {
   const executivesRef = collection(
     db,
     EXECUTIVES_COLLECTION
   ) as ExecutiveCollectionReference;
-  let executivesQuery = query(executivesRef);
 
-  // Filter by active status
-  if (filters?.isActive !== undefined) {
-    executivesQuery = query(
-      executivesQuery,
-      where("isActive", "==", filters.isActive)
-    );
-  }
+  const q = buildQuery(executivesRef, variables);
+  const docs = await getQueryDocs(q);
 
-  // Filter by tier
-  if (filters?.tier) {
-    executivesQuery = query(executivesQuery, where("tier", "==", filters.tier));
-  }
-
-  // Filter by tenure year
-  if (filters?.tenureYear) {
-    executivesQuery = query(
-      executivesQuery,
-      where("tenureYear", "==", filters.tenureYear)
-    );
-  }
-
-  const snapshot = await getDocs(executivesQuery);
-  const executives = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  // Order by tier (presidential first)
+  // Keep post-processing ordering (presidential first) to preserve behaviour
+  const parsedExecutives = executiveSchema.array().parse(docs);
   const tierOrder = { presidential: 0, council: 1, directorate: 2 };
-  
-  // Parse first to ensure data integrity, then sort
-  const parsedExecutives = executiveSchema.array().parse(executives);
-  
   parsedExecutives.sort((a, b) => tierOrder[a.tier] - tierOrder[b.tier]);
 
   return parsedExecutives;
@@ -212,7 +182,12 @@ async function fetchByUserId(userId: string): Promise<Executive | null> {
  */
 async function fetchCurrent(): Promise<Executive[]> {
   const currentYear = new Date().getFullYear().toString();
-  return fetchAll({ tenureYear: currentYear, isActive: true });
+  return fetchAll({
+    filterBy: [
+      { field: "tenureYear", operator: "==", value: currentYear },
+      { field: "isActive", operator: "==", value: true },
+    ],
+  });
 }
 
 /**

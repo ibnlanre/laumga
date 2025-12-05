@@ -1,25 +1,57 @@
 import { Stepper } from "@mantine/core";
 import { useRegistration } from "@/contexts/registration-context";
+import { AuthLayout } from "@/layouts/auth/layout";
+import { AuthSidebar } from "@/layouts/auth/sidebar";
 
 interface RegistrationLayoutProps {
   children: React.ReactNode;
+  sidebarTitle: string;
+  sidebarDescription: string;
+  backgroundImage?: string;
 }
 
-export function RegistrationLayout({ children }: RegistrationLayoutProps) {
+export function RegistrationLayout({
+  children,
+  sidebarTitle,
+  sidebarDescription,
+  backgroundImage = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop",
+}: RegistrationLayoutProps) {
   const { currentStep } = useRegistration();
 
   return (
-    <div className="min-h-screen bg-mist-green">
-      {/* Stepper Header */}
-      <div className="bg-white shadow-sm">
-        <div className="container mx-auto max-w-4xl px-4 py-8">
+    <AuthLayout
+      sidebar={
+        <AuthSidebar
+          title={sidebarTitle}
+          description={sidebarDescription}
+          backgroundImage={backgroundImage}
+          bottomContent={
+            <p className="text-white/80 text-sm">
+              Already a member?{" "}
+              <a
+                className="font-semibold text-vibrant-lime underline hover:text-white"
+                href="/login"
+              >
+                Log in here.
+              </a>
+            </p>
+          }
+        />
+      }
+      backgroundColor="bg-white"
+    >
+      <div className="w-full max-w-3xl px-6 py-8">
+        {/* Stepper */}
+        <div className="mb-8">
           <Stepper
-            active={currentStep}
+            active={currentStep - 1}
             color="rgba(0, 104, 56, 1)"
-            completedIcon={null}
+            size="sm"
             classNames={{
               stepIcon: "border-2",
-              stepBody: "mt-2",
+              stepBody: "mt-1",
+              stepLabel: "text-xs font-semibold",
+              stepDescription: "text-xs",
             }}
           >
             <Stepper.Step
@@ -28,18 +60,18 @@ export function RegistrationLayout({ children }: RegistrationLayoutProps) {
             />
             <Stepper.Step
               label="Location & Account"
-              description="Where you're from and how to reach you"
+              description="Network and credentials"
             />
             <Stepper.Step
-              label="Review & Submit"
-              description="Confirm and complete"
+              label="Review & Confirm"
+              description="Complete registration"
             />
           </Stepper>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="container mx-auto max-w-6xl">{children}</div>
-    </div>
+        {/* Content */}
+        {children}
+      </div>
+    </AuthLayout>
   );
 }

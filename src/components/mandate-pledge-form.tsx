@@ -1,66 +1,197 @@
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
+  Alert,
   Button,
+  Group,
+  Loader,
+  NumberInput,
   Select,
   Stack,
   Text,
   TextInput,
-  Alert,
-  Loader,
-  NumberInput,
-  Group,
 } from "@mantine/core";
 import { useNavigate } from "@tanstack/react-router";
-import { useCreateMandate } from "@/services/hooks";
-import { useAuth } from "@/contexts/auth";
-import { createMandateSchema, type CreateMandateInput } from "@/api/mandate";
-import { mono, type SupportedBank } from "@/api/mono";
 import {
   AlertCircle,
-  CheckCircle2,
-  Shield,
-  TrendingUp,
-  Star,
-  Edit,
   BarChart3,
-  Vote,
+  CheckCircle2,
+  Edit,
+  FileText,
+  GraduationCap,
+  HardHat,
+  Heart,
   LayoutDashboard,
+  Shield,
+  Star,
+  TrendingUp,
+  Vote,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+
+import {
+  createMandateSchema,
+  type CreateMandateInput,
+  type MandateDuration,
+  type MandateFrequency,
+} from "@/api/mandate";
+import { mono, type SupportedBank } from "@/api/mono";
+import { useAuth } from "@/contexts/auth";
+import { useCreateMandate } from "@/services/hooks";
 
 const TIER_AMOUNTS = {
-  supporter: 500000, // ₦5,000 in kobo
-  builder: 1000000, // ₦10,000 in kobo
-  guardian: 2500000, // ₦25,000 in kobo
+  supporter: 500000,
+  builder: 1000000,
+  guardian: 2500000,
+} as const;
+
+const tierOptions = [
+  {
+    id: "supporter",
+    label: "Supporter",
+    amountLabel: "₦5,000",
+    copy: "Keeps welfare helplines funded every month.",
+    accent: "text-sage-green",
+    icon: Shield,
+    amountValue: TIER_AMOUNTS.supporter,
+  },
+  {
+    id: "builder",
+    label: "Builder",
+    amountLabel: "₦10,000",
+    copy: "Backs book grants and transport for scholars.",
+    accent: "text-institutional-green",
+    icon: TrendingUp,
+    amountValue: TIER_AMOUNTS.builder,
+  },
+  {
+    id: "guardian",
+    label: "Guardian",
+    amountLabel: "₦25,000",
+    copy: "Underwrites multi-student stipends per term.",
+    accent: "text-vibrant-lime",
+    icon: Star,
+    amountValue: TIER_AMOUNTS.guardian,
+  },
+] as const;
+
+const impactPillars = [
+  {
+    title: "Rapid welfare relief",
+    copy: "Groceries, stipends, and hospital deposits dispatched within 48 hours.",
+    icon: Heart,
+  },
+  {
+    title: "Scholars who finish",
+    copy: "Tuition bridges and exam fees keep brilliant students enrolled.",
+    icon: GraduationCap,
+  },
+  {
+    title: "Community ventures",
+    copy: "Skills labs and micro-capital empower halal businesses to hire locally.",
+    icon: HardHat,
+  },
+];
+
+const safeguards = [
+  {
+    title: "Mono authorization",
+    copy: "Every pledge is verified via secure Mono flow before activation.",
+    icon: Shield,
+  },
+  {
+    title: "Paper trail ready",
+    copy: "Signed debit references + BVN checks keep ledgers audit-proof.",
+    icon: FileText,
+  },
+  {
+    title: "Live reporting",
+    copy: "Mandate dashboard mirrors every debit, pause, and reinstatement in real-time.",
+    icon: LayoutDashboard,
+  },
+];
+
+const benefits = [
+  {
+    title: "Shariah compliant",
+    copy: "Funds are deployed through vetted Muslim-led channels.",
+    icon: CheckCircle2,
+  },
+  {
+    title: "Monthly reports",
+    copy: "Receive curated snapshots of welfare, scholarship, and empowerment spends.",
+    icon: BarChart3,
+  },
+  {
+    title: "Community voting",
+    copy: "Mandate holders prioritise quarterly focus areas together.",
+    icon: Vote,
+  },
+  {
+    title: "Digital dashboard",
+    copy: "Track every debit, pause, and upgrade without calling support.",
+    icon: LayoutDashboard,
+  },
+];
+
+const inputClassNames = {
+  label: "text-sm font-semibold text-deep-forest",
+  description: "text-deep-forest/60",
+  input:
+    "h-14 rounded-2xl border-2 border-sage-green/60 bg-white text-base text-deep-forest placeholder:text-deep-forest/40 focus:border-deep-forest focus:ring-0",
 };
 
-export function MandatePledgeForm() {
+const tierIconWrapperClasses = {
+  active:
+    "flex h-10 w-10 items-center justify-center rounded-2xl border border-white/40 bg-white/10 text-white",
+  inactive:
+    "flex h-10 w-10 items-center justify-center rounded-2xl border border-deep-forest/20 bg-mist-green/60 text-deep-forest",
+};
+
+interface MandatePledgeFormProps {
+  tier?: "supporter" | "builder" | "guardian" | "custom";
+  amount?: number;
+}
+
+export function MandatePledgeForm({
+  tier,
+  amount,
+}: MandatePledgeFormProps = {}) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const createMandate = useCreateMandate();
   const [monoUrl, setMonoUrl] = useState<string | null>(null);
   const [banks, setBanks] = useState<SupportedBank[]>([]);
   const [loadingBanks, setLoadingBanks] = useState(true);
+  const bankOptions = useMemo(
+    () => banks.map((bank) => ({ label: bank.label, value: bank.bankCode })),
+    [banks]
+  );
 
-  // Fetch supported banks from Mono API
+  const getInitialAmount = () => {
+    if (amount) return amount;
+    if (tier && tier !== "custom" && tier in TIER_AMOUNTS) {
+      return TIER_AMOUNTS[tier as keyof typeof TIER_AMOUNTS];
+    }
+    return TIER_AMOUNTS.supporter;
+  };
+
   useEffect(() => {
     async function fetchBanks() {
       try {
         const supportedBanks = await mono.bank.fetchAll();
         setBanks(supportedBanks);
-      } catch (error) {
-        console.error("Failed to fetch banks:", error);
       } finally {
         setLoadingBanks(false);
       }
     }
+
     fetchBanks();
   }, []);
 
   const form = useForm<CreateMandateInput>({
     initialValues: {
-      amount: 500000,
+      amount: getInitialAmount(),
       frequency: "monthly",
       duration: "12-months",
       accountNumber: "",
@@ -70,41 +201,45 @@ export function MandatePledgeForm() {
     validate: zod4Resolver(createMandateSchema),
   });
 
-  const handleTierSelect = (tier: keyof typeof TIER_AMOUNTS) => {
-    form.setFieldValue("amount", TIER_AMOUNTS[tier]);
+  const handleTierSelect = (tierId: keyof typeof TIER_AMOUNTS) => {
+    form.setFieldValue("amount", TIER_AMOUNTS[tierId]);
+  };
+
+  const handleCustomAmountChange = (value: string | number | null) => {
+    if (value === null || value === "") return;
+    const parsedValue = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(parsedValue)) return;
+    form.setFieldValue("amount", Math.round(parsedValue * 100));
   };
 
   const handleSubmit = async (data: CreateMandateInput) => {
     if (!currentUser) return;
 
-    try {
-      const result = await createMandate.mutateAsync({
-        userId: currentUser.uid,
-        data,
-      });
+    const result = await createMandate.mutateAsync({
+      userId: currentUser.uid,
+      data,
+    });
 
-      // Show Mono authorization URL
-      if (result.monoUrl) {
-        setMonoUrl(result.monoUrl);
-      }
-    } catch (error) {
-      console.error("Failed to create mandate:", error);
+    if (result.monoUrl) {
+      setMonoUrl(result.monoUrl);
     }
   };
 
-  // If Mono URL is available, show authorization screen
   if (monoUrl) {
     return (
-      <div className="w-full max-w-2xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-3xl space-y-6 rounded-3xl border border-sage-green/50 bg-white/95 p-8 shadow-2xl">
         <Alert
           icon={<AlertCircle />}
-          title="Authorization Required"
-          color="blue"
+          radius="lg"
+          title="Authorization required"
+          color="green"
+          variant="light"
         >
           <Stack gap="md">
             <Text size="sm">
-              Your mandate has been created successfully. Please authorize it by
-              clicking the button below to complete the setup process.
+              Your mandate shell is ready. Authorize it with Mono to begin the
+              debit rhythm, or jump straight to your dashboard to review the
+              setup.
             </Text>
             <Group>
               <Button
@@ -130,344 +265,336 @@ export function MandatePledgeForm() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-12 py-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="font-serif text-5xl font-bold text-deep-forest">
-          Choose Your Impact Level
-        </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Your consistent support is a continuous charity that builds a better
-          future for our ummah.
-        </p>
-      </div>
-
-      {/* Tier Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Supporter Tier */}
-        <button
-          type="button"
-          onClick={() => handleTierSelect("supporter")}
-          className={`group relative overflow-hidden rounded-2xl border-2 p-8 text-left transition-all hover:shadow-xl ${
-            form.values.amount === TIER_AMOUNTS.supporter
-              ? "border-sage-green bg-sage-green/5 shadow-lg"
-              : "border-gray-200 bg-white hover:border-sage-green/50"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="inline-flex rounded-full bg-sage-green/10 p-3">
-              <Shield className="h-6 w-6 text-sage-green" />
-            </div>
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-deep-forest">
-                Supporter
-              </h3>
-              <p className="mt-2 text-4xl font-bold text-deep-forest">₦5,000</p>
-              <p className="mt-1 text-sm text-gray-600">Per Month</p>
-            </div>
-          </div>
-          {form.values.amount === TIER_AMOUNTS.supporter && (
-            <div className="absolute top-4 right-4">
-              <CheckCircle2 className="h-6 w-6 text-sage-green" />
-            </div>
-          )}
-        </button>
-
-        {/* Builder Tier */}
-        <button
-          type="button"
-          onClick={() => handleTierSelect("builder")}
-          className={`group relative overflow-hidden rounded-2xl border-2 p-8 text-left transition-all hover:shadow-xl ${
-            form.values.amount === TIER_AMOUNTS.builder
-              ? "border-institutional-green bg-institutional-green/5 shadow-lg"
-              : "border-gray-200 bg-institutional-green/5 hover:border-institutional-green/50"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="inline-flex rounded-full bg-institutional-green/10 p-3">
-              <TrendingUp className="h-6 w-6 text-institutional-green" />
-            </div>
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-deep-forest">
-                Builder
-              </h3>
-              <p className="mt-2 text-4xl font-bold text-deep-forest">
-                ₦10,000
-              </p>
-              <p className="mt-1 text-sm text-gray-600">Per Month</p>
-            </div>
-          </div>
-          {form.values.amount === TIER_AMOUNTS.builder && (
-            <div className="absolute top-4 right-4">
-              <CheckCircle2 className="h-6 w-6 text-institutional-green" />
-            </div>
-          )}
-        </button>
-
-        {/* Guardian Tier */}
-        <button
-          type="button"
-          onClick={() => handleTierSelect("guardian")}
-          className={`group relative overflow-hidden rounded-2xl border-2 p-8 text-left transition-all hover:shadow-xl ${
-            form.values.amount === TIER_AMOUNTS.guardian
-              ? "border-deep-forest bg-deep-forest text-white shadow-lg"
-              : "border-gray-200 bg-deep-forest text-white hover:border-deep-forest/50"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="inline-flex rounded-full bg-vibrant-lime/20 p-3">
-              <Star className="h-6 w-6 text-vibrant-lime" />
-            </div>
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-white">
-                Guardian
-              </h3>
-              <p className="mt-2 text-4xl font-bold text-vibrant-lime">
-                ₦25,000
-              </p>
-              <p className="mt-1 text-sm text-white/70">Per Month</p>
-            </div>
-          </div>
-          {form.values.amount === TIER_AMOUNTS.guardian && (
-            <div className="absolute top-4 right-4">
-              <CheckCircle2 className="h-6 w-6 text-vibrant-lime" />
-            </div>
-          )}
-        </button>
-
-        {/* Custom Pledge */}
+    <div className="space-y-12">
+      <section className="relative overflow-hidden rounded-4xl border border-white/60 bg-white/90 p-6 shadow-[0_40px_120px_rgba(0,35,19,0.08)] sm:p-10">
         <div
-          className={`relative overflow-hidden rounded-2xl border-2 border-dashed p-8 transition-all ${
-            form.values.amount !== TIER_AMOUNTS.supporter &&
-            form.values.amount !== TIER_AMOUNTS.builder &&
-            form.values.amount !== TIER_AMOUNTS.guardian
-              ? "border-deep-forest bg-deep-forest/5"
-              : "border-gray-300 bg-white"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="inline-flex rounded-full bg-gray-100 p-3">
-              <Edit className="h-6 w-6 text-gray-600" />
-            </div>
-            <div>
-              <h3 className="font-serif text-2xl font-bold text-deep-forest">
-                Custom Pledge
-              </h3>
-              <p className="mt-2 text-sm text-gray-600">
-                Enter your own amount
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(205,229,167,0.35), transparent 55%), radial-gradient(circle at 80% 0%, rgba(0,104,56,0.18), transparent 45%)",
+          }}
+        />
+        <div className="relative space-y-8">
+          <div className="space-y-3 text-center sm:text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/70">
+              pledge
+            </p>
+            <h1 className="text-4xl font-black tracking-[-0.03em] text-deep-forest sm:text-5xl">
+              Choose the rhythm that fits your capacity
+            </h1>
+            <p className="text-base text-deep-forest/70 sm:max-w-3xl">
+              Every steady debit keeps verified welfare cases, tuition bridges,
+              and empowerment projects moving without pauses.
+            </p>
+          </div>
+
+          <div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+            aria-label="Mandate tiers"
+          >
+            {tierOptions.map(
+              ({
+                id,
+                label,
+                amountLabel,
+                copy,
+                icon: Icon,
+                accent,
+                amountValue,
+              }) => {
+                const isActive = form.values.amount === amountValue;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleTierSelect(id)}
+                    className={`group relative flex h-full flex-col justify-between rounded-3xl border-2 p-6 text-left transition-all ${
+                      isActive
+                        ? "border-deep-forest bg-deep-forest text-white shadow-xl"
+                        : "border-sage-green/40 bg-white/90 text-deep-forest hover:border-deep-forest"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em]">
+                      <span>{label}</span>
+                      <span
+                        className={
+                          isActive
+                            ? tierIconWrapperClasses.active
+                            : tierIconWrapperClasses.inactive
+                        }
+                      >
+                        <Icon
+                          className={`h-5 w-5 ${isActive ? "text-white" : accent}`}
+                        />
+                      </span>
+                    </div>
+                    <div className="space-y-2 pt-6">
+                      <p
+                        className={`text-3xl font-bold ${isActive ? "text-white" : "text-deep-forest"}`}
+                      >
+                        {amountLabel}
+                      </p>
+                      <p
+                        className={`text-sm ${isActive ? "text-white/80" : "text-deep-forest/70"}`}
+                      >
+                        {copy}
+                      </p>
+                    </div>
+                    {isActive && (
+                      <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-vibrant-lime">
+                        Active
+                      </span>
+                    )}
+                  </button>
+                );
+              }
+            )}
+
+            <div className="flex flex-col rounded-3xl border-2 border-dashed border-deep-forest/50 bg-deep-forest/5 p-6">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest">
+                <span>Custom pledge</span>
+                <Edit size={16} />
+              </div>
+              <p className="pt-6 text-sm text-deep-forest/70">
+                Set the debit that mirrors your capacity. Amounts are captured
+                in naira.
               </p>
               <NumberInput
-                placeholder="Amount"
-                min={200}
-                max={1000000}
-                step={1000}
-                value={form.values.amount / 100}
-                onChange={(value) =>
-                  form.setFieldValue("amount", Number(value) * 100)
-                }
+                aria-label="Custom mandate amount"
+                placeholder="enter amount"
+                min={5_000}
+                max={1_000_000}
+                step={1_000}
+                value={Math.round(form.values.amount / 100)}
+                onChange={handleCustomAmountChange}
+                thousandSeparator=","
+                clampBehavior="strict"
+                allowNegative={false}
+                hideControls
                 classNames={{
-                  input:
-                    "mt-3 border-2 border-gray-300 focus:border-deep-forest text-lg font-semibold",
+                  input: `${inputClassNames.input} pl-6 mt-4 border-deep-forest/40 text-lg font-semibold`,
                 }}
                 leftSection="₦"
-                hideControls
+                leftSectionProps={{ className: "text-deep-forest" }}
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Benefits Section */}
-      <div className="bg-mist-green rounded-2xl p-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full bg-sage-green/20 p-4">
-              <CheckCircle2 className="h-6 w-6 text-sage-green" />
-            </div>
-            <h4 className="font-semibold text-deep-forest">
-              Shariah Compliant
-            </h4>
-            <p className="text-sm text-gray-600">
-              All funds are managed according to Islamic principles.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full bg-institutional-green/20 p-4">
-              <BarChart3 className="h-6 w-6 text-institutional-green" />
-            </div>
-            <h4 className="font-semibold text-deep-forest">Monthly Reports</h4>
-            <p className="text-sm text-gray-600">
-              Receive detailed impact and financial reports every month.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full bg-deep-forest/20 p-4">
-              <Vote className="h-6 w-6 text-deep-forest" />
-            </div>
-            <h4 className="font-semibold text-deep-forest">Community Voting</h4>
-            <p className="text-sm text-gray-600">
-              Mandate holders have a say in major project selections.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div className="inline-flex rounded-full bg-vibrant-lime/20 p-4">
-              <LayoutDashboard className="h-6 w-6 text-deep-forest" />
-            </div>
-            <h4 className="font-semibold text-deep-forest">
-              Digital Dashboard
-            </h4>
-            <p className="text-sm text-gray-600">
-              Track your contributions and see their impact in real-time.
-            </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {impactPillars.map(({ title, copy, icon: Icon }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-sage-green/50 bg-white/80 p-4"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sage-green/25 text-deep-forest shrink-0">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="pt-4 text-base font-semibold text-deep-forest">
+                  {title}
+                </p>
+                <p className="text-sm text-deep-forest/70">{copy}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Form Section */}
-      <form
-        onSubmit={form.onSubmit(handleSubmit)}
-        className="max-w-3xl mx-auto space-y-8"
-      >
-        <div className="bg-white rounded-2xl border-2 border-gray-200 p-8 shadow-sm">
-          <h2 className="font-serif text-3xl font-bold text-deep-forest mb-6">
-            Complete Your Mandate Setup
-          </h2>
+      <section className="rounded-4xl border border-sage-green/40 bg-white/95 p-6 shadow-[0_24px_60px_rgba(0,35,19,0.08)] sm:p-10">
+        <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-8">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/60">
+              Setup
+            </p>
+            <h2 className="text-3xl font-semibold text-deep-forest">
+              Complete your mandate
+            </h2>
+            <p className="text-sm text-deep-forest/70">
+              Choose how often Mono should debit, how long the cadence should
+              run, and the verified account we can draw from.
+            </p>
+          </div>
 
-          <Stack gap="lg">
-            {/* Frequency */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-deep-forest">
-                Payment Frequency
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { value: "monthly", label: "Monthly" },
-                  { value: "quarterly", label: "Quarterly" },
-                  { value: "annually", label: "Annually" },
-                  { value: "one-time", label: "One-time" },
-                ].map((freq) => (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-deep-forest">
+              Payment frequency
+            </p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {["monthly", "quarterly", "annually", "one-time"].map(
+                (frequency) => (
                   <button
-                    key={freq.value}
+                    key={frequency}
                     type="button"
                     onClick={() =>
-                      form.setFieldValue("frequency", freq.value as any)
+                      form.setFieldValue(
+                        "frequency",
+                        frequency as MandateFrequency
+                      )
                     }
-                    className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
-                      form.values.frequency === freq.value
+                    className={`rounded-2xl border-2 px-4 py-4 text-base font-semibold capitalize ${
+                      form.values.frequency === frequency
                         ? "border-deep-forest bg-deep-forest text-white"
-                        : "border-gray-300 bg-white text-gray-700 hover:border-deep-forest"
+                        : "border-sage-green/50 bg-white text-deep-forest hover:border-deep-forest"
                     }`}
                   >
-                    {freq.label}
+                    {frequency.replace("-", " ")}
                   </button>
-                ))}
-              </div>
+                )
+              )}
             </div>
+          </div>
 
-            {/* Duration */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-deep-forest">
-                Mandate Duration
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: "12-months", label: "12 Months" },
-                  { value: "24-months", label: "24 Months" },
-                  { value: "indefinite", label: "Indefinite" },
-                ].map((dur) => (
-                  <button
-                    key={dur.value}
-                    type="button"
-                    onClick={() =>
-                      form.setFieldValue("duration", dur.value as any)
-                    }
-                    className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
-                      form.values.duration === dur.value
-                        ? "border-deep-forest bg-deep-forest text-white"
-                        : "border-gray-300 bg-white text-gray-700 hover:border-deep-forest"
-                    }`}
-                  >
-                    {dur.label}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-deep-forest">
+              Mandate duration
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {["12-months", "24-months", "indefinite"].map((duration) => (
+                <button
+                  key={duration}
+                  type="button"
+                  onClick={() => {
+                    form.setFieldValue("duration", duration as MandateDuration);
+                  }}
+                  className={`rounded-2xl border-2 px-4 py-4 text-base font-semibold capitalize ${
+                    form.values.duration === duration
+                      ? "border-deep-forest bg-deep-forest text-white"
+                      : "border-sage-green/50 bg-white text-deep-forest hover:border-deep-forest"
+                  }`}
+                >
+                  {duration.replace("-", " ")}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Bank Details */}
-            <div className="space-y-4 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-deep-forest">
-                Bank Account Details
-              </h3>
+          <div className="space-y-4 border-t border-sage-green/40 pt-6">
+            <h3 className="text-lg font-semibold text-deep-forest">
+              Bank account details
+            </h3>
 
-              <Select
-                label="Bank"
-                placeholder={
-                  loadingBanks ? "Loading banks..." : "Select your bank"
-                }
-                data={banks}
-                searchable
-                disabled={loadingBanks}
-                {...form.getInputProps("bankCode")}
-                leftSection={loadingBanks ? <Loader size="xs" /> : null}
-                classNames={{
-                  input: "border-2 border-gray-300 focus:border-deep-forest",
-                }}
-              />
+            <Select
+              label="Bank"
+              placeholder={
+                loadingBanks ? "Loading banks..." : "Select your bank"
+              }
+              data={bankOptions}
+              searchable
+              disabled={loadingBanks}
+              nothingFoundMessage="No direct-debit banks yet"
+              comboboxProps={{
+                transitionProps: { transition: "fade", duration: 100 },
+              }}
+              withAsterisk
+              leftSection={loadingBanks ? <Loader size="xs" /> : null}
+              {...form.getInputProps("bankCode")}
+              classNames={inputClassNames}
+              size="lg"
+            />
 
-              <TextInput
-                label="Account Number"
-                placeholder="0123456789"
-                maxLength={10}
-                {...form.getInputProps("accountNumber")}
-                classNames={{
-                  input: "border-2 border-gray-300 focus:border-deep-forest",
-                }}
-              />
+            <TextInput
+              label="Account number"
+              placeholder="0123456789"
+              maxLength={10}
+              withAsterisk
+              inputMode="numeric"
+              {...form.getInputProps("accountNumber")}
+              classNames={inputClassNames}
+              size="lg"
+            />
 
-              <TextInput
-                label="BVN (Bank Verification Number)"
-                placeholder="12345678901"
-                maxLength={11}
-                {...form.getInputProps("bvn")}
-                description="Required for mandate authorization with Mono"
-                classNames={{
-                  input: "border-2 border-gray-300 focus:border-deep-forest",
-                }}
-              />
-            </div>
-          </Stack>
-        </div>
+            <TextInput
+              label="BVN (Bank Verification Number)"
+              placeholder="12345678901"
+              maxLength={11}
+              description="Mono requires BVN to verify the account holder before any debit is activated."
+              withAsterisk
+              inputMode="numeric"
+              {...form.getInputProps("bvn")}
+              classNames={inputClassNames}
+              size="lg"
+            />
+          </div>
 
-        {/* Submit Button */}
-        <div className="space-y-4">
-          <Button
-            type="submit"
-            size="xl"
-            fullWidth
-            loading={createMandate.isPending}
-            className="bg-vibrant-lime text-deep-forest hover:bg-vibrant-lime/90 font-bold text-lg h-14 rounded-xl"
-          >
-            {createMandate.isPending
-              ? "Creating Mandate..."
-              : "Start Your Mandate"}
-          </Button>
-          <p className="text-center text-sm text-gray-500">
-            🔒 Secure 256-bit encryption • Cancel or pause anytime • Shariah
-            compliant
+          <div className="space-y-3">
+            <Button
+              type="submit"
+              size="xl"
+              fullWidth
+              loading={createMandate.isPending}
+              className="h-14 rounded-2xl bg-vibrant-lime text-base font-semibold text-deep-forest transition hover:bg-vibrant-lime/90"
+            >
+              {createMandate.isPending
+                ? "Creating mandate..."
+                : "Start your mandate"}
+            </Button>
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-4xl border border-sage-green/40 bg-white/95 p-6 shadow-[0_24px_60px_rgba(0,35,19,0.08)] sm:p-10 grid gap-10 lg:grid-cols-[2fr,1fr]">
+        <aside className="rounded-3xl border border-sage-green/40 bg-mist-green/30 p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+            Stewardship
           </p>
-        </div>
-      </form>
+          <h3 className="pt-2 text-xl font-semibold text-deep-forest">
+            How we guard every debit
+          </h3>
+          <div className="mt-6 space-y-4">
+            {safeguards.map(({ title, copy, icon: Icon }) => (
+              <div
+                key={title}
+                className="flex gap-4 rounded-2xl border border-sage-green/60 bg-white/80 p-4"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-deep-forest/10 text-deep-forest shrink-0">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-deep-forest">
+                    {title}
+                  </p>
+                  <p className="text-sm text-deep-forest/70">{copy}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-xs text-deep-forest/60">
+            Need clarity before locking a pledge? Email stewardship@laumga.org
+            and a mandate lead will reach out within one business day.
+          </p>
+        </aside>
 
-      {/* CTA Section */}
-      <div className="bg-deep-forest text-white rounded-2xl p-12 text-center space-y-6">
-        <h2 className="font-serif text-4xl font-bold">
-          Leave a digital Sadaqah legacy behind.
-        </h2>
-        <p className="text-lg text-white/80 max-w-2xl mx-auto">
-          Your consistent support is a continuous charity that builds a better
-          future for our ummah.
+        <div className="grid gap-6 rounded-3xl border border-sage-green/40 bg-mist-green/20 p-6 sm:grid-cols-2">
+          {benefits.map(({ title, copy, icon: Icon }) => (
+            <div key={title} className="flex gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-deep-forest shadow shrink-0">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-deep-forest">
+                  {title}
+                </p>
+                <p className="text-sm text-deep-forest/70">{copy}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-4xl bg-deep-forest px-6 py-12 text-center text-white shadow-[0_30px_80px_rgba(0,0,0,0.4)] sm:px-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.4em] text-white/60">
+          legacy
         </p>
-      </div>
+        <h2 className="mt-3 text-3xl font-semibold">
+          Leave a digital sadaqah legacy that keeps students, families, and
+          ventures afloat.
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-white/80">
+          Your pledge is flexible, transparent, and fully cancelable. What
+          remains consistent is the lifeline it provides to the Ummah.
+        </p>
+      </section>
     </div>
   );
 }

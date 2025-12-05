@@ -1,23 +1,40 @@
-import { useMutation, useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useInfiniteQuery,
+  queryOptions,
+} from "@tanstack/react-query";
 import { api } from "@/api";
-import type { ApprovalStatus } from "@/api/user";
+
+import type { UserData } from "@/api/user";
+import type { TransactionData } from "@/api/mandate";
+import type { ArticleData } from "@/api/article";
+import type { GalleryData } from "@/api/gallery";
+import type { ExecutiveData } from "@/api/executive";
+import type { EventData } from "@/api/event";
+import type { IssueData } from "@/api/newsletter";
+import type { Variables } from "@/client/core-query";
+import type { Options } from "@/client/options";
 
 /**
  * User Management Hooks
  */
 
-export function useFetchUsers(filters?: { status?: ApprovalStatus }) {
-  return useQuery({
-    queryKey: api.user.fetchAll.$use(filters),
-    queryFn: () => api.$use.user.fetchAll(filters),
-  });
+export function useFetchUsers(
+  variables?: Variables<UserData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.user.fetchAll.$use(variables),
+    queryFn: () => api.$use.user.fetchAll(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useUpdateUser() {
   return useMutation({
     mutationKey: api.user.update.$get(),
-    mutationFn: ({ userId, updates }: { userId: string; updates: any }) =>
-      api.$use.user.update(userId, updates),
+    mutationFn: api.$use.user.update,
     meta: {
       errorMessage: "Failed to update user.",
       successMessage: "User updated successfully.",
@@ -53,6 +70,17 @@ export function useLogin() {
     mutationFn: api.$use.user.login,
     meta: {
       errorMessage: "Login failed. Please try again.",
+      successMessage: "Logged in successfully.",
+    },
+  });
+}
+
+export function useLoginWithProvider() {
+  return useMutation({
+    mutationKey: api.user.loginWithProvider.$get(),
+    mutationFn: api.$use.user.loginWithProvider,
+    meta: {
+      errorMessage: "Social login failed. Please try again.",
       successMessage: "Logged in successfully.",
     },
   });
@@ -164,7 +192,7 @@ export function useReinstateMandate() {
 }
 
 export function useFetchMandateTransactions(mandateId: string) {
-  return useQuery({
+  return useQuery<TransactionData[]>({
     queryKey: api.mandate.fetchTransactions.$use(mandateId),
     queryFn: () => api.$use.mandate.fetchTransactions(mandateId),
     enabled: !!mandateId,
@@ -172,10 +200,36 @@ export function useFetchMandateTransactions(mandateId: string) {
 }
 
 export function useFetchUserTransactions(userId: string) {
-  return useQuery({
+  return useQuery<TransactionData[]>({
     queryKey: api.mandate.fetchUserTransactions.$use(userId),
     queryFn: () => api.$use.mandate.fetchUserTransactions(userId),
     enabled: !!userId,
+  });
+}
+
+export function useMandateCertificate(userId: string) {
+  return useQuery({
+    queryKey: api.mandate.fetchCertificate.$use(userId),
+    queryFn: () => api.$use.mandate.fetchCertificate(userId),
+    enabled: !!userId,
+  });
+}
+
+export function useMandateCertificateSettings() {
+  return useQuery({
+    queryKey: api.mandate.fetchCertificateSettings.$use(),
+    queryFn: () => api.$use.mandate.fetchCertificateSettings(),
+  });
+}
+
+export function useUpdateMandateCertificateSettings() {
+  return useMutation({
+    mutationKey: api.mandate.updateCertificateSettings.$get(),
+    mutationFn: api.$use.mandate.updateCertificateSettings,
+    meta: {
+      errorMessage: "Failed to update certificate settings.",
+      successMessage: "Certificate settings updated.",
+    },
   });
 }
 
@@ -194,10 +248,32 @@ export function useCreatePaymentPartner() {
   });
 }
 
+export function useUpdatePaymentPartner() {
+  return useMutation({
+    mutationKey: api.paymentPartner.update.$get(),
+    mutationFn: (params: {
+      partnerId: string;
+      updates: Parameters<typeof api.$use.paymentPartner.update>[1];
+    }) => api.$use.paymentPartner.update(params.partnerId, params.updates),
+    meta: {
+      errorMessage: "Failed to update payment partner.",
+      successMessage: "Payment partner updated successfully.",
+    },
+  });
+}
+
 export function useFetchPaymentPartners() {
   return useQuery({
     queryKey: api.paymentPartner.fetchAll.$use(),
     queryFn: () => api.$use.paymentPartner.fetchAll(),
+  });
+}
+
+export function useFetchPaymentPartner(partnerId?: string) {
+  return useQuery({
+    queryKey: api.paymentPartner.fetch.$get(partnerId),
+    queryFn: () => api.$use.paymentPartner.fetch(partnerId!),
+    enabled: !!partnerId,
   });
 }
 
@@ -216,17 +292,76 @@ export function useFetchPlatformPartner() {
 }
 
 /**
+ * Chapter Hooks
+ */
+
+export function useCreateChapter() {
+  return useMutation({
+    mutationKey: api.chapter.create.$get(),
+    mutationFn: api.$use.chapter.create,
+    meta: {
+      errorMessage: "Failed to create chapter.",
+      successMessage: "Chapter created successfully.",
+    },
+  });
+}
+
+export function useUpdateChapter() {
+  return useMutation({
+    mutationKey: api.chapter.update.$get(),
+    mutationFn: (params: {
+      id: string;
+      data: Parameters<typeof api.$use.chapter.update>[1];
+    }) => api.$use.chapter.update(params.id, params.data),
+    meta: {
+      errorMessage: "Failed to update chapter.",
+      successMessage: "Chapter updated successfully.",
+    },
+  });
+}
+
+export function useFetchChapters(filters?: { isActive?: boolean }) {
+  return useQuery({
+    queryKey: api.chapter.fetchAll.$use(filters),
+    queryFn: () => api.$use.chapter.fetchAll(filters),
+  });
+}
+
+export function useFetchChapter(chapterId?: string) {
+  return useQuery({
+    queryKey: chapterId ? api.chapter.fetchById.$use(chapterId) : ["chapter"],
+    queryFn: () => {
+      if (!chapterId) throw new Error("Chapter ID is required");
+      return api.$use.chapter.fetchById(chapterId);
+    },
+    enabled: !!chapterId,
+  });
+}
+
+export function useFetchChapterByState(state?: string) {
+  return useQuery({
+    queryKey: state ? api.chapter.fetchByState.$use(state) : ["chapter"],
+    queryFn: () => {
+      if (!state) throw new Error("State is required");
+      return api.$use.chapter.fetchByState(state);
+    },
+    enabled: !!state,
+  });
+}
+
+/**
  * Event Management Hooks
  */
 
-export function useFetchEvents(filters?: {
-  type?: "convention" | "seminar" | "iftar" | "sports" | "dawah" | "other";
-  upcoming?: boolean;
-}) {
-  return useQuery({
-    queryKey: api.event.fetchAll.$use(filters),
-    queryFn: () => api.$use.event.fetchAll(filters),
-  });
+export function useFetchEvents(
+  variables?: Variables<EventData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.event.fetchAll.$use(variables),
+    queryFn: () => api.$use.event.fetchAll(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useFetchEvent(eventId: string) {
@@ -324,11 +459,15 @@ export function useUnsubscribeNewsletter() {
   });
 }
 
-export function useFetchNewsletterIssues() {
-  return useQuery({
-    queryKey: api.newsletter.fetchIssues.$use(),
-    queryFn: () => api.$use.newsletter.fetchIssues(),
-  });
+export function useFetchNewsletterIssues(
+  variables?: Variables<IssueData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.newsletter.fetchIssues.$use(variables),
+    queryFn: () => api.$use.newsletter.fetchIssues(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useFetchNewsletterIssue(issueId: string) {
@@ -354,16 +493,15 @@ export function useCreateNewsletterIssue() {
  * Article/Bulletin Hooks
  */
 
-export function useFetchArticles(filters?: {
-  category?: "news" | "health" | "islamic" | "campus" | "alumni" | "community";
-  isPublished?: boolean;
-  tag?: string;
-  limit?: number;
-}) {
-  return useQuery({
-    queryKey: api.article.fetchAll.$use(filters),
-    queryFn: () => api.$use.article.fetchAll(filters),
-  });
+export function useFetchArticles(
+  variables?: Variables<ArticleData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.article.fetchAll.$use(variables),
+    queryFn: () => api.$use.article.fetchAll(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useFetchArticle(articleId: string) {
@@ -435,19 +573,26 @@ export function useDeleteArticle() {
   });
 }
 
+export function useIncrementViewCount() {
+  return useMutation({
+    mutationKey: api.article.incrementViewCount.$get(),
+    mutationFn: (id: string) => api.$use.article.incrementViewCount(id),
+  });
+}
+
 /**
  * Gallery Hooks
  */
 
-export function useFetchGalleryCollections(filters?: {
-  year?: string;
-  category?: string;
-  isFeatured?: boolean;
-}) {
-  return useQuery({
-    queryKey: api.gallery.fetchCollections.$use(filters),
-    queryFn: () => api.$use.gallery.fetchCollections(filters),
-  });
+export function useFetchGalleryCollections(
+  variables?: Variables<GalleryData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.gallery.fetchCollections.$use(variables),
+    queryFn: () => api.$use.gallery.fetchCollections(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useFetchGalleryCollection(collectionId: string) {
@@ -504,15 +649,15 @@ export function useUploadGalleryImage() {
  * Executive Hooks
  */
 
-export function useFetchExecutives(filters?: {
-  tier?: "presidential" | "council" | "directorate";
-  tenureYear?: string;
-  isActive?: boolean;
-}) {
-  return useQuery({
-    queryKey: api.executive.fetchAll.$use(filters),
-    queryFn: () => api.$use.executive.fetchAll(filters),
-  });
+export function useFetchExecutives(
+  variables?: Variables<ExecutiveData>,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: api.executive.fetchAll.$use(variables),
+    queryFn: () => api.$use.executive.fetchAll(variables),
+  })
+) {
+  return useQuery({ ...query, ...options });
 }
 
 export function useFetchCurrentExecutives() {
@@ -544,54 +689,6 @@ export function useCreateExecutive() {
     meta: {
       errorMessage: "Failed to create executive.",
       successMessage: "Executive created successfully.",
-    },
-  });
-}
-
-/**
- * Chapter Hooks
- */
-
-export function useFetchChapters(filters?: {
-  region?:
-    | "North Central"
-    | "North East"
-    | "North West"
-    | "South East"
-    | "South South"
-    | "South West";
-  state?: string;
-  isActive?: boolean;
-}) {
-  return useQuery({
-    queryKey: api.chapter.fetchAll.$use(filters),
-    queryFn: () => api.$use.chapter.fetchAll(filters),
-  });
-}
-
-export function useFetchChapter(chapterId: string) {
-  return useQuery({
-    queryKey: api.chapter.fetchById.$use(chapterId),
-    queryFn: () => api.$use.chapter.fetchById(chapterId),
-    enabled: !!chapterId,
-  });
-}
-
-export function useFetchChapterByState(state: string) {
-  return useQuery({
-    queryKey: api.chapter.fetchByState.$use(state),
-    queryFn: () => api.$use.chapter.fetchByState(state),
-    enabled: !!state,
-  });
-}
-
-export function useCreateChapter() {
-  return useMutation({
-    mutationKey: api.chapter.create.$get(),
-    mutationFn: api.$use.chapter.create,
-    meta: {
-      errorMessage: "Failed to create chapter.",
-      successMessage: "Chapter created successfully.",
     },
   });
 }

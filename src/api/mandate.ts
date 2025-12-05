@@ -12,43 +12,27 @@ import {
   updateDoc,
   addDoc,
   limit,
+  Timestamp,
 } from "firebase/firestore";
-import type { NullableExcept, LogEntry, WithId } from "@/services/types";
+import type { WithId } from "@/services/types";
 import { db } from "@/services/firebase";
 import { z } from "zod/v4";
 import { user } from "./user";
 import { mono, type MonoCustomerInput } from "./mono";
-import { addMonths, addYears, format } from "date-fns";
+import {
+  type PaymentPartner,
+  type PaymentPartnerCollection,
+  paymentPartnerSchema,
+} from "./payment-partner";
+import { addMonths, addYears } from "date-fns";
+import { formatDate } from "@/utils/date";
 
-/**
- * Payment Partner - Entity receiving payment splits
- */
-export type PaymentPartner = NullableExcept<
-  {
-    name: string; // Partner name
-    monoSubAccountId: string; // Mono sub-account ID
-    accountNumber: string; // Bank account number
-    bankName: string; // Bank name
-    nipCode: string; // NIP code for transfers
-    isActive: boolean; // Active status
-    isPlatform: boolean; // True for platform, false for client
-    created: LogEntry;
-    modified: LogEntry;
-  },
-  "name" | "monoSubAccountId" | "isActive"
->;
-
-export type PaymentPartnerCollection = CollectionReference<PaymentPartner>;
-export type PaymentPartnerData = WithId<PaymentPartner>;
-
-/**
- * Mandate frequencies supported by the system
- */
-export type MandateFrequency =
-  | "monthly"
-  | "quarterly"
-  | "annually"
-  | "one-time";
+const logEntrySchema = z.object({
+  at: z.instanceof(Timestamp),
+  by: z.string().nullable(),
+  name: z.string().nullable(),
+  photoUrl: z.string().nullable(),
+});
 
 /**
  * Predefined contribution tiers
@@ -69,46 +53,47 @@ export type MandateStatus =
  * Fee split configuration
  * Platform takes a fixed ₦50 fee, client receives the rest
  */
-export type FeeSplit = {
-  platformFee: number; // Fixed ₦50 in kobo (5000)
-  clientAmount: number; // Remaining amount after platform fee
-  totalAmount: number; // Total payment amount
-};
+export const feeSplitSchema = z.object({
+  platformFee: z.number(), // Fixed ₦50 in kobo (5000)
+  clientAmount: z.number(), // Remaining amount after platform fee
+  totalAmount: z.number(), // Total payment amount
+});
+
+export type FeeSplit = z.infer<typeof feeSplitSchema>;
 
 /**
  * The Mandate - Recurring payment commitment
  */
-export type Mandate = NullableExcept<
-  {
-    userId: string;
-    userName: string; // Snapshot for easier display
-    userEmail: string;
-    amount: number; // Amount per payment in kobo
-    currency: string; // Default 'NGN'
-    frequency: MandateFrequency;
-    duration: "12-months" | "24-months" | "indefinite";
-    tier: MandateTier;
-    status: MandateStatus;
-    monoMandateId: string; // Mono mandate ID
-    monoCustomerId: string; // Mono customer ID
-    monoReference: string; // Unique mandate reference
-    monoUrl: string; // Mono authorization URL
-    accountNumber: string; // Bank account number
-    accountName: string; // Account holder name
-    bankName: string; // Bank name
-    approved: boolean; // Mono approval status
-    readyToDebit: boolean; // Ready for automatic debits
-    startDate: string; // ISO date string
-    endDate: string; // ISO date string
-    nextChargeDate: string; // Next scheduled debit
-    feeSplit: FeeSplit; // Fee breakdown
-    totalCollected: number; // Total amount collected so far
-    totalTransactions: number; // Number of successful transactions
-    created: LogEntry;
-    modified: LogEntry;
-  },
-  "userId" | "amount" | "frequency" | "status"
->;
+export const mandateSchema = z.object({
+  userId: z.string(),
+  userName: z.string(), // Snapshot for easier display
+  userEmail: z.string(),
+  amount: z.number(), // Amount per payment in kobo
+  currency: z.string(), // Default 'NGN'
+  frequency: z.enum(["monthly", "quarterly", "annually", "one-time"]),
+  duration: z.enum(["12-months", "24-months", "indefinite"]),
+  tier: z.enum(["supporter", "builder", "guardian", "custom"]),
+  status: z.enum(["initiated", "active", "paused", "cancelled", "completed"]),
+  monoMandateId: z.string().nullable(), // Mono mandate ID
+  monoCustomerId: z.string().nullable(), // Mono customer ID
+  monoReference: z.string().nullable(), // Unique mandate reference
+  monoUrl: z.string().nullable(), // Mono authorization URL
+  accountNumber: z.string().nullable(), // Bank account number
+  accountName: z.string().nullable(), // Account holder name
+  bankName: z.string().nullable(), // Bank name
+  approved: z.boolean(), // Mono approval status
+  readyToDebit: z.boolean(), // Ready for automatic debits
+  startDate: z.string(), // ISO date string
+  endDate: z.string(), // ISO date string
+  nextChargeDate: z.string(), // Next scheduled debit
+  feeSplit: feeSplitSchema.nullable(), // Fee breakdown
+  totalCollected: z.number().nullable(), // Total amount collected so far
+  totalTransactions: z.number().nullable(), // Number of successful transactions
+  created: logEntrySchema,
+  modified: logEntrySchema.nullable(),
+});
+
+export type Mandate = z.infer<typeof mandateSchema>;
 
 /**
  * Validation: Create Mandate Schema
@@ -132,28 +117,64 @@ export const createMandateSchema = z.object({
   bvn: z.string().length(11, "BVN must be 11 digits"),
 });
 
+export type MandateFrequency = z.infer<
+  typeof createMandateSchema.shape.frequency
+>;
+export type MandateDuration = z.infer<
+  typeof createMandateSchema.shape.duration
+>;
 export type CreateMandateInput = z.infer<typeof createMandateSchema>;
+
+const mandateCertificateSettingsSchema = z.object({
+  chairmanName: z.string().min(1),
+  chairmanTitle: z.string().min(1),
+  signatureUrl: z.string().url().nullable(),
+  updated: logEntrySchema.nullable(),
+});
+
+const mandateCertificateSettingsUpdateSchema = mandateCertificateSettingsSchema
+  .omit({ updated: true })
+  .partial();
+
+export type MandateCertificateSettings = z.infer<
+  typeof mandateCertificateSettingsSchema
+>;
+
+export interface UpdateMandateCertificateSettingsInput
+  extends z.infer<typeof mandateCertificateSettingsUpdateSchema> {}
+
+export interface MandateCertificatePayload {
+  id: string;
+  certificateNumber: string;
+  userName: string;
+  amount: number;
+  frequency: MandateFrequency;
+  tier: MandateTier;
+  startDate: string;
+  chairmanName: string;
+  chairmanTitle: string;
+  signatureUrl: string | null;
+}
 
 /**
  * Mandate Transaction - Payment history record
  */
-export type MandateTransaction = NullableExcept<
-  {
-    mandateId: string;
-    userId: string;
-    amount: number;
-    platformFee: number; // Platform's ₦50 fee
-    clientAmount: number; // Amount to client
-    monoReference: string; // Mono payment reference
-    monoDebitId: string; // Mono debit transaction ID
-    status: "successful" | "failed" | "processing";
-    splitSettled: boolean; // Whether split settlement completed
-    failureReason: string; // Error message if failed
-    paidAt: string;
-    created: LogEntry;
-  },
-  "mandateId" | "amount" | "status"
->;
+export const mandateTransactionSchema = z.object({
+  mandateId: z.string(),
+  userId: z.string(),
+  amount: z.number(),
+  platformFee: z.number(), // Platform's ₦50 fee
+  clientAmount: z.number(), // Amount to client
+  monoReference: z.string(), // Mono payment reference
+  monoDebitId: z.string(), // Mono debit transaction ID
+  status: z.enum(["successful", "failed", "processing"]),
+  splitSettled: z.boolean(), // Whether split settlement completed
+  failureReason: z.string().nullable(), // Error message if failed
+  paidAt: z.string(),
+  created: logEntrySchema,
+});
+
+export type MandateTransaction = z.infer<typeof mandateTransactionSchema>;
 
 export type MandateCollection = CollectionReference<Mandate>;
 export type MandateDocumentReference = DocumentReference<Mandate>;
@@ -161,6 +182,52 @@ export type MandateData = WithId<Mandate>;
 
 export type TransactionCollection = CollectionReference<MandateTransaction>;
 export type TransactionData = WithId<MandateTransaction>;
+
+const defaultCertificateSettings: MandateCertificateSettings = {
+  chairmanName: "A. B. Chairman",
+  chairmanTitle: "Foundation Chairman",
+  signatureUrl: null,
+  updated: null,
+};
+
+const certificateSettingsRef = doc(
+  db,
+  "mandateCertificate",
+  "settings"
+) as DocumentReference<MandateCertificateSettings>;
+
+async function ensureCertificateSettings(): Promise<MandateCertificateSettings> {
+  const snapshot = await getDoc(certificateSettingsRef);
+
+  if (!snapshot.exists()) {
+    await setDoc(certificateSettingsRef, defaultCertificateSettings);
+    return defaultCertificateSettings;
+  }
+
+  return mandateCertificateSettingsSchema.parse(snapshot.data());
+}
+
+async function getActiveMandateDocument(
+  userId: string
+): Promise<MandateData | null> {
+  const mandatesRef = collection(db, "mandates") as MandateCollection;
+  const q = query(
+    mandatesRef,
+    where("userId", "==", userId),
+    where("status", "==", "active")
+  );
+  const querySnapshot = await getDocs(q);
+
+  if (!querySnapshot.empty) {
+    const docSnapshot = querySnapshot.docs[0];
+    return {
+      id: docSnapshot.id,
+      ...mandateSchema.parse(docSnapshot.data()),
+    };
+  }
+
+  return null;
+}
 
 /**
  * Variables for creating a mandate
@@ -274,7 +341,10 @@ async function fetchActivePartners(): Promise<{
   const clientSnapshot = await getDocs(clientQuery);
   const client = clientSnapshot.empty
     ? null
-    : { id: clientSnapshot.docs[0].id, ...clientSnapshot.docs[0].data() };
+    : paymentPartnerSchema.parse({
+        id: clientSnapshot.docs[0].id,
+        ...clientSnapshot.docs[0].data(),
+      });
 
   // Query for active platform partner
   const platformQuery = query(
@@ -286,7 +356,10 @@ async function fetchActivePartners(): Promise<{
   const platformSnapshot = await getDocs(platformQuery);
   const platform = platformSnapshot.empty
     ? null
-    : { id: platformSnapshot.docs[0].id, ...platformSnapshot.docs[0].data() };
+    : paymentPartnerSchema.parse({
+        id: platformSnapshot.docs[0].id,
+        ...platformSnapshot.docs[0].data(),
+      });
 
   return { client, platform };
 }
@@ -357,8 +430,8 @@ export const mandate = {
         reference,
         customer: { id: monoCustomerId },
         redirect_url: `${window.location.origin}/mandate/dashboard`,
-        start_date: format(startDate, "yyyy-MM-dd"),
-        end_date: format(endDate, "yyyy-MM-dd"),
+        start_date: formatDate(startDate, "yyyy-MM-dd"),
+        end_date: formatDate(endDate, "yyyy-MM-dd"),
         meta: {
           userId,
           tier,
@@ -403,13 +476,15 @@ export const mandate = {
         at: serverTimestamp(),
         by: userId,
         name: `${userData.firstName} ${userData.lastName}`,
-        photoUrl: userData.passportUrl,
+        photoUrl: userData.profilePictureUrl,
       },
       modified: null,
     });
 
+    const newMandate = await getDoc(mandateRef);
     return {
       id: mandateRef.id,
+      ...mandateSchema.parse(newMandate.data()),
       monoUrl: mandateResponse.data.mono_url,
       mandateId: mandateResponse.data.mandate_id,
     };
@@ -430,7 +505,7 @@ export const mandate = {
       throw new Error("Mandate not found");
     }
 
-    const mandateData = mandateDoc.data();
+    const mandateData = mandateSchema.parse(mandateDoc.data());
     if (!mandateData.monoMandateId) {
       throw new Error("Mono mandate ID not found");
     }
@@ -460,7 +535,7 @@ export const mandate = {
 
     return {
       id: mandateDoc.id,
-      ...mandateDoc.data(),
+      ...mandateData,
       status: monoDetails.data.status,
     };
   },
@@ -482,7 +557,7 @@ export const mandate = {
       throw new Error("Mandate not found");
     }
 
-    const mandateData = mandateDoc.data();
+    const mandateData = mandateSchema.parse(mandateDoc.data());
 
     if (mandateData.status !== "active") {
       throw new Error("Mandate is not active");
@@ -521,7 +596,7 @@ export const mandate = {
       "transactions"
     ) as TransactionCollection;
 
-    const transaction: Omit<MandateTransaction, "id"> = {
+    const transaction = {
       mandateId,
       userId: mandateData.userId,
       amount: mandateData.amount,
@@ -537,8 +612,10 @@ export const mandate = {
       splitSettled: false,
       failureReason: null,
       paidAt: debitResponse.data.date,
+      createdBy: mandateData.userId,
+      createdAt: serverTimestamp(),
       created: {
-        at: new Date().toISOString(),
+        at: serverTimestamp(),
         by: mandateData.userId,
         name: null,
         photoUrl: null,
@@ -606,22 +683,7 @@ export const mandate = {
   /**
    * Get the active mandate for a user
    */
-  getActive: async (userId: string) => {
-    const mandatesRef = collection(db, "mandates") as MandateCollection;
-    const q = query(
-      mandatesRef,
-      where("userId", "==", userId),
-      where("status", "==", "active")
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.docs.length > 0) {
-      const doc = querySnapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
-    }
-
-    return null;
-  },
+  getActive: (userId: string) => getActiveMandateDocument(userId),
 
   /**
    * Pause an active mandate
@@ -761,114 +823,64 @@ export const mandate = {
 
     return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   },
+
+  fetchCertificate: async (
+    userId: string
+  ): Promise<MandateCertificatePayload | null> => {
+    if (!userId) return null;
+
+    const activeMandate = await getActiveMandateDocument(userId);
+    if (!activeMandate) {
+      return null;
+    }
+
+    const settings = await ensureCertificateSettings();
+
+    return {
+      id: activeMandate.id,
+      certificateNumber: `MAND-${activeMandate.id.slice(0, 6).toUpperCase()}`,
+      userName: activeMandate.userName,
+      amount: activeMandate.amount,
+      frequency: activeMandate.frequency,
+      tier: activeMandate.tier,
+      startDate: activeMandate.startDate,
+      chairmanName: settings.chairmanName,
+      chairmanTitle: settings.chairmanTitle,
+      signatureUrl: settings.signatureUrl,
+    };
+  },
+
+  fetchCertificateSettings: ensureCertificateSettings,
+
+  updateCertificateSettings: async (variables: {
+    userId: string;
+    data: UpdateMandateCertificateSettingsInput;
+  }) => {
+    const { userId, data } = variables;
+    const payload = mandateCertificateSettingsUpdateSchema.parse(data);
+
+    if (Object.keys(payload).length === 0) {
+      return ensureCertificateSettings();
+    }
+
+    await setDoc(
+      certificateSettingsRef,
+      {
+        ...payload,
+        updated: {
+          at: serverTimestamp(),
+          by: userId,
+          name: null,
+          photoUrl: null,
+        },
+      },
+      { merge: true }
+    );
+
+    return ensureCertificateSettings();
+  },
 };
 
 /**
  * Payment Partner API
  */
-export const paymentPartner = {
-  /**
-   * Create a payment partner with Mono sub-account
-   */
-  create: async (variables: {
-    name: string;
-    accountNumber: string;
-    nipCode: string;
-    isPlatform: boolean;
-    userId: string;
-  }) => {
-    const { name, accountNumber, nipCode, isPlatform, userId } = variables;
-
-    // Create sub-account in Mono
-    const subAccountResponse = await mono.subAccount.create(
-      nipCode,
-      accountNumber
-    );
-
-    // Create payment partner document
-    const partnerRef = doc(
-      collection(db, "paymentPartners")
-    ) as DocumentReference<PaymentPartner>;
-
-    await setDoc(partnerRef, {
-      name,
-      monoSubAccountId: subAccountResponse.data.id,
-      accountNumber,
-      bankName: subAccountResponse.data.name,
-      nipCode,
-      isActive: true,
-      isPlatform,
-      created: {
-        at: serverTimestamp(),
-        by: userId,
-        name: null,
-        photoUrl: null,
-      },
-      modified: null,
-    });
-
-    return {
-      id: partnerRef.id,
-      monoSubAccountId: subAccountResponse.data.id,
-    };
-  },
-
-  /**
-   * Fetch all payment partners
-   */
-  fetchAll: async () => {
-    const partnersRef = collection(
-      db,
-      "paymentPartners"
-    ) as PaymentPartnerCollection;
-    const querySnapshot = await getDocs(partnersRef);
-
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  },
-
-  /**
-   * Fetch active client partner
-   */
-  getClient: async () => {
-    const partnersRef = collection(
-      db,
-      "paymentPartners"
-    ) as PaymentPartnerCollection;
-    const q = query(
-      partnersRef,
-      where("isPlatform", "==", false),
-      where("isActive", "==", true)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.docs.length > 0) {
-      const doc = querySnapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
-    }
-
-    return null;
-  },
-
-  /**
-   * Fetch active platform partner
-   */
-  getPlatform: async () => {
-    const partnersRef = collection(
-      db,
-      "paymentPartners"
-    ) as PaymentPartnerCollection;
-    const q = query(
-      partnersRef,
-      where("isPlatform", "==", true),
-      where("isActive", "==", true)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.docs.length > 0) {
-      const doc = querySnapshot.docs[0];
-      return { id: doc.id, ...doc.data() };
-    }
-
-    return null;
-  },
-};

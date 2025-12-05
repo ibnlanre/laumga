@@ -10,8 +10,14 @@ import {
   orderBy,
   where,
   increment,
+  serverTimestamp,
+  CollectionReference,
+  DocumentReference,
+  type WithFieldValue,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import { buildQuery, getQueryDocs, type Variables } from "@/client/core-query";
 
 /**
  * Newsletter Subscription Schema
@@ -21,7 +27,7 @@ export const newsletterSubscriptionSchema = z.object({
   email: z.email(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  subscribedAt: z.number(),
+  subscribedAt: z.instanceof(Timestamp),
   isActive: z.boolean().default(true),
   preferences: z
     .object({
@@ -43,6 +49,11 @@ export type NewsletterSubscription = z.infer<
 >;
 export type CreateSubscriptionData = z.infer<typeof createSubscriptionSchema>;
 
+export type SubscriptionData = Omit<NewsletterSubscription, "id">;
+export type SubscriptionCollectionReference =
+  CollectionReference<SubscriptionData>;
+export type SubscriptionDocumentReference = DocumentReference<SubscriptionData>;
+
 /**
  * Newsletter Issue Schema
  */
@@ -51,14 +62,14 @@ export const newsletterIssueSchema = z.object({
   volume: z.number(),
   issueNumber: z.number(),
   title: z.string(),
-  pdfUrl: z.url(),
-  coverImageUrl: z.url(),
+  pdfUrl: z.string().url(),
+  coverImageUrl: z.string().url(),
   leadStoryTitle: z.string(),
   highlights: z.array(z.string()),
-  publishedAt: z.number(),
+  publishedAt: z.instanceof(Timestamp),
   downloadCount: z.number().default(0),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp),
 });
 
 export const createIssueSchema = newsletterIssueSchema.omit({
@@ -70,6 +81,10 @@ export const createIssueSchema = newsletterIssueSchema.omit({
 
 export type NewsletterIssue = z.infer<typeof newsletterIssueSchema>;
 export type CreateIssueData = z.infer<typeof createIssueSchema>;
+
+export type IssueData = Omit<NewsletterIssue, "id">;
+export type IssueCollectionReference = CollectionReference<IssueData>;
+export type IssueDocumentReference = DocumentReference<IssueData>;
 
 const SUBSCRIPTIONS_COLLECTION = "newsletterSubscriptions";
 const ISSUES_COLLECTION = "newsletterIssues";
@@ -83,7 +98,11 @@ async function subscribe(
   const validated = createSubscriptionSchema.parse(data);
 
   // Check if email already exists
-  const subscriptionsRef = collection(db, SUBSCRIPTIONS_COLLECTION);
+  const subscriptionsRef = collection(
+    db,
+    SUBSCRIPTIONS_COLLECTION
+  ) as SubscriptionCollectionReference;
+
   const existingQuery = query(
     subscriptionsRef,
     where("email", "==", validated.email)
@@ -102,37 +121,43 @@ async function subscribe(
     // Reactivate subscription
     await updateDoc(existing.ref, {
       isActive: true,
-      subscribedAt: Date.now(),
+      subscribedAt: serverTimestamp(),
     });
 
+    // Fetch updated doc to get resolved timestamp
+    const updatedDoc = await getDoc(existing.ref);
     return {
-      id: existing.id,
-      ...existingData,
-      isActive: true,
-      subscribedAt: Date.now(),
+      id: updatedDoc.id,
+      ...updatedDoc.data(),
     } as NewsletterSubscription;
   }
 
   // Create new subscription
   const subscriptionData = {
     ...validated,
-    subscribedAt: Date.now(),
+    subscribedAt: serverTimestamp(),
     isActive: true,
-  };
+  } satisfies WithFieldValue<SubscriptionData> as unknown as SubscriptionData;
 
   const docRef = await addDoc(subscriptionsRef, subscriptionData);
 
+  // Fetch to get the resolved timestamp
+  const newDoc = await getDoc(docRef);
   return {
-    id: docRef.id,
-    ...subscriptionData,
-  };
+    id: newDoc.id,
+    ...newDoc.data(),
+  } as NewsletterSubscription;
 }
 
 /**
  * Unsubscribe from newsletter
  */
 async function unsubscribe(email: string): Promise<void> {
-  const subscriptionsRef = collection(db, SUBSCRIPTIONS_COLLECTION);
+  const subscriptionsRef = collection(
+    db,
+    SUBSCRIPTIONS_COLLECTION
+  ) as SubscriptionCollectionReference;
+
   const subscriptionQuery = query(
     subscriptionsRef,
     where("email", "==", email),
@@ -154,7 +179,11 @@ async function unsubscribe(email: string): Promise<void> {
  * Fetch all active subscriptions
  */
 async function fetchSubscriptions(): Promise<NewsletterSubscription[]> {
-  const subscriptionsRef = collection(db, SUBSCRIPTIONS_COLLECTION);
+  const subscriptionsRef = collection(
+    db,
+    SUBSCRIPTIONS_COLLECTION
+  ) as SubscriptionCollectionReference;
+
   const subscriptionsQuery = query(
     subscriptionsRef,
     where("isActive", "==", true),
@@ -165,7 +194,7 @@ async function fetchSubscriptions(): Promise<NewsletterSubscription[]> {
   const subscriptions = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as NewsletterSubscription[];
+  }));
 
   return newsletterSubscriptionSchema.array().parse(subscriptions);
 }
@@ -175,48 +204,50 @@ async function fetchSubscriptions(): Promise<NewsletterSubscription[]> {
  */
 async function createIssue(data: CreateIssueData): Promise<NewsletterIssue> {
   const validated = createIssueSchema.parse(data);
-  const now = Date.now();
 
   const issueData = {
     ...validated,
     downloadCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } satisfies WithFieldValue<IssueData> as unknown as IssueData;
 
-  const docRef = await addDoc(collection(db, ISSUES_COLLECTION), issueData);
+  const issuesRef = collection(
+    db,
+    ISSUES_COLLECTION
+  ) as IssueCollectionReference;
+  const docRef = await addDoc(issuesRef, issueData);
 
+  // Fetch to get resolved timestamps
+  const newDoc = await getDoc(docRef);
   return {
-    id: docRef.id,
-    ...issueData,
-  };
+    id: newDoc.id,
+    ...newDoc.data(),
+  } as NewsletterIssue;
 }
 
 /**
  * Fetch all newsletter issues
  */
-async function fetchIssues(): Promise<NewsletterIssue[]> {
-  const issuesRef = collection(db, ISSUES_COLLECTION);
-  const issuesQuery = query(
-    issuesRef,
-    orderBy("volume", "desc"),
-    orderBy("issueNumber", "desc")
-  );
-  const snapshot = await getDocs(issuesQuery);
+async function fetchIssues(
+  variables?: Variables<IssueData>
+): Promise<NewsletterIssue[]> {
+  const issuesRef = collection(
+    db,
+    ISSUES_COLLECTION
+  ) as IssueCollectionReference;
 
-  const issues = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as NewsletterIssue[];
+  const q = buildQuery(issuesRef, variables);
+  const docs = await getQueryDocs(q);
 
-  return newsletterIssueSchema.array().parse(issues);
+  return newsletterIssueSchema.array().parse(docs);
 }
 
 /**
  * Fetch newsletter issue by ID
  */
 async function fetchIssueById(id: string): Promise<NewsletterIssue | null> {
-  const issueRef = doc(db, ISSUES_COLLECTION, id);
+  const issueRef = doc(db, ISSUES_COLLECTION, id) as IssueDocumentReference;
   const issueDoc = await getDoc(issueRef);
 
   if (!issueDoc.exists()) {
@@ -235,7 +266,7 @@ async function fetchIssueById(id: string): Promise<NewsletterIssue | null> {
  * Increment download count
  */
 async function incrementDownloadCount(id: string): Promise<void> {
-  const issueRef = doc(db, ISSUES_COLLECTION, id);
+  const issueRef = doc(db, ISSUES_COLLECTION, id) as IssueDocumentReference;
   await updateDoc(issueRef, {
     downloadCount: increment(1),
   });

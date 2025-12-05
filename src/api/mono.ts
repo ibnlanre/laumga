@@ -4,11 +4,20 @@
  */
 
 import { z } from "zod/v4";
+import axios from "axios";
 
 const MONO_API_URL = "https://api.withmono.com";
+const MONO_PUBLIC_KEY = import.meta.env.VITE_MONO_PUBLIC_KEY;
 const MONO_SECRET_KEY = import.meta.env.VITE_MONO_SECRET_KEY;
 
-// Platform fee configuration
+const monoClient = axios.create({
+  baseURL: MONO_API_URL,
+  headers: {
+    "Content-Type": "application/json",
+    "mono-sec-key": MONO_SECRET_KEY || "",
+  },
+});
+
 const PLATFORM_FEE = 50_00; // ₦50 fixed fee in kobo
 
 /**
@@ -88,135 +97,202 @@ export const monoDebitSchema = z.object({
 export type MonoDebitInput = z.infer<typeof monoDebitSchema>;
 
 /**
- * Mono API Response Types
+ * Mono API Response Schemas
  */
-export interface MonoCustomerResponse {
+export const monoCustomerResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    first_name: z.string(),
+    last_name: z.string(),
+    email: z.string(),
+    phone: z.string(),
+    address: z.string(),
+    identification_no: z.string(),
+    identification_type: z.string(),
+    bvn: z.string(),
+  }),
+});
+
+export type MonoCustomerResponse = z.infer<typeof monoCustomerResponseSchema>;
+
+export const monoMandateResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    mono_url: z.string(),
+    mandate_id: z.string(),
+    type: z.string(),
+    method: z.string(),
+    mandate_type: z.string(),
+    amount: z.number(),
+    description: z.string(),
+    reference: z.string(),
+    customer: z.string(),
+    redirect_url: z.string().optional(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    start_date: z.string(),
+    end_date: z.string(),
+  }),
+});
+
+export type MonoMandateResponse = z.infer<typeof monoMandateResponseSchema>;
+
+export const monoMandateDetailsResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.string(),
+    status: z.enum(["initiated", "approved", "rejected", "cancelled"]),
+    reference: z.string(),
+    amount: z.number(),
+    balance: z.number(),
+    mandate_type: z.string(),
+    debit_type: z.string(),
+    account_name: z.string(),
+    account_number: z.string(),
+    live_mode: z.boolean(),
+    approved: z.boolean(),
+    ready_to_debit: z.boolean(),
+    nibss_code: z.string(),
+    institution: z.object({
+      bank_code: z.string(),
+      nip_code: z.string(),
+      name: z.string(),
+    }),
+    customer: z.string(),
+    narration: z.string(),
+    start_date: z.string(),
+    end_date: z.string(),
+    date: z.string(),
+  }),
+});
+
+export type MonoMandateDetailsResponse = z.infer<
+  typeof monoMandateDetailsResponseSchema
+>;
+
+export const monoDebitResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  response_code: z.string(),
+  data: z.object({
+    success: z.boolean(),
+    status: z.enum(["successful", "failed", "processing"]),
+    event: z.string(),
+    amount: z.number(),
+    mandate: z.string(),
+    reference_number: z.string(),
+    date: z.string(),
+    live_mode: z.boolean(),
+    account_details: z.object({
+      bank_code: z.string(),
+      account_name: z.string(),
+      account_number: z.string(),
+      bank_name: z.string(),
+    }),
+    beneficiary: z.object({
+      bank_code: z.string(),
+      account_name: z.string(),
+      account_number: z.string(),
+      bank_name: z.string(),
+    }),
+    split: z
+      .object({
+        type: z.string(),
+        fee_bearer: z.string(),
+        distribution: z.array(
+          z.object({
+            account: z.string(),
+            value: z.number(),
+          })
+        ),
+      })
+      .optional(),
+  }),
+});
+
+export type MonoDebitResponse = z.infer<typeof monoDebitResponseSchema>;
+
+export const monoSubAccountResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    account_number: z.string(),
+    nip_code: z.string(),
+    bank_code: z.string(),
+  }),
+});
+
+export type MonoSubAccountResponse = z.infer<
+  typeof monoSubAccountResponseSchema
+>;
+
+export const monoBankListResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    banks: z.array(
+      z.object({
+        name: z.string(),
+        bank_code: z.string(),
+        nip_code: z.string(),
+        direct_debit: z.boolean(),
+      })
+    ),
+  }),
+});
+
+export type MonoBankListResponse = z.infer<typeof monoBankListResponseSchema>;
+
+export const monoPaymentVerifyResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    id: z.string(),
+    status: z.string(),
+    amount: z.number(),
+    reference: z.string(),
+    split: z.any().optional(),
+  }),
+});
+
+export type MonoPaymentVerifyResponse = z.infer<
+  typeof monoPaymentVerifyResponseSchema
+>;
+
+/**
+ * Response type for mandate status operations (pause, cancel, reinstate)
+ */
+export interface MonoStatusResponse {
   status: string;
   message: string;
-  data: {
-    id: string;
-    name: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    address: string;
-    identification_no: string;
-    identification_type: string;
-    bvn: string;
-  };
+  data: null | Record<string, any>;
 }
 
-export interface MonoMandateResponse {
+/**
+ * Response type for fetching all sub-accounts
+ */
+export interface MonoSubAccountsListResponse {
   status: string;
   message: string;
-  data: {
-    mono_url: string;
-    mandate_id: string;
-    type: string;
-    method: string;
-    mandate_type: string;
-    amount: number;
-    description: string;
-    reference: string;
-    customer: string;
-    redirect_url?: string;
+  data: Array<{
+    id: string;
+    account_number: string;
+    status: string;
+    name: string;
+    category: string;
+    bank_name: string;
+    bank_code: string;
+    nibss_code: string;
     created_at: string;
     updated_at: string;
-    start_date: string;
-    end_date: string;
-  };
-}
-
-export interface MonoMandateDetailsResponse {
-  status: string;
-  message: string;
-  data: {
-    id: string;
-    status: "initiated" | "approved" | "rejected" | "cancelled";
-    reference: string;
-    amount: number;
-    balance: number;
-    mandate_type: string;
-    debit_type: string;
-    account_name: string;
-    account_number: string;
-    live_mode: boolean;
-    approved: boolean;
-    ready_to_debit: boolean;
-    nibss_code: string;
-    institution: {
-      bank_code: string;
-      nip_code: string;
-      name: string;
-    };
-    customer: string;
-    narration: string;
-    start_date: string;
-    end_date: string;
-    date: string;
-  };
-}
-
-export interface MonoDebitResponse {
-  status: string;
-  message: string;
-  response_code: string;
-  data: {
-    success: boolean;
-    status: "successful" | "failed" | "processing";
-    event: string;
-    amount: number;
-    mandate: string;
-    reference_number: string;
-    date: string;
-    live_mode: boolean;
-    account_details: {
-      bank_code: string;
-      account_name: string;
-      account_number: string;
-      bank_name: string;
-    };
-    beneficiary: {
-      bank_code: string;
-      account_name: string;
-      account_number: string;
-      bank_name: string;
-    };
-    split?: {
-      type: string;
-      fee_bearer: string;
-      distribution: Array<{
-        account: string;
-        value: number;
-      }>;
-    };
-  };
-}
-
-export interface MonoSubAccountResponse {
-  status: string;
-  message: string;
-  data: {
-    id: string;
-    name: string;
-    account_number: string;
-    nip_code: string;
-    bank_code: string;
-  };
-}
-
-export interface MonoBankListResponse {
-  status: string;
-  message: string;
-  data: {
-    banks: Array<{
-      name: string;
-      bank_code: string;
-      nip_code: string;
-      direct_debit: boolean;
-    }>;
-  };
+  }>;
 }
 
 export interface SupportedBank {
@@ -239,40 +315,6 @@ export class MonoError extends Error {
   }
 }
 
-/**
- * Make API request to Mono
- */
-async function monoRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${MONO_API_URL}${endpoint}`;
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "mono-sec-key": MONO_SECRET_KEY || "",
-      ...options.headers,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok || data.status === "failed") {
-    throw new MonoError(
-      data.message || "Mono API request failed",
-      response.status,
-      data
-    );
-  }
-
-  return data;
-}
-
-/**
- * Utility: Calculate platform fee
- */
 function calculatePlatformFee(totalAmount: number): {
   platformFee: number;
   clientAmount: number;
@@ -283,10 +325,7 @@ function calculatePlatformFee(totalAmount: number): {
   };
 }
 
-/**
- * Utility: Build split payment configuration
- */
-function buildSplitConfig(
+function createSplitConfiguration(
   totalAmount: number,
   clientSubAccountId: string,
   platformSubAccountId: string
@@ -317,15 +356,19 @@ export const mono = {
    * Create a Mono customer
    */
   customer: {
-    create: async (data: MonoCustomerInput): Promise<MonoCustomerResponse> => {
-      return monoRequest<MonoCustomerResponse>("/v2/customers", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+    create: async (data: MonoCustomerInput) => {
+      const response = await monoClient.post<MonoCustomerResponse>(
+        "/v2/customers",
+        data
+      );
+      return response.data;
     },
 
-    fetch: async (customerId: string): Promise<MonoCustomerResponse> => {
-      return monoRequest<MonoCustomerResponse>(`/v2/customers/${customerId}`);
+    fetch: async (customerId: string) => {
+      const response = await monoClient.get<MonoCustomerResponse>(
+        `/v2/customers/${customerId}`
+      );
+      return response.data;
     },
   },
 
@@ -340,62 +383,61 @@ export const mono = {
       data: MonoMandateInput,
       clientSubAccountId: string,
       platformSubAccountId: string
-    ): Promise<MonoMandateResponse> => {
+    ) => {
       const mandateData = {
         ...data,
-        split: buildSplitConfig(
+        split: createSplitConfiguration(
           data.amount,
           clientSubAccountId,
           platformSubAccountId
         ),
       };
 
-      return monoRequest<MonoMandateResponse>("/v2/payments/initiate", {
-        method: "POST",
-        body: JSON.stringify(mandateData),
-      });
+      const response = await monoClient.post<MonoMandateResponse>(
+        "/v2/payments/initiate",
+        mandateData
+      );
+      return response.data;
     },
 
     /**
      * Retrieve mandate details
      */
-    fetch: async (mandateId: string): Promise<MonoMandateDetailsResponse> => {
-      return monoRequest<MonoMandateDetailsResponse>(
+    fetch: async (mandateId: string) => {
+      const response = await monoClient.get<MonoMandateDetailsResponse>(
         `/v3/payments/mandates/${mandateId}`
       );
+      return response.data;
     },
 
     /**
      * Cancel a mandate
      */
-    cancel: async (
-      mandateId: string
-    ): Promise<{ status: string; message: string }> => {
-      return monoRequest(`/v3/payments/mandates/${mandateId}/cancel`, {
-        method: "PATCH",
-      });
+    cancel: async (mandateId: string) => {
+      const response = await monoClient.patch<MonoStatusResponse>(
+        `/v3/payments/mandates/${mandateId}/cancel`
+      );
+      return response.data;
     },
 
     /**
      * Pause a mandate
      */
-    pause: async (
-      mandateId: string
-    ): Promise<{ status: string; message: string }> => {
-      return monoRequest(`/v3/payments/mandates/${mandateId}/pause`, {
-        method: "PATCH",
-      });
+    pause: async (mandateId: string) => {
+      const response = await monoClient.patch<MonoStatusResponse>(
+        `/v3/payments/mandates/${mandateId}/pause`
+      );
+      return response.data;
     },
 
     /**
      * Reinstate a paused mandate
      */
-    reinstate: async (
-      mandateId: string
-    ): Promise<{ status: string; message: string }> => {
-      return monoRequest(`/v3/payments/mandates/${mandateId}/reinstate`, {
-        method: "PATCH",
-      });
+    reinstate: async (mandateId: string) => {
+      const response = await monoClient.patch<MonoStatusResponse>(
+        `/v3/payments/mandates/${mandateId}/reinstate`
+      );
+      return response.data;
     },
 
     /**
@@ -406,23 +448,21 @@ export const mono = {
       data: MonoDebitInput,
       clientSubAccountId: string,
       platformSubAccountId: string
-    ): Promise<MonoDebitResponse> => {
+    ) => {
       const debitData = {
         ...data,
-        split: buildSplitConfig(
+        split: createSplitConfiguration(
           data.amount,
           clientSubAccountId,
           platformSubAccountId
         ),
       };
 
-      return monoRequest<MonoDebitResponse>(
+      const response = await monoClient.post<MonoDebitResponse>(
         `/v3/payments/mandates/${mandateId}/debit`,
-        {
-          method: "POST",
-          body: JSON.stringify(debitData),
-        }
+        debitData
       );
+      return response.data;
     },
   },
 
@@ -433,11 +473,16 @@ export const mono = {
     /**
      * Get list of all banks supporting Direct Debit
      */
-    fetchAll: async (): Promise<SupportedBank[]> => {
+    fetchAll: async () => {
       const response =
-        await monoRequest<MonoBankListResponse>("/v3/banks/list");
+        await monoClient.get<MonoBankListResponse>("/v3/banks/list");
+      const data = response.data;
 
-      return response.data.banks
+      if (data.status !== "successful" || !data.data?.banks) {
+        throw new MonoError("Failed to fetch banks");
+      }
+
+      return data.data.banks
         .filter((bank) => bank.direct_debit)
         .map((bank) => ({
           value: bank.nip_code,
@@ -455,42 +500,25 @@ export const mono = {
     /**
      * Create a sub-account for split payments
      */
-    create: async (
-      nipCode: string,
-      accountNumber: string
-    ): Promise<MonoSubAccountResponse> => {
-      return monoRequest<MonoSubAccountResponse>(
+    create: async (nipCode: string, accountNumber: string) => {
+      const response = await monoClient.post<MonoSubAccountResponse>(
         "/v2/payments/payout/sub-account",
         {
-          method: "POST",
-          body: JSON.stringify({
-            nip_code: nipCode,
-            account_number: accountNumber,
-          }),
+          nip_code: nipCode,
+          account_number: accountNumber,
         }
       );
+      return response.data;
     },
 
     /**
      * Fetch all sub-accounts
      */
-    fetchAll: async (): Promise<{
-      status: string;
-      message: string;
-      data: Array<{
-        id: string;
-        account_number: string;
-        status: string;
-        name: string;
-        category: string;
-        bank_name: string;
-        bank_code: string;
-        nibss_code: string;
-        created_at: string;
-        updated_at: string;
-      }>;
-    }> => {
-      return monoRequest("/v2/payments/payout/sub-accounts");
+    fetchAll: async () => {
+      const response = await monoClient.get<MonoSubAccountsListResponse>(
+        "/v2/payments/payout/sub-accounts"
+      );
+      return response.data;
     },
   },
 
@@ -498,20 +526,13 @@ export const mono = {
    * Payment verification
    */
   payment: {
-    verify: async (
-      reference: string
-    ): Promise<{
-      status: string;
-      message: string;
-      data: {
-        id: string;
-        status: string;
-        amount: number;
-        reference: string;
-        split?: any;
-      };
-    }> => {
-      return monoRequest(`/v2/payments/verify/${reference}`);
+    verify: async (reference: string) => {
+      const response = await monoClient.get<MonoPaymentVerifyResponse>(
+        `/v2/payments/verify/${reference}`
+      );
+      return response.data;
     },
   },
 };
+
+export { MONO_PUBLIC_KEY, MONO_SECRET_KEY };

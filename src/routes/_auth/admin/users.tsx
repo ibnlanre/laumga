@@ -1,24 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Table,
   Badge,
   Button,
-  TextInput,
-  Select,
   Group,
   Stack,
   Avatar,
   Modal,
   Text,
   Title,
-  Card,
   ActionIcon,
   Tooltip,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import { Search, Eye, Check, X, Ban, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { Eye, Check, X, Ban, RefreshCw } from "lucide-react";
+import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/data-table";
+import { formatDate } from "@/utils/date";
 import { useFetchUsers, useUpdateUser } from "@/services/hooks";
 import type { User, ApprovalStatus } from "@/api/user";
 
@@ -32,53 +29,168 @@ export const Route = createFileRoute("/_auth/admin/users")({
 });
 
 function UserManagement() {
-  const { status } = Route.useSearch();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>(status || "all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
   const { data: users = [], isLoading } = useFetchUsers();
   const updateUserMutation = useUpdateUser();
 
-  // Filter users
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.membershipId?.toLowerCase().includes(searchQuery.toLowerCase());
+  const columnHelper = createColumnHelper<User>();
 
-    const matchesStatus =
-      statusFilter === "all" || user.status === statusFilter;
+  const columns = [
+    columnHelper.accessor("firstName", {
+      header: "Member",
+      cell: (info) => {
+        const userRow = info.row.original;
+        return (
+          <Group gap="sm">
+            <Avatar
+              src={userRow.profilePictureUrl}
+              alt={`${userRow.firstName} ${userRow.lastName}`}
+              size="md"
+              radius="xl"
+            >
+              {userRow.firstName?.[0]}
+              {userRow.lastName?.[0]}
+            </Avatar>
+            <div>
+              <Text size="sm" fw={500}>
+                {userRow.gender === "male" ? "Bro." : "Sis."}{" "}
+                {userRow.firstName} {userRow.lastName}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {userRow.stateOfResidence}
+              </Text>
+            </div>
+          </Group>
+        );
+      },
+    }),
 
-    return matchesSearch && matchesStatus;
-  });
+    columnHelper.accessor("membershipId", {
+      header: "Membership ID",
+      cell: (info) => (
+        <Text size="sm" ff="monospace">
+          {info.getValue() ?? "N/A"}
+        </Text>
+      ),
+    }),
+
+    columnHelper.accessor("email", {
+      header: "Email",
+      cell: (info) => <Text size="sm">{info.getValue() ?? ""}</Text>,
+    }),
+
+    columnHelper.accessor("phoneNumber", {
+      header: "Phone",
+      cell: (info) => <Text size="sm">{info.getValue() ?? ""}</Text>,
+    }),
+
+    columnHelper.accessor("status", {
+      header: "Status",
+      cell: (info) => (
+        <Badge color={getStatusColor(info.getValue())} variant="light">
+          {info.getValue() ?? ""}
+        </Badge>
+      ),
+    }),
+
+    columnHelper.accessor("created", {
+      header: "Registered",
+      cell: (info) => {
+        const created = info.getValue();
+        return (
+          <Text size="xs" c="dimmed">
+            {created?.at ? formatDate(created.at, "MMM d, yyyy") : "N/A"}
+          </Text>
+        );
+      },
+    }),
+
+    columnHelper.display({
+      id: "actions",
+      header: "Actions",
+      cell: (info) => (
+        <Group gap="xs">
+          <Tooltip label="View details">
+            <ActionIcon
+              variant="light"
+              color="blue"
+              onClick={() => viewUserDetails(info.row.original)}
+            >
+              <Eye className="size-4" />
+            </ActionIcon>
+          </Tooltip>
+
+          {info.row.original.status === "pending" && (
+            <>
+              <Tooltip label="Approve">
+                <ActionIcon
+                  variant="light"
+                  color="green"
+                  onClick={() =>
+                    handleStatusChange(info.row.original.email, "approved")
+                  }
+                >
+                  <Check className="size-4" />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Reject">
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  onClick={() =>
+                    handleStatusChange(info.row.original.email, "rejected")
+                  }
+                >
+                  <X className="size-4" />
+                </ActionIcon>
+              </Tooltip>
+            </>
+          )}
+
+          {info.row.original.status === "approved" && (
+            <Tooltip label="Suspend">
+              <ActionIcon
+                variant="light"
+                color="orange"
+                onClick={() =>
+                  handleStatusChange(info.row.original.email, "suspended")
+                }
+              >
+                <Ban className="size-4" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+
+          {info.row.original.status === "suspended" && (
+            <Tooltip label="Reactivate">
+              <ActionIcon
+                variant="light"
+                color="green"
+                onClick={() =>
+                  handleStatusChange(info.row.original.email, "approved")
+                }
+              >
+                <RefreshCw className="size-4" />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        </Group>
+      ),
+    }),
+  ] as ColumnDef<User>[];
 
   const handleStatusChange = async (
     userId: string,
     newStatus: ApprovalStatus
   ) => {
-    try {
-      await updateUserMutation.mutateAsync({
-        userId: userId,
-        updates: { status: newStatus },
-      });
+    await updateUserMutation.mutateAsync({
+      userId: userId,
+      updates: { status: newStatus },
+    });
 
-      notifications.show({
-        title: "Status updated",
-        message: `User status changed to ${newStatus}`,
-        color: "green",
-      });
-
-      setDetailsOpened(false);
-    } catch (error: any) {
-      notifications.show({
-        title: "Update failed",
-        message: error?.message || "Failed to update user status",
-        color: "red",
-      });
-    }
+    setDetailsOpened(false);
   };
 
   const getStatusColor = (status: ApprovalStatus) => {
@@ -111,153 +223,32 @@ function UserManagement() {
         <Text c="dimmed">Manage member registrations and approvals</Text>
       </div>
 
-      {/* Filters */}
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <Group>
-          <TextInput
-            placeholder="Search by name, email, or ID..."
-            leftSection={<Search className="size-4" />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
-          />
-          <Select
-            placeholder="Filter by status"
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value || "all")}
-            data={[
+      {/* User Table */}
+      <DataTable
+        columns={columns}
+        data={users}
+        enableSearch={true}
+        enableFilters={true}
+        enableSorting={true}
+        enablePagination={true}
+        enableColumnOrdering={true}
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: [
               { value: "all", label: "All Statuses" },
               { value: "pending", label: "Pending" },
               { value: "approved", label: "Approved" },
               { value: "rejected", label: "Rejected" },
               { value: "suspended", label: "Suspended" },
-            ]}
-            className="w-48"
-          />
-        </Group>
-      </Card>
-
-      {/* User Table */}
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        {isLoading ? (
-          <Text ta="center" py="xl" c="dimmed">
-            Loading users...
-          </Text>
-        ) : filteredUsers.length === 0 ? (
-          <Text ta="center" py="xl" c="dimmed">
-            No users found
-          </Text>
-        ) : (
-          <Table.ScrollContainer minWidth={800}>
-            <Table highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Member</Table.Th>
-                  <Table.Th>Membership ID</Table.Th>
-                  <Table.Th>Email</Table.Th>
-                  <Table.Th>Phone</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Registered</Table.Th>
-                  <Table.Th>Actions</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredUsers.map((user: any) => (
-                  <Table.Tr key={user.email}>
-                    <Table.Td>
-                      <Group gap="sm">
-                        <Avatar
-                          src={user.passportUrl}
-                          alt={`${user.firstName} ${user.lastName}`}
-                          size="md"
-                          radius="xl"
-                        >
-                          {user.firstName[0]}
-                          {user.lastName[0]}
-                        </Avatar>
-                        <div>
-                          <Text size="sm" fw={500}>
-                            {user.gender === "male" ? "Bro." : "Sis."}{" "}
-                            {user.firstName} {user.lastName}
-                          </Text>
-                          <Text size="xs" c="dimmed">
-                            {user.stateOfResidence}
-                          </Text>
-                        </div>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" ff="monospace">
-                        {user.membershipId || "N/A"}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{user.email}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm">{user.phoneNumber}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        color={getStatusColor(user.status)}
-                        variant="light"
-                      >
-                        {user.status}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="xs" c="dimmed">
-                        {user.created?.at
-                          ? format(new Date(user.created.at), "MMM d, yyyy")
-                          : "N/A"}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap="xs">
-                        <Tooltip label="View details">
-                          <ActionIcon
-                            variant="light"
-                            color="blue"
-                            onClick={() => viewUserDetails(user)}
-                          >
-                            <Eye className="size-4" />
-                          </ActionIcon>
-                        </Tooltip>
-                        {user.status === "pending" && (
-                          <>
-                            <Tooltip label="Approve">
-                              <ActionIcon
-                                variant="light"
-                                color="green"
-                                onClick={() =>
-                                  handleStatusChange(user.email, "approved")
-                                }
-                              >
-                                <Check className="size-4" />
-                              </ActionIcon>
-                            </Tooltip>
-                            <Tooltip label="Reject">
-                              <ActionIcon
-                                variant="light"
-                                color="red"
-                                onClick={() =>
-                                  handleStatusChange(user.email, "rejected")
-                                }
-                              >
-                                <X className="size-4" />
-                              </ActionIcon>
-                            </Tooltip>
-                          </>
-                        )}
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+            ],
+          },
+        ]}
+        searchPlaceholder="Search by name, email, or membership ID..."
+        pageSize={10}
+        loading={isLoading}
+      />
 
       {/* User Details Modal */}
       <Modal
@@ -269,7 +260,11 @@ function UserManagement() {
         {selectedUser && (
           <Stack gap="md">
             <Group>
-              <Avatar src={selectedUser.passportUrl} size="xl" radius="md">
+              <Avatar
+                src={selectedUser.profilePictureUrl}
+                size="xl"
+                radius="md"
+              >
                 {selectedUser.firstName[0]}
                 {selectedUser.lastName[0]}
               </Avatar>
@@ -311,7 +306,7 @@ function UserManagement() {
                 </Text>
                 <Text size="sm">
                   {selectedUser.dateOfBirth
-                    ? format(new Date(selectedUser.dateOfBirth), "MMM d, yyyy")
+                    ? formatDate(selectedUser.dateOfBirth, "MMM d, yyyy")
                     : "N/A"}
                 </Text>
               </div>
@@ -339,10 +334,7 @@ function UserManagement() {
                 </Text>
                 <Text size="sm">
                   {selectedUser.created?.at
-                    ? format(
-                        new Date(selectedUser.created.at),
-                        "MMM d, yyyy HH:mm"
-                      )
+                    ? formatDate(selectedUser.created.at, "MMM d, yyyy HH:mm")
                     : "N/A"}
                 </Text>
               </div>

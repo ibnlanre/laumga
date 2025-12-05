@@ -17,9 +17,9 @@ import {
   Image,
   Grid,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+
 import { Search, Eye, Check, X, Trash2, ImageIcon } from "lucide-react";
-import { format } from "date-fns";
+import { formatDate } from "@/utils/date";
 
 import {
   useFetchGalleryCollections,
@@ -54,7 +54,10 @@ function GalleryAdmin() {
       item.category.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus =
-      statusFilter === "all" || item.status === statusFilter;
+      statusFilter === "all" ||
+      (statusFilter === "featured"
+        ? item.isFeatured === true
+        : item.isFeatured === false);
 
     return matchesSearch && matchesStatus;
   });
@@ -77,53 +80,21 @@ function GalleryAdmin() {
     setDetailsOpened(true);
   };
 
-  const handleStatusChange = async (itemId: string, newStatus: string) => {
-    try {
-      await updateItemMutation.mutateAsync({
-        id: itemId,
-        data: { status: newStatus },
-      });
+  const handleStatusChange = async (itemId: string, makeFeatured: boolean) => {
+    await updateItemMutation.mutateAsync({
+      id: itemId,
+      data: { isFeatured: makeFeatured },
+    });
 
-      notifications.show({
-        title: "Status updated",
-        message: `Photo status changed to ${newStatus}`,
-        color: "green",
-        autoClose: 5000,
-      });
-
-      setDetailsOpened(false);
-    } catch (error: any) {
-      notifications.show({
-        title: "Update failed",
-        message: error?.message || "Failed to update photo status",
-        color: "red",
-        autoClose: 7000,
-      });
-    }
+    setDetailsOpened(false);
   };
 
   const handleDelete = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this photo?")) return;
 
-    try {
-      await deleteItemMutation.mutateAsync(itemId);
+    await deleteItemMutation.mutateAsync(itemId);
 
-      notifications.show({
-        title: "Photo deleted",
-        message: "Photo has been successfully deleted",
-        color: "green",
-        autoClose: 5000,
-      });
-
-      setDetailsOpened(false);
-    } catch (error: any) {
-      notifications.show({
-        title: "Delete failed",
-        message: error?.message || "Failed to delete photo",
-        color: "red",
-        autoClose: 7000,
-      });
-    }
+    setDetailsOpened(false);
   };
 
   const pendingCount = items.filter(
@@ -196,7 +167,7 @@ function GalleryAdmin() {
                 <Card.Section>
                   <div className="relative aspect-square">
                     <Image
-                      src={item.imageUrl}
+                      src={item.coverImageUrl}
                       alt={item.title}
                       fit="cover"
                       className="w-full h-full"
@@ -204,10 +175,12 @@ function GalleryAdmin() {
                     <div className="absolute top-2 right-2">
                       <Badge
                         size="sm"
-                        color={getStatusColor(item.status)}
+                        color={getStatusColor(
+                          item.isFeatured ? "featured" : "not-featured"
+                        )}
                         variant="filled"
                       >
-                        {item.status}
+                        {item.isFeatured ? "Featured" : "Not Featured"}
                       </Badge>
                     </div>
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -221,28 +194,24 @@ function GalleryAdmin() {
                           <Eye className="size-4" />
                         </ActionIcon>
                       </Tooltip>
-                      {item.status === "pending" && (
+                      {!item.isFeatured && (
                         <>
-                          <Tooltip label="Approve">
+                          <Tooltip label="Mark featured">
                             <ActionIcon
                               variant="filled"
                               color="green"
                               size="lg"
-                              onClick={() =>
-                                handleStatusChange(item.id, "approved")
-                              }
+                              onClick={() => handleStatusChange(item.id, true)}
                             >
                               <Check className="size-4" />
                             </ActionIcon>
                           </Tooltip>
-                          <Tooltip label="Reject">
+                          <Tooltip label="Un-feature">
                             <ActionIcon
                               variant="filled"
                               color="red"
                               size="lg"
-                              onClick={() =>
-                                handleStatusChange(item.id, "rejected")
-                              }
+                              onClick={() => handleStatusChange(item.id, false)}
                             >
                               <X className="size-4" />
                             </ActionIcon>
@@ -268,10 +237,10 @@ function GalleryAdmin() {
                     {item.title}
                   </Text>
                   <Text size="xs" c="dimmed" lineClamp={1}>
-                    {item.album}
+                    {item.category} • {item.year}
                   </Text>
                   <Text size="xs" c="dimmed" mt={4}>
-                    {format(new Date(item.uploadedAt), "MMM dd, yyyy")}
+                    {formatDate(item.createdAt, "MMM dd, yyyy")}
                   </Text>
                 </div>
               </Card>
@@ -294,10 +263,12 @@ function GalleryAdmin() {
                 <Title order={3}>{selectedItem.title}</Title>
                 <Badge
                   size="lg"
-                  color={getStatusColor(selectedItem.status)}
+                  color={getStatusColor(
+                    selectedItem.isFeatured ? "featured" : "not-featured"
+                  )}
                   variant="light"
                 >
-                  {selectedItem.status}
+                  {selectedItem.isFeatured ? "Featured" : "Not Featured"}
                 </Badge>
               </Group>
             </div>
@@ -305,7 +276,7 @@ function GalleryAdmin() {
             <Card shadow="sm" padding="xs" radius="md" withBorder>
               <Card.Section>
                 <Image
-                  src={selectedItem.imageUrl}
+                  src={selectedItem.coverImageUrl}
                   alt={selectedItem.title}
                   fit="contain"
                   className="max-h-96"
@@ -318,13 +289,13 @@ function GalleryAdmin() {
                 <Text size="sm" fw={500} c="dimmed">
                   Album
                 </Text>
-                <Badge variant="light">{selectedItem.album}</Badge>
+                <Badge variant="light">{selectedItem.category}</Badge>
               </Grid.Col>
               <Grid.Col span={6}>
                 <Text size="sm" fw={500} c="dimmed">
                   Uploaded By
                 </Text>
-                <Text size="sm">{selectedItem.uploadedBy}</Text>
+                <Text size="sm">{selectedItem.mediaCount}</Text>
               </Grid.Col>
               <Grid.Col span={12}>
                 <Text size="sm" fw={500} c="dimmed">
@@ -339,82 +310,43 @@ function GalleryAdmin() {
                   Upload Date
                 </Text>
                 <Text size="sm">
-                  {format(
-                    new Date(selectedItem.uploadedAt),
+                  {formatDate(
+                    selectedItem.createdAt,
                     "MMMM dd, yyyy 'at' hh:mm a"
                   )}
                 </Text>
               </Grid.Col>
               <Grid.Col span={6}>
                 <Text size="sm" fw={500} c="dimmed">
-                  Tags
+                  Description
                 </Text>
-                <Group gap="xs">
-                  {selectedItem.tags && selectedItem.tags.length > 0 ? (
-                    selectedItem.tags.map((tag: string) => (
-                      <Badge key={tag} size="sm" variant="outline">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Text size="sm" c="dimmed">
-                      No tags
-                    </Text>
-                  )}
-                </Group>
+                <Text size="sm">
+                  {selectedItem.description || "No description provided"}
+                </Text>
               </Grid.Col>
             </Grid>
 
             <div className="mt-4 pt-4 border-t">
               <Group justify="flex-end" gap="sm">
-                {selectedItem.status === "pending" && (
-                  <>
-                    <Button
-                      leftSection={<X className="size-4" />}
-                      color="red"
-                      variant="outline"
-                      onClick={() =>
-                        handleStatusChange(selectedItem.id, "rejected")
-                      }
-                      loading={updateItemMutation.isPending}
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      leftSection={<Check className="size-4" />}
-                      color="green"
-                      onClick={() =>
-                        handleStatusChange(selectedItem.id, "approved")
-                      }
-                      loading={updateItemMutation.isPending}
-                    >
-                      Approve
-                    </Button>
-                  </>
+                {!selectedItem.isFeatured && (
+                  <Button
+                    leftSection={<Check className="size-4" />}
+                    color="green"
+                    onClick={() => handleStatusChange(selectedItem.id, true)}
+                    loading={updateItemMutation.isPending}
+                  >
+                    Mark Featured
+                  </Button>
                 )}
-                {selectedItem.status === "approved" && (
+                {selectedItem.isFeatured && (
                   <Button
                     leftSection={<X className="size-4" />}
                     color="orange"
                     variant="outline"
-                    onClick={() =>
-                      handleStatusChange(selectedItem.id, "rejected")
-                    }
+                    onClick={() => handleStatusChange(selectedItem.id, false)}
                     loading={updateItemMutation.isPending}
                   >
-                    Reject Photo
-                  </Button>
-                )}
-                {selectedItem.status === "rejected" && (
-                  <Button
-                    leftSection={<Check className="size-4" />}
-                    color="green"
-                    onClick={() =>
-                      handleStatusChange(selectedItem.id, "approved")
-                    }
-                    loading={updateItemMutation.isPending}
-                  >
-                    Approve Photo
+                    Remove Featured
                   </Button>
                 )}
                 <Button

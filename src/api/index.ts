@@ -1,7 +1,8 @@
 import { createBuilder } from "@ibnlanre/builder";
 
 import { user } from "./user";
-import { mandate, paymentPartner } from "./mandate";
+import { mandate } from "./mandate";
+import { paymentPartner } from "./payment-partner";
 import { newsletter } from "./newsletter";
 import { feed } from "./feed";
 import { event } from "./event";
@@ -26,7 +27,3 @@ export const api = createBuilder({
   upload,
   mono,
 });
-
-export type * from "./event";
-export type * from "./mandate";
-export type * from "./user";

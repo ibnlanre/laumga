@@ -1,13 +1,23 @@
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
-import { useState } from "react";
-import { User, Users, ArrowRight } from "lucide-react";
-import { ImageUpload } from "@/components/image-upload";
+import {
+  TextInput,
+  Tooltip,
+  Select,
+  FileInput,
+  Button,
+  Stack,
+  Loader,
+} from "@mantine/core";
+import { ArrowRight, Info, Upload } from "lucide-react";
+import { DateInput, YearPickerInput } from "@mantine/dates";
 import {
   PersonalDetailsSchema,
   type PersonalDetailsFormValues,
-} from "@/services/registration-schemas";
+} from "@/api/registration";
+import { upload } from "@/api/upload";
 import { useRegistration } from "@/contexts/registration-context";
 import { RegistrationLayout } from "@/components/registration-layout";
 
@@ -18,38 +28,47 @@ export const Route = createFileRoute("/_public/register/")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { setPersonalDetails, nextStep } = useRegistration();
-  const [selectedGender, setSelectedGender] = useState<
-    "male" | "female" | null
-  >(null);
+  const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
+    useState(false);
 
   const form = useForm<PersonalDetailsFormValues>({
+    mode: "uncontrolled",
     initialValues: {
       title: "",
       firstName: "",
       lastName: "",
       middleName: "",
+      maidenName: "",
+      nickname: "",
       gender: "male",
-      passportUrl: "",
+      profilePictureUrl: "",
       dateOfBirth: "",
-      nationality: "Nigerian",
+      phoneNumber: "",
+      classSet: null,
     },
     validate: zod4Resolver(PersonalDetailsSchema),
   });
 
-  const handleGenderSelect = (gender: "male" | "female") => {
-    setSelectedGender(gender);
-    form.setFieldValue("gender", gender);
-  };
-
   const handlePhotoChange = async (file: File | null) => {
-    if (file) {
-      // In a real app, upload to Firebase here and get URL
-      // For now, create a temporary URL for the preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        form.setFieldValue("passportUrl", reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    form.clearFieldError("profilePictureUrl");
+
+    if (!file) {
+      form.setFieldValue("profilePictureUrl", "");
+      return;
+    }
+
+    try {
+      setIsUploadingProfilePicture(true);
+      const uploadedUrl = await upload.image(file);
+      form.setFieldValue("profilePictureUrl", uploadedUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to upload profile picture";
+      form.setFieldError("profilePictureUrl", message);
+    } finally {
+      setIsUploadingProfilePicture(false);
     }
   };
 
@@ -60,145 +79,213 @@ function RouteComponent() {
   };
 
   return (
-    <RegistrationLayout>
-      <div className="bg-white p-8 md:p-12">
-        <div className="mb-10">
-          <h1 className="font-serif text-5xl font-bold text-deep-forest">
-            The Prestige Application
-          </h1>
-          <p className="mt-2 text-lg text-gray-500">
-            Begin your journey with the association.
-          </p>
+    <RegistrationLayout
+      sidebarTitle="The Prestige Application"
+      sidebarDescription="Begin your journey with the association."
+    >
+      <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-8">
+        <div>
+          <h2 className="font-serif text-3xl font-bold text-deep-forest mb-2">
+            Personal Details
+          </h2>
+          <p className="text-gray-600">Tell us about yourself</p>
         </div>
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-            <div>
-              <label
-                className="block text-xs font-semibold uppercase tracking-wide text-deep-forest"
-                htmlFor="title"
-              >
-                Title
-              </label>
-              <input
-                className="w-full border-0 border-b-2 border-deep-forest bg-gray-50 p-3 font-serif text-lg text-deep-forest placeholder-gray-400 focus:outline-none focus:ring-0"
-                id="title"
-                placeholder="e.g. Dr."
-                type="text"
-                {...form.getInputProps("title")}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-xs font-semibold uppercase tracking-wide text-deep-forest"
-                htmlFor="surname"
-              >
-                Surname *
-              </label>
-              <input
-                className="w-full border-0 border-b-2 border-deep-forest bg-gray-50 p-3 font-serif text-lg text-deep-forest placeholder-gray-400 focus:outline-none focus:ring-0"
-                id="surname"
-                placeholder="e.g. Al-Faruq"
-                type="text"
-                required
-                {...form.getInputProps("lastName")}
-              />
-              {form.errors.lastName && (
-                <p className="mt-1 text-xs text-red-500">
-                  {form.errors.lastName}
-                </p>
-              )}
-            </div>
-            <div>
-              <label
-                className="block text-xs font-semibold uppercase tracking-wide text-deep-forest"
-                htmlFor="firstName"
-              >
-                First Name *
-              </label>
-              <input
-                className="w-full border-0 border-b-2 border-deep-forest bg-gray-50 p-3 font-serif text-lg text-deep-forest placeholder-gray-400 focus:outline-none focus:ring-0"
-                id="firstName"
-                placeholder="e.g. Aminah"
-                type="text"
-                required
-                {...form.getInputProps("firstName")}
-              />
-              {form.errors.firstName && (
-                <p className="mt-1 text-xs text-red-500">
-                  {form.errors.firstName}
-                </p>
-              )}
-            </div>
-          </div>
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-deep-forest">
-              Gender *
-            </p>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => handleGenderSelect("male")}
-                className={`group flex flex-col items-center justify-center rounded-lg border-2 p-6 text-center transition hover:border-deep-forest focus:outline-none ${
-                  selectedGender === "male"
-                    ? "border-deep-forest bg-deep-forest text-vibrant-lime"
-                    : "border-gray-200 bg-white text-deep-forest"
-                }`}
-              >
-                <User
-                  className={`mb-2 h-10 w-10 transition ${
-                    selectedGender === "male"
-                      ? "text-vibrant-lime"
-                      : "text-gray-400"
-                  }`}
-                />
-                <span className="font-semibold">Brother</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGenderSelect("female")}
-                className={`group flex flex-col items-center justify-center rounded-lg border-2 p-6 text-center transition hover:border-deep-forest focus:outline-none ${
-                  selectedGender === "female"
-                    ? "border-deep-forest bg-deep-forest text-vibrant-lime"
-                    : "border-gray-200 bg-white text-deep-forest"
-                }`}
-              >
-                <Users
-                  className={`mb-2 h-10 w-10 transition ${
-                    selectedGender === "female"
-                      ? "text-vibrant-lime"
-                      : "text-gray-400"
-                  }`}
-                />
-                <span className="font-semibold">Sister</span>
-              </button>
-            </div>
-            {form.errors.gender && (
-              <p className="mt-1 text-xs text-red-500">{form.errors.gender}</p>
-            )}
-          </div>
-          <div>
-            <ImageUpload
-              label="Passport Photograph *"
-              value={form.values.passportUrl}
-              onChange={handlePhotoChange}
-              maxSize={5 * 1024 * 1024}
+
+        <Stack gap="md">
+          {/* Name Fields */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextInput
+              label="Title"
+              placeholder="e.g. Dr., Eng., Prof."
+              key={form.key("title")}
+              {...form.getInputProps("title")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
             />
-            {form.errors.passportUrl && (
-              <p className="mt-1 text-xs text-red-500" role="alert">
-                {form.errors.passportUrl}
-              </p>
-            )}
+            <TextInput
+              label="Surname"
+              placeholder="e.g. Al-Faruq"
+              withAsterisk
+              key={form.key("lastName")}
+              {...form.getInputProps("lastName")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <TextInput
+              label="First Name"
+              placeholder="e.g. Aminah"
+              withAsterisk
+              key={form.key("firstName")}
+              {...form.getInputProps("firstName")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <TextInput
+              label="Middle Name"
+              placeholder="Optional"
+              key={form.key("middleName")}
+              {...form.getInputProps("middleName")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <TextInput
+              label={
+                <div className="flex items-center gap-1">
+                  Nickname/Kunyah
+                  <Tooltip
+                    label="Your alias or nickname from school days, e.g., 'Abu Labeeb'"
+                    multiline
+                    w={220}
+                  >
+                    <Info className="h-3.5 w-3.5 text-gray-400" />
+                  </Tooltip>
+                </div>
+              }
+              placeholder="e.g. Abu Labeeb"
+              key={form.key("nickname")}
+              {...form.getInputProps("nickname")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <Select
+              label="Gender"
+              placeholder="Select gender"
+              data={[
+                { value: "male", label: "Brother (Male)" },
+                { value: "female", label: "Sister (Female)" },
+              ]}
+              withAsterisk
+              key={form.key("gender")}
+              {...form.getInputProps("gender")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => form.onSubmit(handleSubmit)()}
-          className="mt-8 group flex w-full items-center justify-center rounded-lg bg-vibrant-lime py-5 px-6 text-lg font-bold uppercase tracking-wider text-deep-forest transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-vibrant-lime/50"
+
+          {/* Gender-specific and Additional Fields */}
+          {form.values.gender === "female" && (
+            <div className="grid grid-cols-1">
+              <TextInput
+                label="Maiden Name"
+                placeholder="If applicable"
+                key={form.key("maidenName")}
+                {...form.getInputProps("maidenName")}
+                labelProps={{
+                  lh: 2,
+                  fz: "sm",
+                }}
+                radius="lg"
+                size="lg"
+              />
+            </div>
+          )}
+
+          {/* Bio Data */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DateInput
+              label="Date of Birth"
+              placeholder="Select date"
+              withAsterisk
+              maxDate={new Date()}
+              valueFormat="YYYY-MM-DD"
+              key={form.key("dateOfBirth")}
+              {...form.getInputProps("dateOfBirth")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <TextInput
+              label="Phone Number"
+              placeholder="080XXXXXXXX"
+              type="tel"
+              withAsterisk
+              key={form.key("phoneNumber")}
+              {...form.getInputProps("phoneNumber")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <FileInput
+              label="Profile Picture"
+              placeholder="Upload photo"
+              accept="image/*"
+              leftSection={<Upload className="size-4" />}
+              key={form.key("profilePictureUrl")}
+              onChange={handlePhotoChange}
+              disabled={isUploadingProfilePicture}
+              leftSectionPointerEvents="none"
+              rightSection={
+                isUploadingProfilePicture ? <Loader size="sm" /> : undefined
+              }
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+            <YearPickerInput
+              label="Class Set"
+              withAsterisk
+              maxDate={new Date()}
+              placeholder="Select year"
+              key={form.key("classSet")}
+              {...form.getInputProps("classSet")}
+              labelProps={{
+                lh: 2,
+                fz: "sm",
+              }}
+              radius="lg"
+              size="lg"
+            />
+          </div>
+        </Stack>
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          fullWidth
+          radius="lg"
+          autoContrast
+          tt="uppercase"
+          size="lg"
+          fz="sm"
+          className="bg-vibrant-lime text-deep-forest font-bold hover:brightness-105"
         >
-          {false ? "UPLOADING PHOTO..." : "PROCEED TO ACCOUNT SETUP"}
-          <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-2" />
-        </button>
-      </div>
+          Proceed to Account Setup
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </form>
     </RegistrationLayout>
   );
 }

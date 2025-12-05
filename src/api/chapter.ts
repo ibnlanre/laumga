@@ -10,6 +10,11 @@ import {
   query,
   where,
   orderBy,
+  serverTimestamp,
+  Timestamp,
+  CollectionReference,
+  DocumentReference,
+  type WithFieldValue,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 
@@ -36,8 +41,8 @@ export const chapterSchema = z.object({
   contactPhone: z.string().optional(),
   memberCount: z.number().default(0),
   isActive: z.boolean().default(true),
-  createdAt: z.number(),
-  updatedAt: z.number(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp),
 });
 
 export const createChapterSchema = chapterSchema.omit({
@@ -53,17 +58,23 @@ export type Chapter = z.infer<typeof chapterSchema>;
 export type CreateChapterData = z.infer<typeof createChapterSchema>;
 export type UpdateChapterData = z.infer<typeof updateChapterSchema>;
 
+export type ChapterData = Omit<Chapter, "id">;
+export type ChapterCollectionReference = CollectionReference<ChapterData>;
+export type ChapterDocumentReference = DocumentReference<ChapterData>;
+
 const CHAPTERS_COLLECTION = "chapters";
 
 /**
  * Create chapter
  */
-async function create(data: CreateChapterData): Promise<Chapter> {
+async function create(data: CreateChapterData) {
   const validated = createChapterSchema.parse(data);
-  const now = Date.now();
 
   // Check if chapter already exists for this state
-  const chaptersRef = collection(db, CHAPTERS_COLLECTION);
+  const chaptersRef = collection(
+    db,
+    CHAPTERS_COLLECTION
+  ) as ChapterCollectionReference;
   const existingQuery = query(
     chaptersRef,
     where("state", "==", validated.state)
@@ -77,9 +88,9 @@ async function create(data: CreateChapterData): Promise<Chapter> {
   const chapterData = {
     ...validated,
     memberCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } satisfies WithFieldValue<ChapterData> as unknown as ChapterData;
 
   const docRef = await addDoc(chaptersRef, chapterData);
 
@@ -92,13 +103,17 @@ async function create(data: CreateChapterData): Promise<Chapter> {
 /**
  * Update chapter
  */
-async function update(id: string, data: UpdateChapterData): Promise<Chapter> {
+async function update(id: string, data: UpdateChapterData) {
   const validated = updateChapterSchema.parse(data);
-  const chapterRef = doc(db, CHAPTERS_COLLECTION, id);
+  const chapterRef = doc(
+    db,
+    CHAPTERS_COLLECTION,
+    id
+  ) as ChapterDocumentReference;
 
   const updateData = {
     ...validated,
-    updatedAt: Date.now(),
+    updatedAt: serverTimestamp(),
   };
 
   await updateDoc(chapterRef, updateData);
@@ -118,8 +133,11 @@ async function fetchAll(filters?: {
   region?: Chapter["region"];
   state?: string;
   isActive?: boolean;
-}): Promise<Chapter[]> {
-  const chaptersRef = collection(db, CHAPTERS_COLLECTION);
+}) {
+  const chaptersRef = collection(
+    db,
+    CHAPTERS_COLLECTION
+  ) as ChapterCollectionReference;
   let chaptersQuery = query(chaptersRef, orderBy("name", "asc"));
 
   // Filter by active status
@@ -144,7 +162,7 @@ async function fetchAll(filters?: {
   const chapters = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Chapter[];
+  }));
 
   return chapterSchema.array().parse(chapters);
 }
@@ -153,7 +171,11 @@ async function fetchAll(filters?: {
  * Fetch chapter by ID
  */
 async function fetchById(id: string): Promise<Chapter | null> {
-  const chapterRef = doc(db, CHAPTERS_COLLECTION, id);
+  const chapterRef = doc(
+    db,
+    CHAPTERS_COLLECTION,
+    id
+  ) as ChapterDocumentReference;
   const chapterDoc = await getDoc(chapterRef);
 
   if (!chapterDoc.exists()) {
@@ -172,7 +194,10 @@ async function fetchById(id: string): Promise<Chapter | null> {
  * Fetch chapter by state
  */
 async function fetchByState(state: string): Promise<Chapter | null> {
-  const chaptersRef = collection(db, CHAPTERS_COLLECTION);
+  const chaptersRef = collection(
+    db,
+    CHAPTERS_COLLECTION
+  ) as ChapterCollectionReference;
   const chapterQuery = query(chaptersRef, where("state", "==", state));
   const snapshot = await getDocs(chapterQuery);
 
@@ -200,7 +225,11 @@ async function fetchByRegion(region: Chapter["region"]): Promise<Chapter[]> {
  * Increment member count
  */
 async function incrementMemberCount(id: string): Promise<void> {
-  const chapterRef = doc(db, CHAPTERS_COLLECTION, id);
+  const chapterRef = doc(
+    db,
+    CHAPTERS_COLLECTION,
+    id
+  ) as ChapterDocumentReference;
   const chapterDoc = await getDoc(chapterRef);
 
   if (!chapterDoc.exists()) {
@@ -215,7 +244,11 @@ async function incrementMemberCount(id: string): Promise<void> {
  * Decrement member count
  */
 async function decrementMemberCount(id: string): Promise<void> {
-  const chapterRef = doc(db, CHAPTERS_COLLECTION, id);
+  const chapterRef = doc(
+    db,
+    CHAPTERS_COLLECTION,
+    id
+  ) as ChapterDocumentReference;
   const chapterDoc = await getDoc(chapterRef);
 
   if (!chapterDoc.exists()) {
@@ -230,7 +263,11 @@ async function decrementMemberCount(id: string): Promise<void> {
  * Delete chapter
  */
 async function remove(id: string): Promise<void> {
-  const chapterRef = doc(db, CHAPTERS_COLLECTION, id);
+  const chapterRef = doc(
+    db,
+    CHAPTERS_COLLECTION,
+    id
+  ) as ChapterDocumentReference;
   await deleteDoc(chapterRef);
 }
 

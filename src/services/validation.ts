@@ -17,7 +17,7 @@ export const RegisterSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   middleName: z.string().optional(),
   gender: z.enum(["male", "female"], { message: "Gender is required" }),
-  passportUrl: z.string().optional(),
+  profilePictureUrl: z.string().optional(),
   stateOfOrigin: z.string().min(1, "State of origin is required"),
   stateOfResidence: z.string().min(1, "State of residence is required"),
   email: z.email("Invalid email address").min(1, "Email is required"),

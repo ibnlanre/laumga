@@ -10,18 +10,28 @@ import {
   where,
   orderBy,
   limit,
-  type WithFieldValue,
   serverTimestamp,
+  Timestamp,
+  type WithFieldValue,
+  type CollectionReference,
+  type DocumentReference,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
+import {
+  buildQuery,
+  FilterOperator,
+  getQueryDocs,
+  type Variables,
+} from "@/client/core-query";
 
 export const articleSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-  excerpt: z.string(),
-  content: z.string(),
-  coverImageUrl: z.url(),
-  authorName: z.string(),
+  id: z.string(),
+  title: z.string().min(1, "Title is required"),
+  slug: z.string().min(1, "Slug is required"),
+  excerpt: z.string().min(1, "Excerpt is required"),
+  content: z.string().min(1, "Content is required"),
+  coverImageUrl: z.url("Invalid cover image URL"),
+  authorName: z.string().min(1, "Author name is required"),
   authorId: z.string().optional(),
   category: z.enum([
     "news",
@@ -35,30 +45,31 @@ export const articleSchema = z.object({
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   featured: z.boolean().default(false),
   isPublished: z.boolean().default(false),
-  publishedAt: z.any().optional(),
+  publishedAt: z.instanceof(Timestamp).optional(),
   viewCount: z.number().default(0),
-  createdAt: z.any(),
-  createdBy: z.string(),
-  updatedAt: z.any(),
-  updatedBy: z.string(),
+  createdAt: z.instanceof(Timestamp),
+  createdBy: z.string().min(1, "Created by is required"),
+  updatedAt: z.instanceof(Timestamp),
+  updatedBy: z.string().min(1, "Updated by is required"),
 });
 
-export const articleDataSchema = articleSchema.extend({
-  id: z.string(),
-});
-
-export const createArticleSchema = articleDataSchema.omit({
+export const createArticleSchema = articleSchema.omit({
   viewCount: true,
   createdAt: true,
   updatedAt: true,
+  publishedAt: true,
 });
 
 export const updateArticleSchema = createArticleSchema.partial();
 
 export type Article = z.infer<typeof articleSchema>;
-export type ArticleData = z.infer<typeof articleDataSchema>;
 export type CreateArticleData = z.infer<typeof createArticleSchema>;
 export type UpdateArticleData = z.infer<typeof updateArticleSchema>;
+export type ArticleCategory = z.infer<typeof articleSchema.shape.category>;
+
+export type ArticleData = Omit<Article, "id">;
+export type ArticleCollection = CollectionReference<ArticleData>;
+export type ArticleDocumentReference = DocumentReference<ArticleData>;
 
 const ARTICLES_COLLECTION = "articles";
 
@@ -71,8 +82,9 @@ async function create(data: CreateArticleData) {
   // Generate slug if not provided or ensure uniqueness
   let slug = validated.slug || z.string().slugify().parse(validated.title);
 
+  const articlesRef = collection(db, ARTICLES_COLLECTION) as ArticleCollection;
+
   // Check for existing slug
-  const articlesRef = collection(db, ARTICLES_COLLECTION);
   const existingQuery = query(articlesRef, where("slug", "==", slug));
   const existingSnapshot = await getDocs(existingQuery);
 
@@ -80,21 +92,26 @@ async function create(data: CreateArticleData) {
     slug = `${slug}-${Date.now()}`;
   }
 
-  const articleData: WithFieldValue<Article> = {
+  const articleData = {
     ...validated,
     slug,
     viewCount: 0,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  };
+  } satisfies WithFieldValue<Article> as unknown as Article;
 
-  if (validated.isPublished && !articleData.publishedAt) {
-    articleData.publishedAt = serverTimestamp();
+  if (validated.isPublished) {
+    articleData.publishedAt = serverTimestamp() as unknown as Timestamp;
   }
 
   const docRef = await addDoc(articlesRef, articleData);
 
-  return { id: docRef.id, ...articleData };
+  // Fetch to return the fully resolved object
+  const newDoc = await getDoc(docRef);
+  return {
+    id: newDoc.id,
+    ...newDoc.data(),
+  };
 }
 
 /**
@@ -102,83 +119,81 @@ async function create(data: CreateArticleData) {
  */
 async function update(id: string, data: UpdateArticleData) {
   const validated = updateArticleSchema.parse(data);
-  const articleRef = doc(db, ARTICLES_COLLECTION, id);
+  const articleRef = doc(
+    db,
+    ARTICLES_COLLECTION,
+    id
+  ) as ArticleDocumentReference;
 
-  // If publishing for the first time, set publishedAt
-  const updateData = {
+  const updateData: any = {
     ...validated,
-    updatedAt: Date.now(),
+    updatedAt: serverTimestamp(),
   };
 
-  if (validated.isPublished && !validated.publishedAt) {
+  if (validated.isPublished === true) {
     updateData.publishedAt = serverTimestamp();
   }
 
   await updateDoc(articleRef, updateData);
 
-  const updated = await fetchById(id);
-  if (!updated) {
-    throw new Error("Article not found after update");
-  }
-
-  return updated;
+  return fetchById(id);
 }
 
-/**
- * Fetch all articles
- */
-async function fetchAll(filters?: {
-  category?: Article["category"];
-  isPublished?: boolean;
-  tag?: string;
-  limit?: number;
-}) {
-  const articlesRef = collection(db, ARTICLES_COLLECTION);
-  let articlesQuery = query(articlesRef, orderBy("createdAt", "desc"));
+// {
+//   category?: Article["category"];
+//   isPublished?: boolean;
+//   tag?: string;
+//   limit?: number;
+// }
 
-  // Filter by published status
-  if (filters?.isPublished !== undefined) {
-    articlesQuery = query(
-      articlesQuery,
-      where("isPublished", "==", filters.isPublished)
-    );
-  }
+// export interface QueryFilters<DocumentType> {
+//   queryFilter?: Array<{
+//     field: keyof DocumentType;
+//     operator: WhereFilterOp;
+//     value: any;
+//   }>;
+//   queryLimit?: number;
+//   queryOrder?: Array<{
+//     field: keyof DocumentType;
+//     value: OrderByDirection;
+//   }>;
+// }
 
-  // Filter by category
-  if (filters?.category) {
-    articlesQuery = query(
-      articlesQuery,
-      where("category", "==", filters.category)
-    );
-  }
+// const filtersDefault: QueryFilters<Article> = {
+//   queryFilter: [
+//     {
+//       field: "isPublished",
+//       operator: "==",
+//       value: true,
+//     },
+//     {
+//       field: "category",
+//       operator: "==",
+//       value: "news",
+//     },
+//     {
+//       field: "tags",
+//       operator: "array-contains",
+//       value: "general",
+//     }
+//   ],
+// };
 
-  // Filter by tag
-  if (filters?.tag) {
-    articlesQuery = query(
-      articlesQuery,
-      where("tags", "array-contains", filters.tag)
-    );
-  }
-
-  // Apply limit
-  if (filters?.limit) {
-    articlesQuery = query(articlesQuery, limit(filters.limit));
-  }
-
-  const snapshot = await getDocs(articlesQuery);
-  const articles = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  return articleDataSchema.array().parse(articles);
+async function fetchAll(variables?: Variables<ArticleData>) {
+  const articlesRef = collection(db, ARTICLES_COLLECTION) as ArticleCollection;
+  const articlesQuery = buildQuery(articlesRef, variables);
+  return getQueryDocs(articlesQuery);
 }
 
 /**
  * Fetch article by ID
  */
-async function fetchById(id: string): Promise<Article | null> {
-  const articleRef = doc(db, ARTICLES_COLLECTION, id);
+async function fetchById(id: string) {
+  const articleRef = doc(
+    db,
+    ARTICLES_COLLECTION,
+    id
+  ) as ArticleDocumentReference;
   const articleDoc = await getDoc(articleRef);
 
   if (!articleDoc.exists()) {
@@ -190,14 +205,14 @@ async function fetchById(id: string): Promise<Article | null> {
     ...articleDoc.data(),
   };
 
-  return articleDataSchema.parse(article);
+  return article;
 }
 
 /**
  * Fetch article by slug
  */
 async function fetchBySlug(slug: string) {
-  const articlesRef = collection(db, ARTICLES_COLLECTION);
+  const articlesRef = collection(db, ARTICLES_COLLECTION) as ArticleCollection;
   const articleQuery = query(articlesRef, where("slug", "==", slug));
   const snapshot = await getDocs(articleQuery);
 
@@ -211,7 +226,7 @@ async function fetchBySlug(slug: string) {
     ...articleDoc.data(),
   };
 
-  return articleDataSchema.parse(article);
+  return article;
 }
 
 /**
@@ -224,7 +239,7 @@ async function fetchRelated(id: string, maxResults: number = 3) {
   }
 
   // Find articles in the same category
-  const articlesRef = collection(db, ARTICLES_COLLECTION);
+  const articlesRef = collection(db, ARTICLES_COLLECTION) as ArticleCollection;
   const relatedQuery = query(
     articlesRef,
     where("category", "==", currentArticle.category),
@@ -242,17 +257,18 @@ async function fetchRelated(id: string, maxResults: number = 3) {
       ...doc.data(),
     }));
 
-  return articleDataSchema.array().parse(articles);
+  return articles;
 }
 
 /**
  * Search articles
  */
 async function search(searchQuery: string) {
-  // Note: Firestore doesn't support full-text search natively
-  // This is a simple implementation that filters on the client side
-  // For production, consider using Algolia or similar service
-  const articles = await fetchAll({ isPublished: true });
+  const articles = await fetchAll({
+    filterBy: [
+      { field: "isPublished", operator: FilterOperator.EqualTo, value: true },
+    ],
+  });
 
   const searchLower = searchQuery.toLowerCase();
   return articles.filter(
@@ -267,7 +283,11 @@ async function search(searchQuery: string) {
  * Increment view count
  */
 async function incrementViewCount(id: string): Promise<void> {
-  const articleRef = doc(db, ARTICLES_COLLECTION, id);
+  const articleRef = doc(
+    db,
+    ARTICLES_COLLECTION,
+    id
+  ) as DocumentReference<Article>;
   const articleDoc = await getDoc(articleRef);
 
   if (!articleDoc.exists()) {
@@ -284,7 +304,11 @@ async function incrementViewCount(id: string): Promise<void> {
  * Delete an article
  */
 async function deleteArticle(id: string): Promise<void> {
-  const articleRef = doc(db, ARTICLES_COLLECTION, id);
+  const articleRef = doc(
+    db,
+    ARTICLES_COLLECTION,
+    id
+  ) as DocumentReference<Article>;
   await updateDoc(articleRef, { status: "archived" });
 }
 
