@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+agent: agent
 ---
 
 # use-form | Mantine
@@ -17,19 +17,19 @@ pnpm add @mantine/form
 ## Usage
 
 ```tsx
-import { Button, Checkbox, Group, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { Button, Checkbox, Group, TextInput } from "@mantine/core";
+import { useForm } from "@mantine/form";
 
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
+    mode: "uncontrolled",
     initialValues: {
-      email: '',
+      email: "",
       termsOfService: false,
     },
 
     validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email'),
+      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
     },
   });
 
@@ -39,15 +39,15 @@ function Demo() {
         withAsterisk
         label="Email"
         placeholder="your@email.com"
-        key={form.key('email')}
-        {...form.getInputProps('email')}
+        key={form.key("email")}
+        {...form.getInputProps("email")}
       />
 
       <Checkbox
         mt="md"
         label="I agree to sell my privacy"
-        key={form.key('termsOfService')}
-        {...form.getInputProps('termsOfService', { type: 'checkbox' })}
+        key={form.key("termsOfService")}
+        {...form.getInputProps("termsOfService", { type: "checkbox" })}
       />
 
       <Group justify="flex-end" mt="md">
@@ -789,26 +789,37 @@ Controlled mode is the default mode of the form. In this mode, the form data is 
 Example of a form with controlled mode:
 
 ```tsx
-import { useState } from 'react';
-import { Button, Code, Text, TextInput } from '@mantine/core';
-import { hasLength, isEmail, useForm } from '@mantine/form';
+import { useState } from "react";
+import { Button, Code, Text, TextInput } from "@mantine/core";
+import { hasLength, isEmail, useForm } from "@mantine/form";
 
 function Demo() {
   const form = useForm({
-    mode: 'controlled',
-    initialValues: { name: '', email: '' },
+    mode: "controlled",
+    initialValues: { name: "", email: "" },
     validate: {
-      name: hasLength({ min: 3 }, 'Must be at least 3 characters'),
-      email: isEmail('Invalid email'),
+      name: hasLength({ min: 3 }, "Must be at least 3 characters"),
+      email: isEmail("Invalid email"),
     },
   });
 
-  const [submittedValues, setSubmittedValues] = useState<typeof form.values | null>(null);
+  const [submittedValues, setSubmittedValues] = useState<
+    typeof form.values | null
+  >(null);
 
   return (
     <form onSubmit={form.onSubmit(setSubmittedValues)}>
-      <TextInput {...form.getInputProps('name')} label="Name" placeholder="Name" />
-      <TextInput {...form.getInputProps('email')} mt="md" label="Email" placeholder="Email" />
+      <TextInput
+        {...form.getInputProps("name")}
+        label="Name"
+        placeholder="Name"
+      />
+      <TextInput
+        {...form.getInputProps("email")}
+        mt="md"
+        label="Email"
+        placeholder="Email"
+      />
       <Button type="submit" mt="md">
         Submit
       </Button>
@@ -817,7 +828,9 @@ function Demo() {
       <Code block>{JSON.stringify(form.values, null, 2)}</Code>
 
       <Text mt="md">Submitted values:</Text>
-      <Code block>{submittedValues ? JSON.stringify(submittedValues, null, 2) : '–'}</Code>
+      <Code block>
+        {submittedValues ? JSON.stringify(submittedValues, null, 2) : "–"}
+      </Code>
     </form>
   );
 }
@@ -834,33 +847,35 @@ With uncontrolled mode, the form data is stored in a ref instead of React state 
 Example of a form with uncontrolled mode:
 
 ```tsx
-import { useState } from 'react';
-import { Button, Code, Text, TextInput } from '@mantine/core';
-import { hasLength, isEmail, useForm } from '@mantine/form';
+import { useState } from "react";
+import { Button, Code, Text, TextInput } from "@mantine/core";
+import { hasLength, isEmail, useForm } from "@mantine/form";
 
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
-    initialValues: { name: '', email: '' },
+    mode: "uncontrolled",
+    initialValues: { name: "", email: "" },
     validate: {
-      name: hasLength({ min: 3 }, 'Must be at least 3 characters'),
-      email: isEmail('Invalid email'),
+      name: hasLength({ min: 3 }, "Must be at least 3 characters"),
+      email: isEmail("Invalid email"),
     },
   });
 
-  const [submittedValues, setSubmittedValues] = useState<typeof form.values | null>(null);
+  const [submittedValues, setSubmittedValues] = useState<
+    typeof form.values | null
+  >(null);
 
   return (
     <form onSubmit={form.onSubmit(setSubmittedValues)}>
       <TextInput
-        {...form.getInputProps('name')}
-        key={form.key('name')}
+        {...form.getInputProps("name")}
+        key={form.key("name")}
         label="Name"
         placeholder="Name"
       />
       <TextInput
-        {...form.getInputProps('email')}
-        key={form.key('email')}
+        {...form.getInputProps("email")}
+        key={form.key("email")}
         mt="md"
         label="Email"
         placeholder="Email"
@@ -873,7 +888,9 @@ function Demo() {
       <Code block>{JSON.stringify(form.values, null, 2)}</Code>
 
       <Text mt="md">Submitted values:</Text>
-      <Code block>{submittedValues ? JSON.stringify(submittedValues, null, 2) : '–'}</Code>
+      <Code block>
+        {submittedValues ? JSON.stringify(submittedValues, null, 2) : "–"}
+      </Code>
     </form>
   );
 }
@@ -886,31 +903,31 @@ As you can see in the example above, `form.values` do not update at all.
 `form.getValues` function returns current form values. It can be used anywhere in the component to get the current form values. It can be used in both controlled and uncontrolled modes.
 
 ```tsx
-import { useForm } from '@mantine/form';
+import { useForm } from "@mantine/form";
 
 const form = useForm({
-  mode: 'uncontrolled',
-  initialValues: { name: 'John Doe' },
+  mode: "uncontrolled",
+  initialValues: { name: "John Doe" },
 });
 
 form.getValues(); // { name: 'John Doe' }
 
-form.setValues({ name: 'John Smith' });
+form.setValues({ name: "John Smith" });
 form.getValues(); // { name: 'John Smith' }
 ```
 
 Although `form.values` can be used to get the current form values in controlled mode, it is recommended to use `form.getValues` instead as it always returns the latest values while `form.values` is outdated in uncontrolled mode and before state update in controlled mode.
 
 ```tsx
-import { useForm } from '@mantine/form';
+import { useForm } from "@mantine/form";
 
 const form = useForm({
-  mode: 'uncontrolled',
-  initialValues: { name: 'John Doe' },
+  mode: "uncontrolled",
+  initialValues: { name: "John Doe" },
 });
 
 const handleNameChange = () => {
-  form.setFieldValue('name', 'Test Name');
+  form.setFieldValue("name", "Test Name");
 
   // ❌ Do not use form.values to get the current form values
   // form.values has stale name value until next rerender in controlled mode
@@ -926,10 +943,10 @@ const handleNameChange = () => {
 `form.getValues()` returns a ref value of the current form values. This means that you cannot pass it to `useEffect` dependencies array as it will always be the same reference.
 
 ```tsx
-import { useEffect } from 'react';
-import { useForm } from '@mantine/form';
+import { useEffect } from "react";
+import { useForm } from "@mantine/form";
 
-const form = useForm({ mode: 'uncontrolled' });
+const form = useForm({ mode: "uncontrolled" });
 
 useEffect(() => {
   // ❌ This will not work as form.getValues() is a ref value
@@ -940,11 +957,11 @@ useEffect(() => {
 Instead of observing form values with `useEffect`, use `onValuesChange` callback to listen to form values changes:
 
 ```tsx
-import { useForm } from '@mantine/form';
+import { useForm } from "@mantine/form";
 
 const form = useForm({
-  mode: 'uncontrolled',
-  initialValues: { name: 'John Doe' },
+  mode: "uncontrolled",
+  initialValues: { name: "John Doe" },
   onValuesChange: (values) => {
     // ✅ This will be called on every form values change
     console.log(values);
@@ -959,40 +976,37 @@ form.getInputProps returns different props for controlled and uncontrolled modes
 Uncontrolled mode relies on `key` returned from `form.key()` to update components when `form.setFieldValue` or `form.setValues` are called. You should set `key` supplied by `form.key()` to the input component to ensure that it has updated value:
 
 ```tsx
-import { useForm } from '@mantine/form';
+import { useForm } from "@mantine/form";
 
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
-    initialValues: { text: '' },
+    mode: "uncontrolled",
+    initialValues: { text: "" },
   });
 
-  return (
-    <input {...form.getInputProps('text')} key={form.key('text')} />
-  );
+  return <input {...form.getInputProps("text")} key={form.key("text")} />;
 }
 ```
 
 In case you need to have a list of fields, do not pass `key` to the input component directly, instead add a wrapper element and pass `key` to it:
 
 ```tsx
-import { useForm } from '@mantine/form';
-import { randomId } from '@mantine/hooks';
+import { useForm } from "@mantine/form";
+import { randomId } from "@mantine/hooks";
 
 // ❌ Incorrect: Do not override key prop, even in lists
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
+    mode: "uncontrolled",
     initialValues: {
-      jobs: [{ company: 'Google' }, { company: 'Facebook' }],
+      jobs: [{ company: "Google" }, { company: "Facebook" }],
     },
   });
 
-  const fields = form.getValues().jobs.map((_, index) => (
-      <input
-        {...form.getInputProps(`jobs.${index}.company`)}
-        key={index}
-      />
+  const fields = form
+    .getValues()
+    .jobs.map((_, index) => (
+      <input {...form.getInputProps(`jobs.${index}.company`)} key={index} />
     ));
 
   return <form>{fields}</form>;
@@ -1001,23 +1015,23 @@ function Demo() {
 // ✅ Correct: Add wrapper element and pass key to it
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
+    mode: "uncontrolled",
     initialValues: {
       jobs: [
-        { company: 'Google', key: randomId() },
-        { company: 'Facebook', key: randomId() },
+        { company: "Google", key: randomId() },
+        { company: "Facebook", key: randomId() },
       ],
     },
   });
 
   const fields = form.getValues().jobs.map((item, index) => (
-      <div key={item.key}>
-        <input
-          {...form.getInputProps(`jobs.${index}.company`)}
-          key={form.key(`jobs.${index}.company`)}
-        />
-      </div>
-    ));
+    <div key={item.key}>
+      <input
+        {...form.getInputProps(`jobs.${index}.company`)}
+        key={form.key(`jobs.${index}.company`)}
+      />
+    </div>
+  ));
 
   return <form>{fields}</form>;
 }
@@ -1028,7 +1042,7 @@ function Demo() {
 If you want to build a custom component that supports uncontrolled form mode, you must add support for `defaultValue` prop. The best way to add support for `defaultValue` is to use use-uncontrolled hook:
 
 ```tsx
-import { useUncontrolled } from '@mantine/hooks';
+import { useUncontrolled } from "@mantine/hooks";
 
 interface CustomInputProps {
   value?: string;
@@ -1037,15 +1051,11 @@ interface CustomInputProps {
 }
 
 // ✅ CustomInput supports both controlled and uncontrolled modes
-function CustomInput({
-  value,
-  defaultValue,
-  onChange,
-}: CustomInputProps) {
+function CustomInput({ value, defaultValue, onChange }: CustomInputProps) {
   const [_value, handleChange] = useUncontrolled({
     value,
     defaultValue,
-    finalValue: 'Final',
+    finalValue: "Final",
     onChange,
   });
 
@@ -1060,17 +1070,125 @@ function CustomInput({
 
 function Demo() {
   const form = useForm({
-    mode: 'uncontrolled',
-    initialValues: { text: 'Initial' },
+    mode: "uncontrolled",
+    initialValues: { text: "Initial" },
   });
 
   // ✅ CustomInput supports `defaultValue` prop,
   // it can be used in uncontrolled mode
+  return <CustomInput {...form.getInputProps("text")} key={form.key("text")} />;
+}
+```
+
+## Form actions
+
+Change form state from anywhere in the application
+
+## Usage
+
+Form actions allow changing state of the form from anywhere in your application. The mechanism of form actions is similar to `notifications system`, `modals manager` and other similar packages.
+
+To use form actions, set `name` property in `use-form` settings:
+
+```tsx
+import { useForm } from "@mantine/form";
+
+export interface DemoFormValues {
+  name: string;
+  age: number;
+}
+
+function Demo() {
+  const form = useForm<DemoFormValues>({
+    mode: "uncontrolled",
+    name: "demo-form",
+    initialValues: {
+      name: "",
+      age: 0,
+    },
+  });
+}
+```
+
+Then call `createFormActions` function with the same form name as specified in `useForm` settings:
+
+```tsx
+// Import type of form values from the file where you defined useForm
+import { createFormActions } from "@mantine/form";
+import type { DemoFormValues } from "./DemoForm";
+
+export const demoFormActions = createFormActions<DemoFormValues>("demo-form");
+```
+
+After that, you can use `demoFormActions` to change form state from anywhere in your application. For example, after a fetch request or after a user interaction with a component that does not have access to the form state:
+
+```tsx
+import { useEffect } from "react";
+import { Button } from "@mantine/core";
+import { demoFormActions } from "./demoFormActions";
+
+function ExternalComponent() {
+  useEffect(() => {
+    fetch("/api/user")
+      .then((res) => res.json())
+      .then((res) =>
+        demoFormActions.setValues({
+          name: res.name,
+          age: res.age,
+        })
+      );
+  }, []);
+
   return (
-    <CustomInput
-      {...form.getInputProps('text')}
-      key={form.key('text')}
-    />
+    <Button onClick={() => demoFormActions.reset()}>Reset demo form</Button>
   );
 }
 ```
+
+## Form name
+
+Form name must be a string that contains only letters, numbers and dashes:
+
+```tsx
+import { useForm } from "@mantine/form";
+
+// ✅ Valid form name
+const valid = useForm({
+  name: "valid-FORM-name-10",
+  mode: "uncontrolled",
+});
+
+// ❌ Invalid form name: must not contain spaces and special characters
+const invalid = useForm({
+  name: "invalid_form name",
+  mode: "uncontrolled",
+});
+```
+
+Expand code
+
+Note that form names must be unique, if you have multiple forms with the same name, form actions will update the state of all forms with the same name.
+
+## Form actions
+
+`createFormActions` function returns an object with the following methods:
+
+- `setFieldValue`
+- `setValues`
+- `setInitialValues`
+- `setErrors`
+- `setFieldError`
+- `clearFieldError`
+- `clearErrors`
+- `reset`
+- `validate`
+- `validateField`
+- `reorderListItem`
+- `removeListItem`
+- `insertListItem`
+- `setDirty`
+- `setTouched`
+- `resetDirty`
+- `resetTouched`
+
+All methods work similar to `useForm` hooks methods – functions accept the same arguments but do not return anything.

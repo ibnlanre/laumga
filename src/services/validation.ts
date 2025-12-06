@@ -30,9 +30,6 @@ export const RegisterSchema = z.object({
       /[!@#$%^&*]/,
       "Password must contain at least one special character"
     ),
-  agreeToTerms: z
-    .boolean()
-    .refine((val) => val === true, "You must agree to the terms"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   address: z.string().min(10, "Address must be at least 10 characters"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
@@ -57,9 +54,6 @@ export const AccountCredentialsSchema = z.object({
       /[!@#$%^&*]/,
       "Password must contain at least one special character"
     ),
-  agreeToTerms: z
-    .boolean()
-    .refine((val) => val === true, "You must agree to the terms"),
 });
 
 export type AccountCredentialsFormValues = z.infer<

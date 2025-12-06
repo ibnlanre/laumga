@@ -114,6 +114,8 @@ Use the `@ibnlanre/builder` library for all API interactions:
 - Ensure all components and pages function with real data.
 - Connect all modals and forms to actual API endpoints, handling responses appropriately.
 - Do not use percentage-based widths; use fixed widths or Tailwind's responsive utilities instead; except when absolutely necessary.
+- Do not use `React.`
+- Instead of `children: ReactNode;`, use `PropsWithChildren` for component props.
 
 ## Key Files & Examples
 

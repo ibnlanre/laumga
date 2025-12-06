@@ -1,15 +1,10 @@
-import {
-  getCountries,
-  getStatesOfCountry,
-  type ICountry,
-  type IState,
-} from "@countrystatecity/countries";
+import { Country, State, type ICountry, type IState } from "country-state-city";
 import { useEffect, useState } from "react";
 
 export interface CountryOption {
   value: string;
   label: string;
-  iso2: string;
+  isoCode: string;
   emoji?: string;
 }
 
@@ -19,15 +14,14 @@ export interface StateOption {
 }
 
 function createCountryOption(country: ICountry): CountryOption {
-  const label = country.emoji
-    ? `${country.emoji} ${country.name}`
-    : country.name;
+  const emoji = country.flag || undefined;
+  const label = country.name;
 
   return {
     value: country.name,
     label,
-    iso2: country.iso2,
-    emoji: country.emoji,
+    isoCode: country.isoCode,
+    emoji,
   };
 }
 
@@ -47,21 +41,19 @@ export function useCountryOptions() {
   );
 
   useEffect(() => {
-    getCountries()
-      .then((countries) => {
-        const options = countries
-          .map(createCountryOption)
-          .sort((a, b) => a.value.localeCompare(b.value));
-        setCountryOptions(options);
-      })
-      .catch((error) => {
-        const message =
-          error instanceof Error ? error.message : "Unable to load countries";
-        setCountryOptionsError(message);
-      })
-      .finally(() => {
-        setCountryOptionsLoading(false);
-      });
+    try {
+      const countries = Country.getAllCountries();
+      const options = countries
+        .map(createCountryOption)
+        .sort((a, b) => a.value.localeCompare(b.value));
+      setCountryOptions(options);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to load countries";
+      setCountryOptionsError(message);
+    } finally {
+      setCountryOptionsLoading(false);
+    }
   }, []);
 
   return {
@@ -80,23 +72,40 @@ export function useStateOptions(countryName?: string) {
   );
 
   useEffect(() => {
-    if (!countryName) return;
+    if (!countryName) {
+      setStateOptions([]);
+      setStateOptionsError(null);
+      setStateOptionsLoading(false);
+      return;
+    }
 
-    getStatesOfCountry(countryName)
-      .then((states) => {
-        const options = states
-          .map(createStateOption)
-          .sort((a, b) => a.value.localeCompare(b.value));
-        setStateOptions(options);
-      })
-      .catch((error) => {
-        const message =
-          error instanceof Error ? error.message : "Unable to load states";
-        setStateOptionsError(message);
-      })
-      .finally(() => {
-        setStateOptionsLoading(false);
-      });
+    setStateOptionsLoading(true);
+    setStateOptionsError(null);
+
+    try {
+      const isoCode = Country.getAllCountries().find(
+        (country) => country.name === countryName
+      )?.isoCode;
+
+      if (!isoCode) {
+        setStateOptions([]);
+        setStateOptionsError("Unknown country selection");
+        return;
+      }
+
+      const states = State.getStatesOfCountry(isoCode) ?? [];
+      const options = states
+        .map(createStateOption)
+        .sort((a, b) => a.value.localeCompare(b.value));
+      setStateOptions(options);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to load states";
+      setStateOptionsError(message);
+      setStateOptions([]);
+    } finally {
+      setStateOptionsLoading(false);
+    }
   }, [countryName]);
 
   return {

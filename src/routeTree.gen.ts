@@ -21,8 +21,6 @@ import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
-import { Route as PublicRegisterReviewRouteImport } from './routes/_public/register/review'
-import { Route as PublicRegisterAccountRouteImport } from './routes/_public/register/account'
 import { Route as PublicDefaultNewsletterRouteImport } from './routes/_public/_default/newsletter'
 import { Route as PublicDefaultMembershipRouteImport } from './routes/_public/_default/membership'
 import { Route as PublicDefaultEventsRouteImport } from './routes/_public/_default/events'
@@ -30,6 +28,7 @@ import { Route as PublicDefaultContactUsRouteImport } from './routes/_public/_de
 import { Route as PublicDefaultAboutUsRouteImport } from './routes/_public/_default/about-us'
 import { Route as AuthMandateLayoutRouteImport } from './routes/_auth/mandate/_layout'
 import { Route as AuthAdminUsersRouteImport } from './routes/_auth/admin/users'
+import { Route as AuthAdminPaymentPartnersRouteImport } from './routes/_auth/admin/payment-partners'
 import { Route as AuthAdminGalleryRouteImport } from './routes/_auth/admin/gallery'
 import { Route as AuthAdminEventsRouteImport } from './routes/_auth/admin/events'
 import { Route as AuthAdminArticlesRouteImport } from './routes/_auth/admin/articles'
@@ -96,16 +95,6 @@ const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthAdminRoute,
 } as any)
-const PublicRegisterReviewRoute = PublicRegisterReviewRouteImport.update({
-  id: '/register/review',
-  path: '/register/review',
-  getParentRoute: () => PublicRoute,
-} as any)
-const PublicRegisterAccountRoute = PublicRegisterAccountRouteImport.update({
-  id: '/register/account',
-  path: '/register/account',
-  getParentRoute: () => PublicRoute,
-} as any)
 const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
   id: '/_default/newsletter',
   path: '/newsletter',
@@ -140,6 +129,12 @@ const AuthAdminUsersRoute = AuthAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthAdminRoute,
 } as any)
+const AuthAdminPaymentPartnersRoute =
+  AuthAdminPaymentPartnersRouteImport.update({
+    id: '/payment-partners',
+    path: '/payment-partners',
+    getParentRoute: () => AuthAdminRoute,
+  } as any)
 const AuthAdminGalleryRoute = AuthAdminGalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -206,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/admin/articles': typeof AuthAdminArticlesRoute
   '/admin/events': typeof AuthAdminEventsRoute
   '/admin/gallery': typeof AuthAdminGalleryRoute
+  '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
   '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutRouteWithChildren
   '/about-us': typeof PublicDefaultAboutUsRoute
@@ -213,8 +209,6 @@ export interface FileRoutesByFullPath {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
-  '/register/account': typeof PublicRegisterAccountRoute
-  '/register/review': typeof PublicRegisterReviewRoute
   '/admin/': typeof AuthAdminIndexRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
@@ -234,6 +228,7 @@ export interface FileRoutesByTo {
   '/admin/articles': typeof AuthAdminArticlesRoute
   '/admin/events': typeof AuthAdminEventsRoute
   '/admin/gallery': typeof AuthAdminGalleryRoute
+  '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
   '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutIndexRoute
   '/about-us': typeof PublicDefaultAboutUsRoute
@@ -241,8 +236,6 @@ export interface FileRoutesByTo {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
-  '/register/account': typeof PublicRegisterAccountRoute
-  '/register/review': typeof PublicRegisterReviewRoute
   '/admin': typeof AuthAdminIndexRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
@@ -265,6 +258,7 @@ export interface FileRoutesById {
   '/_auth/admin/articles': typeof AuthAdminArticlesRoute
   '/_auth/admin/events': typeof AuthAdminEventsRoute
   '/_auth/admin/gallery': typeof AuthAdminGalleryRoute
+  '/_auth/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
   '/_auth/admin/users': typeof AuthAdminUsersRoute
   '/_auth/mandate': typeof AuthMandateRouteWithChildren
   '/_auth/mandate/_layout': typeof AuthMandateLayoutRouteWithChildren
@@ -273,8 +267,6 @@ export interface FileRoutesById {
   '/_public/_default/events': typeof PublicDefaultEventsRouteWithChildren
   '/_public/_default/membership': typeof PublicDefaultMembershipRoute
   '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
-  '/_public/register/account': typeof PublicRegisterAccountRoute
-  '/_public/register/review': typeof PublicRegisterReviewRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
   '/_auth/mandate/_layout/certificate': typeof AuthMandateLayoutCertificateRoute
@@ -297,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/events'
     | '/admin/gallery'
+    | '/admin/payment-partners'
     | '/admin/users'
     | '/mandate'
     | '/about-us'
@@ -304,8 +297,6 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
-    | '/register/account'
-    | '/register/review'
     | '/admin/'
     | '/register'
     | '/mandate/certificate'
@@ -325,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/events'
     | '/admin/gallery'
+    | '/admin/payment-partners'
     | '/admin/users'
     | '/mandate'
     | '/about-us'
@@ -332,8 +324,6 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
-    | '/register/account'
-    | '/register/review'
     | '/admin'
     | '/register'
     | '/mandate/certificate'
@@ -355,6 +345,7 @@ export interface FileRouteTypes {
     | '/_auth/admin/articles'
     | '/_auth/admin/events'
     | '/_auth/admin/gallery'
+    | '/_auth/admin/payment-partners'
     | '/_auth/admin/users'
     | '/_auth/mandate'
     | '/_auth/mandate/_layout'
@@ -363,8 +354,6 @@ export interface FileRouteTypes {
     | '/_public/_default/events'
     | '/_public/_default/membership'
     | '/_public/_default/newsletter'
-    | '/_public/register/account'
-    | '/_public/register/review'
     | '/_auth/admin/'
     | '/_public/register/'
     | '/_auth/mandate/_layout/certificate'
@@ -460,20 +449,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminIndexRouteImport
       parentRoute: typeof AuthAdminRoute
     }
-    '/_public/register/review': {
-      id: '/_public/register/review'
-      path: '/register/review'
-      fullPath: '/register/review'
-      preLoaderRoute: typeof PublicRegisterReviewRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/register/account': {
-      id: '/_public/register/account'
-      path: '/register/account'
-      fullPath: '/register/account'
-      preLoaderRoute: typeof PublicRegisterAccountRouteImport
-      parentRoute: typeof PublicRoute
-    }
     '/_public/_default/newsletter': {
       id: '/_public/_default/newsletter'
       path: '/newsletter'
@@ -521,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AuthAdminUsersRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
+    '/_auth/admin/payment-partners': {
+      id: '/_auth/admin/payment-partners'
+      path: '/payment-partners'
+      fullPath: '/admin/payment-partners'
+      preLoaderRoute: typeof AuthAdminPaymentPartnersRouteImport
       parentRoute: typeof AuthAdminRoute
     }
     '/_auth/admin/gallery': {
@@ -600,6 +582,7 @@ interface AuthAdminRouteChildren {
   AuthAdminArticlesRoute: typeof AuthAdminArticlesRoute
   AuthAdminEventsRoute: typeof AuthAdminEventsRoute
   AuthAdminGalleryRoute: typeof AuthAdminGalleryRoute
+  AuthAdminPaymentPartnersRoute: typeof AuthAdminPaymentPartnersRoute
   AuthAdminUsersRoute: typeof AuthAdminUsersRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
 }
@@ -608,6 +591,7 @@ const AuthAdminRouteChildren: AuthAdminRouteChildren = {
   AuthAdminArticlesRoute: AuthAdminArticlesRoute,
   AuthAdminEventsRoute: AuthAdminEventsRoute,
   AuthAdminGalleryRoute: AuthAdminGalleryRoute,
+  AuthAdminPaymentPartnersRoute: AuthAdminPaymentPartnersRoute,
   AuthAdminUsersRoute: AuthAdminUsersRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,
 }
@@ -681,8 +665,6 @@ interface PublicRouteChildren {
   PublicDefaultEventsRoute: typeof PublicDefaultEventsRouteWithChildren
   PublicDefaultMembershipRoute: typeof PublicDefaultMembershipRoute
   PublicDefaultNewsletterRoute: typeof PublicDefaultNewsletterRoute
-  PublicRegisterAccountRoute: typeof PublicRegisterAccountRoute
-  PublicRegisterReviewRoute: typeof PublicRegisterReviewRoute
   PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
   PublicDefaultBulletinArticleRoute: typeof PublicDefaultBulletinArticleRoute
   PublicDefaultBulletinIndexRoute: typeof PublicDefaultBulletinIndexRoute
@@ -697,8 +679,6 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicDefaultEventsRoute: PublicDefaultEventsRouteWithChildren,
   PublicDefaultMembershipRoute: PublicDefaultMembershipRoute,
   PublicDefaultNewsletterRoute: PublicDefaultNewsletterRoute,
-  PublicRegisterAccountRoute: PublicRegisterAccountRoute,
-  PublicRegisterReviewRoute: PublicRegisterReviewRoute,
   PublicRegisterIndexRoute: PublicRegisterIndexRoute,
   PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
   PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,

@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+agent: agent
 ---
 
 # Drag-and-Drop List with Handles using dnd-kit

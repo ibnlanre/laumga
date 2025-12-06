@@ -84,9 +84,10 @@ const STORAGE_PATH = "gallery";
  * Upload image to Firebase Storage
  */
 async function uploadImage(
-  file: File,
-  path: string = STORAGE_PATH
+ variables: { file: File; path?: string }
 ): Promise<string> {
+  const { file, path = STORAGE_PATH } = variables;
+  
   const fileName = z.string().slugify().parse(file.name);
   const storageRef = ref(storage, `${path}/${fileName}`);
 

@@ -103,7 +103,8 @@ async function create(data: CreateChapterData) {
 /**
  * Update chapter
  */
-async function update(id: string, data: UpdateChapterData) {
+async function update(variables: { id: string; data: UpdateChapterData }) {
+  const { id, data } = variables;
   const validated = updateChapterSchema.parse(data);
   const chapterRef = doc(
     db,

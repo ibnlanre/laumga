@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+agent: agent
 ---
 
 # TanStack Query
@@ -763,7 +763,7 @@ mutate(variables, {
 - `isIdle`, `isPending`, `isSuccess`, `isError`: boolean variables derived from `status`
 - `isPaused: boolean`
   - will be `true` if the mutation has been `paused`
-  - see [Network Mode](../../guides/network-mode.md) for more information.
+  - see `Network Mode` for more information.
 - `data: undefined | unknown`
   - Defaults to `undefined`
   - The last successfully resolved data for the mutation.

@@ -1,160 +1,211 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import type {
-  PersonalDetailsFormValues,
-  LocationAccountFormValues,
-  CompleteRegistrationData,
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
+import {
+  type AccountCredentialsFormValues,
+  type RegistrationFormValues,
+  registrationSchema,
+  type LocationDetailsFormValues,
+  type PersonalDetailsFormValues,
+  personalDetailsSchema,
 } from "@/api/registration";
+import { createFormContext } from "@mantine/form";
+import { usePagination } from "@mantine/hooks";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 
-/**
- * Registration steps
- */
 export type RegistrationStep = 1 | 2 | 3;
+type RegistrationPanel = "steps" | "review";
 
-/**
- * Registration state interface
- */
-interface RegistrationState {
+const TOTAL_STEPS: RegistrationStep = 3;
+
+export const [
+  RegistrationFormProvider,
+  useRegistrationForm,
+  useCreateRegistrationForm,
+] = createFormContext<RegistrationFormValues>();
+
+interface RegistrationFlowContextValue {
   currentStep: RegistrationStep;
-  personalDetails: PersonalDetailsFormValues | null;
-  locationAccount: LocationAccountFormValues | null;
-  isSubmitting: boolean;
-  error: string | null;
-}
-
-/**
- * Registration context value
- */
-interface RegistrationContextValue extends RegistrationState {
-  // Navigation
+  totalSteps: number;
+  activePanel: RegistrationPanel;
   goToStep: (step: RegistrationStep) => void;
   nextStep: () => void;
   previousStep: () => void;
-
-  // Data updates
-  setPersonalDetails: (data: PersonalDetailsFormValues) => void;
-  setLocationAccount: (data: LocationAccountFormValues) => void;
-
-  // Get complete data for submission
-  getCompleteData: () => CompleteRegistrationData | null;
-
-  // Submit state
-  setSubmitting: (submitting: boolean) => void;
-  setError: (error: string | null) => void;
-
-  // Reset
+  goToPanel: (panel: RegistrationPanel) => void;
+  openReviewPanel: () => void;
+  closeReviewPanel: () => void;
   reset: () => void;
+  markStepComplete: (step: RegistrationStep) => void;
+  hasCompletedStep: (step: RegistrationStep) => boolean;
 }
 
-const RegistrationContext = createContext<RegistrationContextValue | null>(
-  null
-);
+const RegistrationFlowContext =
+  createContext<RegistrationFlowContextValue | null>(null);
 
-/**
- * Initial state
- */
-const initialState: RegistrationState = {
-  currentStep: 1,
-  personalDetails: null,
-  locationAccount: null,
-  isSubmitting: false,
-  error: null,
+const initialFormValues: RegistrationFormValues = {
+  title: "",
+  firstName: "",
+  lastName: "",
+  middleName: "",
+  maidenName: "",
+  nickname: "",
+  gender: "male",
+  profilePictureUrl: "",
+  dateOfBirth: "",
+  phoneNumber: "",
+  classSet: null,
+  countryOfOrigin: "Nigeria",
+  stateOfOrigin: "",
+  countryOfResidence: "Nigeria",
+  stateOfResidence: "",
+  address: "",
+  email: "",
+  password: "",
 };
 
-/**
- * Registration Provider
- */
-export function RegistrationProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [state, setState] = useState<RegistrationState>(initialState);
+export function RegistrationProvider({ children }: PropsWithChildren) {
+  const form = useCreateRegistrationForm({
+    mode: "uncontrolled",
+    initialValues: initialFormValues,
+    validate: zod4Resolver(registrationSchema),
+  });
 
-  const goToStep = useCallback((step: RegistrationStep) => {
-    setState((prev) => ({ ...prev, currentStep: step, error: null }));
-  }, []);
+  const pagination = usePagination({ total: TOTAL_STEPS, initialPage: 1 });
+  const completedStepsRef = useRef<Set<RegistrationStep>>(new Set());
+  const [activePanel, setActivePanel] = useState<RegistrationPanel>("steps");
 
-  const nextStep = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.min(3, prev.currentStep + 1) as RegistrationStep,
-      error: null,
-    }));
-  }, []);
+  const goToStep = (step: RegistrationStep) => {
+    pagination.setPage(step);
+    setActivePanel("steps");
+  };
 
-  const previousStep = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      currentStep: Math.max(1, prev.currentStep - 1) as RegistrationStep,
-      error: null,
-    }));
-  }, []);
+  const nextStep = () => {
+    pagination.next();
+    setActivePanel("steps");
+  };
 
-  const setPersonalDetails = useCallback((data: PersonalDetailsFormValues) => {
-    setState((prev) => ({
-      ...prev,
-      personalDetails: data,
-      error: null,
-    }));
-  }, []);
+  const previousStep = () => {
+    pagination.previous();
+    setActivePanel("steps");
+  };
 
-  const setLocationAccount = useCallback((data: LocationAccountFormValues) => {
-    setState((prev) => ({
-      ...prev,
-      locationAccount: data,
-      error: null,
-    }));
-  }, []);
+  const reset = () => {
+    form.reset();
+    completedStepsRef.current.clear();
+    pagination.setPage(1);
+    setActivePanel("steps");
+  };
 
-  const getCompleteData = useCallback((): CompleteRegistrationData | null => {
-    if (!state.personalDetails || !state.locationAccount) {
-      return null;
-    }
+  const goToPanel = (panel: RegistrationPanel) => {
+    setActivePanel(panel);
+  };
 
-    return {
-      ...state.personalDetails,
-      ...state.locationAccount,
-      membershipPledge: false, // Will be filled in step 3
-    };
-  }, [state.personalDetails, state.locationAccount]);
+  const openReviewPanel = () => {
+    setActivePanel("review");
+  };
 
-  const setSubmitting = useCallback((submitting: boolean) => {
-    setState((prev) => ({ ...prev, isSubmitting: submitting }));
-  }, []);
+  const closeReviewPanel = () => {
+    setActivePanel("steps");
+  };
 
-  const setError = useCallback((error: string | null) => {
-    setState((prev) => ({ ...prev, error }));
-  }, []);
+  const markStepComplete = (step: RegistrationStep) => {
+    completedStepsRef.current.add(step);
+  };
 
-  const reset = useCallback(() => {
-    setState(initialState);
-  }, []);
+  const hasCompletedStep = (step: RegistrationStep) =>
+    completedStepsRef.current.has(step);
 
-  const value: RegistrationContextValue = {
-    ...state,
+  const value: RegistrationFlowContextValue = {
+    currentStep: pagination.active as RegistrationStep,
+    totalSteps: TOTAL_STEPS,
+    activePanel,
     goToStep,
     nextStep,
     previousStep,
-    setPersonalDetails,
-    setLocationAccount,
-    getCompleteData,
-    setSubmitting,
-    setError,
+    goToPanel,
+    openReviewPanel,
+    closeReviewPanel,
     reset,
+    markStepComplete,
+    hasCompletedStep,
   };
 
   return (
-    <RegistrationContext.Provider value={value}>
-      {children}
-    </RegistrationContext.Provider>
+    <RegistrationFlowContext.Provider value={value}>
+      <RegistrationFormProvider form={form}>
+        {children}
+      </RegistrationFormProvider>
+    </RegistrationFlowContext.Provider>
   );
 }
 
-/**
- * Hook to use registration context
- */
+function selectPersonalDetails(
+  values: RegistrationFormValues
+): PersonalDetailsFormValues {
+  personalDetailsSchema.keyof().options;
+  const {
+    title,
+    firstName,
+    lastName,
+    middleName,
+    maidenName,
+    nickname,
+    gender,
+    profilePictureUrl,
+    dateOfBirth,
+    phoneNumber,
+    classSet,
+  } = values;
+
+  return {
+    title,
+    firstName,
+    lastName,
+    middleName,
+    maidenName,
+    nickname,
+    gender,
+    profilePictureUrl,
+    dateOfBirth,
+    phoneNumber,
+    classSet,
+  } satisfies PersonalDetailsFormValues;
+}
+
+function selectLocationDetails(
+  values: RegistrationFormValues
+): LocationDetailsFormValues {
+  const {
+    countryOfOrigin,
+    stateOfOrigin,
+    countryOfResidence,
+    stateOfResidence,
+    address,
+  } = values;
+
+  return {
+    countryOfOrigin,
+    stateOfOrigin,
+    countryOfResidence,
+    stateOfResidence,
+    address,
+  } satisfies LocationDetailsFormValues;
+}
+
+function selectCredentials(
+  values: RegistrationFormValues
+): AccountCredentialsFormValues {
+  const { email, password } = values;
+  return { email, password } satisfies AccountCredentialsFormValues;
+}
+
 export function useRegistration() {
-  const context = useContext(RegistrationContext);
+  const context = useContext(RegistrationFlowContext);
+  const form = useRegistrationForm();
 
   if (!context) {
     throw new Error(
@@ -162,5 +213,13 @@ export function useRegistration() {
     );
   }
 
-  return context;
+  const values = form.getValues();
+
+  return {
+    ...context,
+    form,
+    personalDetails: selectPersonalDetails(values),
+    locationDetails: selectLocationDetails(values),
+    credentials: selectCredentials(values),
+  };
 }

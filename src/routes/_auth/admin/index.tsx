@@ -9,6 +9,7 @@ import {
   FileText,
   TrendingUp,
   DollarSign,
+  Banknote,
 } from "lucide-react";
 import { useFetchUsers } from "@/services/hooks";
 
@@ -58,6 +59,13 @@ function AdminDashboard() {
   ];
 
   const quickActions = [
+    {
+      title: "Payment Partners",
+      description: "Control Mono split accounts",
+      icon: Banknote,
+      color: "teal",
+      link: "/admin/payment-partners",
+    },
     {
       title: "Pending Users",
       description: `${pendingUsers} users awaiting approval`,

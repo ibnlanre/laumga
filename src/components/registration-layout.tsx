@@ -8,6 +8,7 @@ interface RegistrationLayoutProps {
   sidebarTitle: string;
   sidebarDescription: string;
   backgroundImage?: string;
+  showStepper?: boolean;
 }
 
 export function RegistrationLayout({
@@ -15,6 +16,7 @@ export function RegistrationLayout({
   sidebarTitle,
   sidebarDescription,
   backgroundImage = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop",
+  showStepper = true,
 }: RegistrationLayoutProps) {
   const { currentStep } = useRegistration();
 
@@ -42,32 +44,31 @@ export function RegistrationLayout({
     >
       <div className="w-full max-w-3xl px-6 py-8">
         {/* Stepper */}
-        <div className="mb-8">
-          <Stepper
-            active={currentStep - 1}
-            color="rgba(0, 104, 56, 1)"
-            size="sm"
-            classNames={{
-              stepIcon: "border-2",
-              stepBody: "mt-1",
-              stepLabel: "text-xs font-semibold",
-              stepDescription: "text-xs",
-            }}
-          >
-            <Stepper.Step
-              label="Personal Details"
-              description="Tell us about yourself"
-            />
-            <Stepper.Step
-              label="Location & Account"
-              description="Network and credentials"
-            />
-            <Stepper.Step
-              label="Review & Confirm"
-              description="Complete registration"
-            />
-          </Stepper>
-        </div>
+        {showStepper ? (
+          <div className="mb-8">
+            <Stepper
+              active={currentStep - 1}
+              color="rgba(0, 104, 56, 1)"
+              size="sm"
+              classNames={{
+                stepIcon: "border-2",
+                stepBody: "mt-1",
+                stepLabel: "text-xs font-semibold",
+                stepDescription: "text-xs",
+              }}
+            >
+              <Stepper.Step
+                label="Personal Details"
+                description="Tell us about yourself"
+              />
+              <Stepper.Step label="Location" description="Where you are now" />
+              <Stepper.Step
+                label="Credentials"
+                description="Secure your access"
+              />
+            </Stepper>
+          </div>
+        ) : null}
 
         {/* Content */}
         {children}

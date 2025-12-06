@@ -182,13 +182,12 @@ export const paymentPartner = {
    * Update a payment partner
    */
   update: async (
-    partnerId: string,
-    updates: UpdatePaymentPartnerInput & { userId: string }
+    variables: { partnerId: string; userId: string; updates: UpdatePaymentPartnerInput }
   ) => {
-    const { userId, ...updateData } = updates;
+    const { partnerId,userId, updates } = variables;
 
     // Validate updates
-    const validated = updatePaymentPartnerSchema.parse(updateData);
+    const validated = updatePaymentPartnerSchema.parse(updates);
 
     const partnerRef = doc(
       db,

@@ -251,10 +251,7 @@ export function useCreatePaymentPartner() {
 export function useUpdatePaymentPartner() {
   return useMutation({
     mutationKey: api.paymentPartner.update.$get(),
-    mutationFn: (params: {
-      partnerId: string;
-      updates: Parameters<typeof api.$use.paymentPartner.update>[1];
-    }) => api.$use.paymentPartner.update(params.partnerId, params.updates),
+    mutationFn: api.$use.paymentPartner.update,
     meta: {
       errorMessage: "Failed to update payment partner.",
       successMessage: "Payment partner updated successfully.",
@@ -285,6 +282,17 @@ export function useFetchActivePaymentPartner() {
 }
 
 /**
+ * Mono Hooks
+ */
+
+export function useFetchMonoBanks() {
+  return useQuery({
+    queryKey: api.mono.bank.fetchAll.$use(),
+    queryFn: () => api.$use.mono.bank.fetchAll(),
+  });
+}
+
+/**
  * Chapter Hooks
  */
 
@@ -302,10 +310,7 @@ export function useCreateChapter() {
 export function useUpdateChapter() {
   return useMutation({
     mutationKey: api.chapter.update.$get(),
-    mutationFn: (params: {
-      id: string;
-      data: Parameters<typeof api.$use.chapter.update>[1];
-    }) => api.$use.chapter.update(params.id, params.data),
+    mutationFn: api.$use.chapter.update,
     meta: {
       errorMessage: "Failed to update chapter.",
       successMessage: "Chapter updated successfully.",
@@ -322,22 +327,16 @@ export function useFetchChapters(filters?: { isActive?: boolean }) {
 
 export function useFetchChapter(chapterId?: string) {
   return useQuery({
-    queryKey: chapterId ? api.chapter.fetchById.$use(chapterId) : ["chapter"],
-    queryFn: () => {
-      if (!chapterId) throw new Error("Chapter ID is required");
-      return api.$use.chapter.fetchById(chapterId);
-    },
+    queryKey: api.chapter.fetchById.$get(chapterId),
+    queryFn: () => api.$use.chapter.fetchById(chapterId!),
     enabled: !!chapterId,
   });
 }
 
 export function useFetchChapterByState(state?: string) {
   return useQuery({
-    queryKey: state ? api.chapter.fetchByState.$use(state) : ["chapter"],
-    queryFn: () => {
-      if (!state) throw new Error("State is required");
-      return api.$use.chapter.fetchByState(state);
-    },
+    queryKey: api.chapter.fetchByState.$get(state),
+    queryFn: () => api.$use.chapter.fetchByState(state!),
     enabled: !!state,
   });
 }
@@ -629,8 +628,7 @@ export function useAddGalleryMedia() {
 export function useUploadGalleryImage() {
   return useMutation({
     mutationKey: api.gallery.uploadImage.$get(),
-    mutationFn: ({ file, path }: { file: File; path?: string }) =>
-      api.$use.gallery.uploadImage(file, path),
+    mutationFn: api.$use.gallery.uploadImage,
     meta: {
       errorMessage: "Failed to upload image.",
       successMessage: "Image uploaded successfully.",

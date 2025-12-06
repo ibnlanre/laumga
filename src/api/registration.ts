@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 /**
  * Step 1: Personal Details Schema
  */
-export const PersonalDetailsSchema = z.object({
+export const personalDetailsSchema = z.object({
   title: z.string().optional(),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -17,18 +17,25 @@ export const PersonalDetailsSchema = z.object({
   classSet: z.string().nullable(),
 });
 
-export type PersonalDetailsFormValues = z.infer<typeof PersonalDetailsSchema>;
+export type PersonalDetailsFormValues = z.infer<typeof personalDetailsSchema>;
 
 /**
- * Step 2: Location & Account Credentials Schema
- * (Already exists as AccountCredentialsSchema in validation.ts)
+ * Step 2: Location Schema
  */
-export const LocationAccountSchema = z.object({
+export const locationDetailsSchema = z.object({
   countryOfOrigin: z.string().min(1, "Country of origin is required"),
   stateOfOrigin: z.string().min(1, "State of origin is required"),
   countryOfResidence: z.string().min(1, "Country of residence is required"),
   stateOfResidence: z.string().min(1, "State/Region of residence is required"),
   address: z.string().min(10, "Address must be at least 10 characters"),
+});
+
+export type LocationDetailsFormValues = z.infer<typeof locationDetailsSchema>;
+
+/**
+ * Step 3: Account Credentials Schema
+ */
+export const accountCredentialsSchema = z.object({
   email: z.email("Invalid email address").min(1, "Email is required"),
   password: z
     .string()
@@ -39,35 +46,18 @@ export const LocationAccountSchema = z.object({
       /[!@#$%^&*]/,
       "Password must contain at least one special character"
     ),
-  agreeToTerms: z
-    .boolean()
-    .refine((val) => val === true, "You must agree to the terms"),
 });
 
-export type LocationAccountFormValues = z.infer<typeof LocationAccountSchema>;
-
-/**
- * Step 3: Review & Pledge Schema
- */
-export const ReviewSubmitSchema = z.object({
-  membershipPledge: z
-    .boolean()
-    .refine(
-      (val) => val === true,
-      "You must acknowledge the membership pledge"
-    ),
-});
-
-export type ReviewSubmitFormValues = z.infer<typeof ReviewSubmitSchema>;
+export type AccountCredentialsFormValues = z.infer<
+  typeof accountCredentialsSchema
+>;
 
 /**
  * Complete Registration Data
  * Combines all steps for final submission
  */
-export const CompleteRegistrationSchema = PersonalDetailsSchema.extend(
-  LocationAccountSchema.shape
-).extend(ReviewSubmitSchema.shape);
+export const registrationSchema = personalDetailsSchema
+  .extend(locationDetailsSchema.shape)
+  .extend(accountCredentialsSchema.shape);
 
-export type CompleteRegistrationData = z.infer<
-  typeof CompleteRegistrationSchema
->;
+export type RegistrationFormValues = z.infer<typeof registrationSchema>;

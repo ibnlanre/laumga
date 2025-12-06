@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+agent: agent
 ---
 
 # Defining schemas | Zod
