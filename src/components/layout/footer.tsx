@@ -28,9 +28,11 @@ export function Footer({ variant }: FooterProps) {
           {/* About Column */}
           <Stack gap="md">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-vibrant-lime-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
+              <img
+                src="/laumga-logo.jpeg"
+                alt="LAUMGA emblem"
+                className="size-10 object-scale-down"
+              />
               <Text size="lg" fw={700} className="text-white">
                 LAUMGA
               </Text>

@@ -17,13 +17,14 @@ import { DataTable } from "@/components/data-table";
 import { Eye, Check, X, Trash2, Calendar } from "lucide-react";
 import { formatDate } from "@/utils/date";
 
-import {
-  useFetchEvents,
-  useUpdateEvent,
-  useDeleteEvent,
-} from "@/services/hooks";
-import type { Event } from "@/api/event";
 import { PageLoader } from "@/components/page-loader";
+import {
+  useListEvents,
+  useRemoveEvent,
+  useUpdateEvent,
+} from "@/api/event/hooks";
+import type { Event, EventStatus } from "@/api/event/types";
+import { useAuth } from "@/contexts/use-auth";
 
 export const Route = createFileRoute("/_auth/admin/events")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -36,9 +37,11 @@ function EventsAdmin() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
-  const { data: events = [], isLoading } = useFetchEvents();
+  const { user } = useAuth();
+  const { data: events = [], isLoading } = useListEvents();
+
   const updateEventMutation = useUpdateEvent();
-  const deleteEventMutation = useDeleteEvent();
+  const deleteEventMutation = useRemoveEvent();
 
   const columnHelper = createColumnHelper<Event>();
 
@@ -57,7 +60,7 @@ function EventsAdmin() {
       ),
     }),
 
-    columnHelper.accessor("date", {
+    columnHelper.accessor("startDate", {
       header: "Date",
       cell: (info) => (
         <Group gap="xs">
@@ -91,15 +94,6 @@ function EventsAdmin() {
         >
           {info.getValue()}
         </Badge>
-      ),
-    }),
-
-    columnHelper.accessor("createdAt", {
-      header: "Created",
-      cell: (info) => (
-        <Text size="xs" c="dimmed">
-          {formatDate(info.getValue(), "MMM dd, yyyy")}
-        </Text>
       ),
     }),
 
@@ -175,10 +169,13 @@ function EventsAdmin() {
     setDetailsOpened(true);
   };
 
-  const handleStatusChange = async (eventId: string, newStatus: string) => {
+  const handleStatusChange = async (id: string, newStatus: EventStatus) => {
+    if (!user) return;
+
     await updateEventMutation.mutateAsync({
-      eventId: eventId,
-      updates: { status: newStatus },
+      id,
+      data: { status: newStatus },
+      user,
     });
 
     setDetailsOpened(false);
@@ -259,7 +256,7 @@ function EventsAdmin() {
                   Date
                 </Text>
                 <Text size="sm">
-                  {formatDate(selectedEvent.date, "MMMM dd, yyyy")}
+                  {formatDate(selectedEvent.startDate, "MMMM dd, yyyy")}
                 </Text>
               </Grid.Col>
               <Grid.Col span={6}>

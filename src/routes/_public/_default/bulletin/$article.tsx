@@ -1,13 +1,9 @@
-import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button, Skeleton } from "@mantine/core";
 import { Share2, Clock, Calendar, Eye, Facebook, Twitter } from "lucide-react";
 import { formatDate } from "@/utils/date";
-import {
-  useFetchArticleBySlug,
-  useFetchRelatedArticles,
-  useIncrementViewCount,
-} from "@/services/hooks";
+import { notifications } from "@mantine/notifications";
+import { useGetArticleBySlug, useGetRelatedArticles } from "@/api/article/handlers";
 
 export const Route = createFileRoute("/_public/_default/bulletin/$article")({
   component: RouteComponent,
@@ -16,19 +12,11 @@ export const Route = createFileRoute("/_public/_default/bulletin/$article")({
 function RouteComponent() {
   const { article: articleSlug } = Route.useParams();
 
-  const { data: article, isLoading } = useFetchArticleBySlug(articleSlug);
-  const { mutate: incrementViewCount } = useIncrementViewCount();
-  const { data: relatedArticles = [] } = useFetchRelatedArticles(
-    article?.id ?? ""
-  );
-
-  useEffect(() => {
-    if (article?.id) {
-      incrementViewCount(article.id);
-    }
-  }, [article?.id]);
+  const { data: article, isLoading } = useGetArticleBySlug(articleSlug);
+  const { data: relatedArticles = [] } = useGetRelatedArticles(article?.id);
 
   const handleShare = async () => {
+
     const url = window.location.href;
     const title = article?.title ?? "";
 
@@ -36,7 +24,11 @@ function RouteComponent() {
       try {
         await navigator.share({ title, url });
       } catch (error) {
-        console.log("Share cancelled");
+        notifications.show({
+          title: "Share Cancelled",
+          message: "You cancelled the share action.",
+          color: "yellow",
+        });
       }
     } else {
       await navigator.clipboard.writeText(url);
@@ -107,13 +99,11 @@ function RouteComponent() {
               {article.title}
             </h1>
             <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-4 text-sm">
-              <span className="font-medium">By {article.authorName}</span>
-              <span className="text-sage-green">•</span>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4 text-sage-green" />
                 <span className="text-sage-green">
                   {formatDate(
-                    article.publishedAt ?? article.createdAt,
+                    article.published?.at ?? article.created?.at,
                     "MMM dd, yyyy"
                   )}
                 </span>
@@ -191,14 +181,14 @@ function RouteComponent() {
                   <h3 className="font-semibold text-deep-forest mb-4">
                     About the Author
                   </h3>
-                  <div className="flex items-center space-x-4">
+                  {/* <div className="flex items-center space-x-4">
                     <div className="h-14 w-14 rounded-full bg-institutional-green flex items-center justify-center text-white font-bold text-xl">
                       {article.authorName.charAt(0).toUpperCase()}
                     </div>
                   </div>
                   <p className="text-sm font-semibold text-deep-forest mt-3">
                     {article.authorName}
-                  </p>
+                  </p> */}
                   <p className="text-sm text-gray-600 mt-1">
                     LAUMGA Contributor
                   </p>
@@ -260,11 +250,11 @@ function RouteComponent() {
                         </p>
                       )}
                       <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
-                        <span>{related.authorName}</span>
-                        <span>•</span>
+                        {/* <span>{related.authorName}</span>
+                        <span>•</span> */}
                         <span>
                           {formatDate(
-                            related.publishedAt ?? related.createdAt,
+                            related.published?.at ?? related.created?.at,
                             "MMM dd"
                           )}
                         </span>

@@ -11,19 +11,27 @@ import {
   DollarSign,
   Banknote,
 } from "lucide-react";
-import { useFetchUsers } from "@/services/hooks";
+import { useListUsers } from "@/api/user/hooks";
 
 export const Route = createFileRoute("/_auth/admin/")({
   component: AdminDashboard,
 });
 
 function AdminDashboard() {
-  const { data: users = [], isLoading } = useFetchUsers();
+  const { data: users = [], isLoading } = useListUsers();
 
-  // Calculate statistics
-  const pendingUsers = users.filter((u) => u.status === "pending").length;
-  const approvedUsers = users.filter((u) => u.status === "approved").length;
-  const rejectedUsers = users.filter((u) => u.status === "rejected").length;
+  const pendingUsers = users.filter(
+    ({ status }) => status === "pending"
+  ).length;
+
+  const approvedUsers = users.filter(
+    ({ status }) => status === "approved"
+  ).length;
+
+  const rejectedUsers = users.filter(
+    ({ status }) => status === "rejected"
+  ).length;
+
   const totalUsers = users.length;
 
   const stats = [

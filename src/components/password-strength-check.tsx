@@ -1,48 +1,68 @@
 import { Stack, Progress, Text, Group, Box } from "@mantine/core";
-import { Check as CheckIcon, X } from "lucide-react";
+import { Check, X } from "lucide-react";
+import getPasswordStrength from "strong-password-check";
 
 interface PasswordStrengthCheckProps {
   password: string;
 }
 
-interface StrengthChecks {
-  minLength: boolean;
-  hasNumber: boolean;
-  hasUppercase: boolean;
-  hasLowercase: boolean;
-  hasSpecialChar: boolean;
+interface CriterionDefinition {
+  label: string;
+  messageFragment: string;
 }
+
+const passwordStrengthConfig = {
+  lowercase: true,
+  uppercase: true,
+  digits: true,
+  specialChars: true,
+  minLength: 8,
+} as const;
+
+const CRITERIA_DEFINITIONS: CriterionDefinition[] = [
+  {
+    label: `At least ${passwordStrengthConfig.minLength} characters`,
+    messageFragment: `Contains at least ${passwordStrengthConfig.minLength} characters`,
+  },
+  { label: "Contains a number", messageFragment: "digits" },
+  {
+    label: "Contains an uppercase letter",
+    messageFragment: "uppercase letters",
+  },
+  {
+    label: "Contains a lowercase letter",
+    messageFragment: "lowercase letters",
+  },
+  {
+    label: "Contains a special character (!@#...)",
+    messageFragment: "special characters",
+  },
+];
+
+const STRENGTH_COLOR: Record<string, string> = {
+  Weak: "red",
+  Moderate: "yellow",
+  Strong: "green",
+};
 
 export function PasswordStrengthCheck({
   password,
 }: PasswordStrengthCheckProps) {
-  const checks: StrengthChecks = {
-    minLength: password.length >= 8,
-    hasNumber: /\d/.test(password),
-    hasUppercase: /[A-Z]/.test(password),
-    hasLowercase: /[a-z]/.test(password),
-    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
-  };
+  const { messages, strength } = getPasswordStrength(
+    password,
+    passwordStrengthConfig
+  );
 
-  const checkCount = Object.values(checks).filter(Boolean).length;
-  const strength =
-    checkCount <= 1
-      ? "Weak"
-      : checkCount <= 2
-        ? "Fair"
-        : checkCount <= 4
-          ? "Good"
-          : "Strong";
-  const strengthColor =
-    strength === "Weak"
-      ? "red"
-      : strength === "Fair"
-        ? "yellow"
-        : strength === "Good"
-          ? "blue"
-          : "green";
+  const checks = CRITERIA_DEFINITIONS.map(({ label, messageFragment }) => ({
+    label,
+    checked: !messages.some((message) => {
+      return message.toLowerCase().includes(messageFragment.toLowerCase());
+    }),
+  }));
 
-  const progressPercentage = (checkCount / 5) * 100;
+  const passedChecks = checks.filter((check) => check.checked).length;
+  const progressPercentage = (passedChecks / checks.length) * 100;
+  const strengthColor = STRENGTH_COLOR[strength] ?? "gray";
 
   return (
     <Stack gap="md">
@@ -55,24 +75,21 @@ export function PasswordStrengthCheck({
             {strength}
           </Text>
         </Group>
-        <Progress value={progressPercentage} color={strengthColor} />
+        <Progress
+          value={progressPercentage}
+          color={strengthColor}
+          transitionDuration={400}
+        />
       </Box>
 
       <Stack gap="xs">
-        <CheckItem label="At least 8 characters" checked={checks.minLength} />
-        <CheckItem label="Contains a number" checked={checks.hasNumber} />
-        <CheckItem
-          label="Contains an uppercase letter"
-          checked={checks.hasUppercase}
-        />
-        <CheckItem
-          label="Contains a lowercase letter"
-          checked={checks.hasLowercase}
-        />
-        <CheckItem
-          label="Contains a special character (!@#...)"
-          checked={checks.hasSpecialChar}
-        />
+        {checks.map((check) => (
+          <CheckItem
+            key={check.label}
+            label={check.label}
+            checked={check.checked}
+          />
+        ))}
       </Stack>
     </Stack>
   );
@@ -87,7 +104,7 @@ function CheckItem({ label, checked }: CheckItemProps) {
   return (
     <Group gap="xs">
       {checked ? (
-        <CheckIcon size={16} className="text-green-access shrink-0" />
+        <Check size={16} className="text-green-access shrink-0" />
       ) : (
         <X size={16} className="text-gray-400 shrink-0" />
       )}

@@ -37,19 +37,24 @@ import {
 } from "lucide-react";
 import { DataTable } from "@/components/data-table";
 import { formatDate } from "@/utils/date";
+import { useAuth } from "@/contexts/use-auth";
 import {
   useCreatePaymentPartner,
-  useFetchPaymentPartners,
-  useFetchMonoBanks,
+  useGetActivePaymentPartners,
   useUpdatePaymentPartner,
-} from "@/services/hooks";
+} from "@/api/payment-partner/hooks";
+import { useFetchMonoBanks } from "@/api/mono/hooks";
 import type {
-  CreatePaymentPartnerInput,
   PaymentPartner,
-} from "@/api/payment-partner";
-import { createPaymentPartnerSchema } from "@/api/payment-partner";
-import { useAuth } from "@/contexts/auth";
-
+  PaymentPartnerAllocationType,
+  PaymentPartnerFeeBearer,
+  PaymentPartnerFormData,
+} from "@/api/payment-partner/types";
+import {
+  createPaymentPartnerSchema,
+  paymentPartnerFormSchema,
+} from "@/api/payment-partner/schema";
+import type { User } from "@/api/user/types";
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
   currency: "NGN",
@@ -57,31 +62,21 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 const columnHelper = createColumnHelper<PaymentPartner>();
-const PARTNER_FORM_MODAL_ID = "payment-partner-form-modal";
+const CREATE_PARTNER_MODAL_ID = "create-payment-partner-modal";
+const EDIT_PARTNER_MODAL_ID = "edit-payment-partner-modal";
 
 type BankOption = { label: string; value: string };
-
-const getInitialFormValues = (): CreatePaymentPartnerInput => ({
-  name: "",
-  accountNumber: "",
-  nipCode: "",
-  allocationType: "percentage",
-  allocationValue: 10,
-  allocationMax: null,
-  feeBearer: "business",
-  isActive: false,
-});
 
 export const Route = createFileRoute("/_auth/admin/payment-partners")({
   component: PaymentPartnerDashboard,
 });
 
 function PaymentPartnerDashboard() {
-  const { currentUser } = useAuth();
-  const userId = currentUser?.uid ?? null;
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
 
   const { data: partners = [], isLoading: isPartnersLoading } =
-    useFetchPaymentPartners();
+    useGetActivePaymentPartners();
 
   const {
     data: banks = [],
@@ -89,29 +84,8 @@ function PaymentPartnerDashboard() {
     refetch: refetchBanks,
   } = useFetchMonoBanks();
 
-  const { mutateAsync: togglePartnerMutation, isPending: isTogglingPartner } =
+  const { mutateAsync: updatePartner, isPending: isUpdatingPartner } =
     useUpdatePaymentPartner();
-
-  const activePartner = useMemo(
-    () => partners.find((partner) => partner.isActive) ?? null,
-    [partners]
-  );
-
-  const percentageCoverage = useMemo(
-    () =>
-      partners
-        .filter((partner) => partner.allocationType === "percentage")
-        .reduce((total, partner) => total + partner.allocationValue, 0),
-    [partners]
-  );
-
-  const fixedAllocationTotal = useMemo(
-    () =>
-      partners
-        .filter((partner) => partner.allocationType === "fixed")
-        .reduce((total, partner) => total + partner.allocationValue, 0),
-    [partners]
-  );
 
   const bankOptions = useMemo<BankOption[]>(
     () =>
@@ -122,57 +96,106 @@ function PaymentPartnerDashboard() {
     [banks]
   );
 
+  const activePartners = useMemo(
+    () => partners.filter((partner) => partner.isActive),
+    [partners]
+  );
+
+  const percentageCoverage = useMemo(
+    () =>
+      activePartners
+        .filter((partner) => partner.allocationType === "percentage")
+        .reduce((total, partner) => total + partner.allocationValue, 0),
+    [activePartners]
+  );
+
+  const fixedAllocationTotal = useMemo(
+    () =>
+      activePartners
+        .filter((partner) => partner.allocationType === "fixed")
+        .reduce((total, partner) => total + partner.allocationValue, 0),
+    [activePartners]
+  );
+
+  const inactiveCount = partners.length - activePartners.length;
+  const overAllocated = percentageCoverage > 100;
+
   const stats = useMemo(
     () => [
       {
-        label: "Live split",
-        value: activePartner ? activePartner.name : "No partner live",
+        label: "Active accounts",
+        value: `${activePartners.length}`,
+        description:
+          inactiveCount > 0
+            ? `${inactiveCount} temporarily disabled`
+            : "All accounts participate",
         icon: Sparkles,
         accent: "text-vibrant-lime",
-        subline: activePartner
-          ? `${activePartner.bankName} • ${activePartner.accountNumber}`
-          : "Activate a partner to start routing payouts",
       },
       {
-        label: "Percentage pool",
+        label: "Percentage coverage",
         value: `${percentageCoverage.toFixed(0)}%`,
+        description: "of debit value routed",
         icon: Banknote,
         accent: "text-institutional-green",
-        subline: "of inflows allocated",
       },
       {
-        label: "Fixed transfers",
+        label: "Fixed pool",
         value: currencyFormatter.format(fixedAllocationTotal),
+        description: "guaranteed per charge",
         icon: Wallet,
         accent: "text-sage-green",
-        subline: "total guaranteed payouts",
       },
     ],
-    [activePartner, fixedAllocationTotal, percentageCoverage]
+    [
+      activePartners.length,
+      fixedAllocationTotal,
+      inactiveCount,
+      percentageCoverage,
+    ]
   );
 
-  const openPartnerFormModal = useCallback(
-    (mode: "create" | "edit", partner?: PaymentPartner) => {
-      if (!userId) return;
+  const openCreatePartnerModal = useCallback(() => {
+    if (!user) return;
+
+    modals.open({
+      modalId: CREATE_PARTNER_MODAL_ID,
+      title: (
+        <Title order={3} className="text-deep-forest">
+          New split account
+        </Title>
+      ),
+      size: "xl",
+      radius: "xl",
+      children: (
+        <CreatePaymentPartnerModal
+          bankOptions={bankOptions}
+          user={user}
+          onClose={() => modals.close(CREATE_PARTNER_MODAL_ID)}
+        />
+      ),
+    });
+  }, [bankOptions, userId]);
+
+  const openEditPartnerModal = useCallback(
+    (partner: PaymentPartner) => {
+      if (!user) return;
 
       modals.open({
-        modalId: PARTNER_FORM_MODAL_ID,
+        modalId: EDIT_PARTNER_MODAL_ID,
         title: (
           <Title order={3} className="text-deep-forest">
-            {mode === "edit" ? "Edit payment partner" : "New payment partner"}
+            Edit {partner.name}
           </Title>
         ),
-        size: "lg",
-        radius: "lg",
+        size: "xl",
+        radius: "xl",
         children: (
-          <PaymentPartnerFormModal
-            key={partner?.id ?? "create"}
-            mode={mode}
-            partner={partner ?? null}
+          <EditPaymentPartnerModal
+            partner={partner}
             bankOptions={bankOptions}
-            userId={userId}
-            onCancel={() => modals.close(PARTNER_FORM_MODAL_ID)}
-            onSuccess={() => modals.close(PARTNER_FORM_MODAL_ID)}
+            user={user}
+            onClose={() => modals.close(EDIT_PARTNER_MODAL_ID)}
           />
         ),
       });
@@ -182,31 +205,31 @@ function PaymentPartnerDashboard() {
 
   const handleTogglePartner = useCallback(
     async (partner: PaymentPartner, nextState: boolean) => {
-      if (!userId) return;
+      if (!user) return;
 
-      await togglePartnerMutation({
-        partnerId: partner.id,
-        updates: { isActive: nextState },
-        userId,
+      await updatePartner({
+        id: partner.id,
+        data: { isActive: nextState },
+        user,
       });
     },
-    [togglePartnerMutation, userId]
+    [updatePartner]
   );
 
   const columns = useMemo(
     () =>
       [
         columnHelper.accessor("name", {
-          header: "Partner",
+          header: "Account",
           cell: (info) => {
             const partner = info.row.original;
             return (
-              <div>
+              <Stack gap={0}>
                 <Text fw={600}>{partner.name}</Text>
                 <Text size="xs" c="dimmed">
                   {partner.bankName} • {partner.accountNumber}
                 </Text>
-              </div>
+              </Stack>
             );
           },
         }),
@@ -237,7 +260,7 @@ function PaymentPartnerDashboard() {
           header: "Fees",
           cell: (info) => (
             <Badge color={info.getValue() === "business" ? "blue" : "grape"}>
-              {info.getValue() === "business" ? "Platform" : "Partners"}
+              {info.getValue() === "business" ? "Platform" : "Sub accounts"}
             </Badge>
           ),
         }),
@@ -271,24 +294,28 @@ function PaymentPartnerDashboard() {
             const partner = info.row.original;
             return (
               <Group gap="xs">
-                <Tooltip label="Edit partner">
+                <Tooltip label="Edit account">
                   <ActionIcon
                     variant="light"
                     color="blue"
                     disabled={!userId}
-                    onClick={() => openPartnerFormModal("edit", partner)}
+                    onClick={() => openEditPartnerModal(partner)}
                   >
                     <PencilLine className="size-4" />
                   </ActionIcon>
                 </Tooltip>
-                <Tooltip label={partner.isActive ? "Deactivate" : "Activate"}>
+                <Tooltip
+                  label={
+                    partner.isActive ? "Disable account" : "Enable account"
+                  }
+                >
                   <ActionIcon
                     variant="light"
                     color={partner.isActive ? "orange" : "green"}
+                    disabled={!userId || isUpdatingPartner}
                     onClick={() =>
                       handleTogglePartner(partner, !partner.isActive)
                     }
-                    disabled={!userId || isTogglingPartner}
                   >
                     {partner.isActive ? (
                       <Power className="size-4" />
@@ -302,7 +329,7 @@ function PaymentPartnerDashboard() {
           },
         }),
       ] as ColumnDef<PaymentPartner>[],
-    [handleTogglePartner, isTogglingPartner, openPartnerFormModal, userId]
+    [isUpdatingPartner, userId]
   );
 
   return (
@@ -316,15 +343,15 @@ function PaymentPartnerDashboard() {
           <Group justify="space-between" align="flex-start">
             <div>
               <Text size="xs" fw={600} className="tracking-[0.4em] uppercase">
-                Payment partners
+                Split accounts
               </Text>
               <Title order={2} className="text-white" mt="sm">
-                Keep Mono splits under super-admin control
+                Control how every debit lands
               </Title>
               <Text size="sm" c="white" mt="xs" className="max-w-2xl">
-                Centralize sub-account ownership, guarantee the right bank
-                receives every debit, and switch partners without touching your
-                mandate flows.
+                Declare every Mono sub-account that should share in recurring
+                mandates. Mix percentages with fixed transfers and pause
+                accounts whenever needed.
               </Text>
             </div>
             <Group gap="sm">
@@ -341,10 +368,10 @@ function PaymentPartnerDashboard() {
                 color="dark"
                 variant="filled"
                 leftSection={<Plus className="size-4" />}
-                onClick={() => openPartnerFormModal("create")}
+                onClick={openCreatePartnerModal}
                 disabled={!userId}
               >
-                New partner
+                New account
               </Button>
             </Group>
           </Group>
@@ -372,7 +399,7 @@ function PaymentPartnerDashboard() {
                   {stat.value}
                 </Text>
                 <Text size="xs" c="white/70" mt="xs">
-                  {stat.subline}
+                  {stat.description}
                 </Text>
               </Card>
             ))}
@@ -380,15 +407,27 @@ function PaymentPartnerDashboard() {
         </Stack>
       </Card>
 
-      {!activePartner && (
+      {!activePartners.length && (
         <Alert
           icon={<AlertCircle className="size-4" />}
           color="orange"
           radius="lg"
-          title="No active payment partner"
+          title="No active split accounts"
         >
-          Choose a payment partner to receive Mono payouts. Until a partner is
-          active, split instructions will fail.
+          Mono cannot distribute mandate debits until at least one account is
+          active. Enable an existing account or create a new one.
+        </Alert>
+      )}
+
+      {overAllocated && (
+        <Alert
+          icon={<AlertCircle className="size-4" />}
+          color="red"
+          radius="lg"
+          title="Percentage coverage exceeds 100%"
+        >
+          Reduce one or more percentage allocations so the combined share stays
+          within 100%.
         </Alert>
       )}
 
@@ -399,7 +438,8 @@ function PaymentPartnerDashboard() {
               Payment partners
             </Title>
             <Text size="sm" c="dimmed">
-              Manage Mono sub-accounts, allocation logic, and activation states
+              Manage Mono sub-accounts, allocation logic, and participation
+              states
             </Text>
           </div>
         </Group>
@@ -431,7 +471,7 @@ function PaymentPartnerDashboard() {
               ],
             },
           ]}
-          searchPlaceholder="Search by partner or bank"
+          searchPlaceholder="Search by account or bank"
           pageSize={8}
         />
       </Card>
@@ -439,234 +479,358 @@ function PaymentPartnerDashboard() {
   );
 }
 
-interface PaymentPartnerFormModalProps {
-  mode: "create" | "edit";
-  partner: PaymentPartner | null;
+interface CreatePaymentPartnerModalProps {
   bankOptions: BankOption[];
-  userId: string;
-  onCancel: () => void;
-  onSuccess: () => void;
+  user: User;
+  onClose: () => void;
 }
 
-function PaymentPartnerFormModal({
-  mode,
-  partner,
+function CreatePaymentPartnerModal({
   bankOptions,
-  userId,
-  onCancel,
-  onSuccess,
-}: PaymentPartnerFormModalProps) {
-  const form = useForm<CreatePaymentPartnerInput>({
-    initialValues: partner
-      ? {
-          name: partner.name,
-          accountNumber: partner.accountNumber,
-          nipCode: partner.nipCode,
-          allocationType: partner.allocationType,
-          allocationValue: partner.allocationValue,
-          allocationMax: partner.allocationMax ?? null,
-          feeBearer: partner.feeBearer,
-          isActive: partner.isActive,
-        }
-      : getInitialFormValues(),
-    validate: zod4Resolver(createPaymentPartnerSchema),
+  user,
+  onClose,
+}: CreatePaymentPartnerModalProps) {
+  const form = useForm<PaymentPartnerFormData>({
+    initialValues: {
+      name: "",
+      accountNumber: "",
+      nipCode: "",
+      allocationType: "fixed",
+      allocationValue: 0,
+      allocationMax: 0,
+      feeBearer: "sub_accounts",
+      isActive: true,
+    },
+    validate: zod4Resolver(paymentPartnerFormSchema),
   });
 
-  const { mutateAsync: createPartner, isPending: isCreatingPartner } =
-    useCreatePaymentPartner();
-  const { mutateAsync: updatePartner, isPending: isUpdatingPartner } =
-    useUpdatePaymentPartner();
+  const { mutateAsync: createPartner, isPending } = useCreatePaymentPartner();
 
-  const isEditing = mode === "edit" && !!partner;
-  const isSubmitting = isEditing ? isUpdatingPartner : isCreatingPartner;
-
-  const handleSubmit = form.onSubmit(async (values) => {
-    const payload = {
-      ...values,
-      allocationValue: Number(values.allocationValue),
-      allocationMax:
-        values.allocationMax === null || values.allocationMax === undefined
-          ? null
-          : Number(values.allocationMax),
-    };
-
-    if (isEditing && partner) {
-      await updatePartner({
-        partnerId: partner.id,
-        updates: payload,
-        userId,
-      });
-    } else {
-      await createPartner({ userId, ...payload });
-    }
-
-    onSuccess();
+  const handleSubmit = form.onSubmit(async (data) => {
+    await createPartner({ data, user });
+    onClose();
   });
-
-  const handleAllocationValueChange = (value: string | number | "") => {
-    const parsed = parseNumericValue(value);
-    form.setFieldValue("allocationValue", parsed ?? 0);
-  };
-
-  const handleAllocationCapChange = (value: string | number | "") => {
-    const parsed = parseNumericValue(value);
-    form.setFieldValue("allocationMax", parsed);
-  };
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack gap="md">
-        <TextInput
-          label="Partner name"
-          placeholder="e.g. Scholarship Board"
-          withAsterisk
-          {...form.getInputProps("name")}
-        />
-
-        <Group grow>
-          <TextInput
-            label="Settlement account"
-            placeholder="0123456789"
-            withAsterisk
-            maxLength={10}
-            {...form.getInputProps("accountNumber")}
-          />
-          <Select
-            label="Bank"
-            placeholder="Pick a bank"
-            data={bankOptions}
-            searchable
-            nothingFoundMessage="No banks match your search"
-            withAsterisk
-            {...form.getInputProps("nipCode")}
-          />
-        </Group>
-
-        <Stack gap={6}>
-          <Text size="sm" fw={600}>
-            Allocation type
-            <span className="text-red-500"> *</span>
-          </Text>
-          <SegmentedControl
-            value={form.values.allocationType}
-            onChange={(value) =>
-              form.setFieldValue(
-                "allocationType",
-                value as CreatePaymentPartnerInput["allocationType"]
-              )
-            }
-            data={[
-              { label: "Percentage", value: "percentage" },
-              { label: "Fixed amount", value: "fixed" },
-            ]}
-          />
-          {form.errors.allocationType && (
-            <Text size="xs" c="red">
-              {form.errors.allocationType}
+      <Stack gap="lg">
+        <Card radius="lg" withBorder>
+          <Stack gap="md">
+            <Text size="xs" fw={600} className="tracking-[0.3em] uppercase">
+              Settlement details
             </Text>
-          )}
-        </Stack>
+            <TextInput
+              label="Account label"
+              placeholder="e.g. Scholarship Board"
+              withAsterisk
+              {...form.getInputProps("name")}
+            />
+            <Group grow>
+              <TextInput
+                label="Settlement account"
+                placeholder="0123456789"
+                withAsterisk
+                maxLength={10}
+                inputMode="numeric"
+                {...form.getInputProps("accountNumber")}
+              />
+              <Select
+                label="Bank"
+                placeholder="Pick a bank"
+                data={bankOptions}
+                clearable
+                searchable
+                nothingFoundMessage="No banks match your search"
+                withAsterisk
+                value={form.values.nipCode}
+                onChange={(value) => form.setFieldValue("nipCode", value ?? "")}
+                error={form.errors.nipCode}
+              />
+            </Group>
+          </Stack>
+        </Card>
 
-        <Group grow>
-          <NumberInput
-            label="Allocation value"
-            description={
-              form.values.allocationType === "percentage"
-                ? "Share of every debit"
-                : "Amount routed per run"
-            }
-            withAsterisk
-            value={form.values.allocationValue}
-            min={1}
-            max={form.values.allocationType === "percentage" ? 99 : undefined}
-            thousandSeparator={
-              form.values.allocationType === "fixed" ? "," : undefined
-            }
-            rightSection={
-              form.values.allocationType === "percentage" ? (
-                <Text size="sm" c="dimmed">
-                  %
-                </Text>
-              ) : undefined
-            }
-            leftSection={
-              form.values.allocationType === "fixed" ? "₦" : undefined
-            }
-            hideControls
-            allowNegative={false}
-            error={form.errors.allocationValue}
-            onChange={handleAllocationValueChange}
-          />
-          <NumberInput
-            label="Allocation cap"
-            description="Optional override for very large payouts"
-            value={form.values.allocationMax ?? undefined}
-            min={1}
-            leftSection="₦"
-            hideControls
-            allowNegative={false}
-            error={form.errors.allocationMax}
-            onChange={handleAllocationCapChange}
-          />
-        </Group>
-
-        <Stack gap={6}>
-          <Text size="sm" fw={600}>
-            Fees billed to
-            <span className="text-red-500"> *</span>
-          </Text>
-          <SegmentedControl
-            value={form.values.feeBearer}
-            onChange={(value) =>
-              form.setFieldValue(
-                "feeBearer",
-                value as CreatePaymentPartnerInput["feeBearer"]
-              )
-            }
-            data={[
-              { label: "LAUMGA", value: "business" },
-              { label: "Partner", value: "sub_accounts" },
-            ]}
-          />
-          {form.errors.feeBearer && (
-            <Text size="xs" c="red">
-              {form.errors.feeBearer}
+        <Card radius="lg" withBorder>
+          <Stack gap="md">
+            <Text size="xs" fw={600} className="tracking-[0.3em] uppercase">
+              Allocation logic
             </Text>
-          )}
-        </Stack>
+            <SegmentedControl
+              value={form.values.allocationType}
+              onChange={(value) =>
+                form.setFieldValue(
+                  "allocationType",
+                  value as PaymentPartnerAllocationType
+                )
+              }
+              data={[
+                { label: "Percentage", value: "percentage" },
+                { label: "Fixed amount", value: "fixed" },
+              ]}
+            />
+            <Group grow>
+              <NumberInput
+                label="Allocation value"
+                description={
+                  form.values.allocationType === "percentage"
+                    ? "Share of every debit"
+                    : "Amount routed per charge"
+                }
+                withAsterisk
+                min={1}
+                max={
+                  form.values.allocationType === "percentage" ? 99 : undefined
+                }
+                thousandSeparator={
+                  form.values.allocationType === "fixed" ? "," : undefined
+                }
+                rightSection={
+                  form.values.allocationType === "percentage" ? (
+                    <Text size="sm" c="dimmed">
+                      %
+                    </Text>
+                  ) : undefined
+                }
+                leftSection={
+                  form.values.allocationType === "fixed" ? "₦" : undefined
+                }
+                hideControls
+                allowNegative={false}
+                {...form.getInputProps("allocationValue")}
+              />
+              <NumberInput
+                label="Allocation cap"
+                description="Optional ceiling for large mandates"
+                min={1}
+                leftSection="₦"
+                hideControls
+                allowNegative={false}
+                {...form.getInputProps("allocationMax")}
+              />
+            </Group>
+            <SegmentedControl
+              value={form.values.feeBearer}
+              onChange={(value) =>
+                form.setFieldValue(
+                  "feeBearer",
+                  value as PaymentPartnerFeeBearer
+                )
+              }
+              data={[
+                { label: "Platform pays fees", value: "business" },
+                { label: "Partners pay fees", value: "sub_accounts" },
+              ]}
+            />
+            <Switch
+              label="Participate immediately"
+              description="Enabled accounts join the next debit split"
+              {...form.getInputProps("isActive", { type: "checkbox" })}
+            />
+          </Stack>
+        </Card>
 
-        <Switch
-          label="Activate immediately"
-          description="Automatically routes upcoming debits to this sub-account"
-          checked={form.values.isActive}
-          onChange={(event) =>
-            form.setFieldValue("isActive", event.currentTarget.checked)
-          }
-        />
-
-        <Group justify="flex-end" mt="md">
-          <Button
-            variant="subtle"
-            color="gray"
-            type="button"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" loading={isSubmitting}>
-            {isEditing ? "Save changes" : "Create partner"}
-          </Button>
+        <Group justify="space-between">
+          <Text size="sm" c="dimmed">
+            You can edit this split later without interrupting existing
+            mandates.
+          </Text>
+          <Group gap="sm">
+            <Button
+              variant="subtle"
+              color="gray"
+              type="button"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={isPending}>
+              Create account
+            </Button>
+          </Group>
         </Group>
       </Stack>
     </form>
   );
 }
 
-function parseNumericValue(value: string | number | "") {
-  if (typeof value === "number") return value;
-  if (typeof value === "string" && value.trim().length) {
-    const parsed = Number(value.replace(/,/g, ""));
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-  return null;
+interface EditPaymentPartnerModalProps {
+  partner: PaymentPartner;
+  bankOptions: BankOption[];
+  user: User;
+  onClose: () => void;
+}
+
+function EditPaymentPartnerModal({
+  partner,
+  bankOptions,
+  user,
+  onClose,
+}: EditPaymentPartnerModalProps) {
+  const form = useForm<PaymentPartnerFormData>({
+    initialValues: {
+      name: partner.name,
+      accountNumber: partner.accountNumber,
+      nipCode: partner.nipCode,
+      allocationType: partner.allocationType,
+      allocationValue: partner.allocationValue,
+      allocationMax: partner.allocationMax,
+      feeBearer: partner.feeBearer,
+      isActive: partner.isActive,
+    },
+    validate: zod4Resolver(createPaymentPartnerSchema),
+  });
+
+  const { mutateAsync: updatePartner, isPending } = useUpdatePaymentPartner();
+
+  const handleSubmit = form.onSubmit(async (data) => {
+    await updatePartner({
+      id: partner.id,
+      data,
+      user,
+    });
+    onClose();
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack gap="lg">
+        <Card radius="lg" withBorder>
+          <Stack gap="md">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Text size="xs" c="dimmed">
+                  Settlement account
+                </Text>
+                <Text fw={600}>{partner.name}</Text>
+                <Text size="sm" c="dimmed">
+                  {partner.bankName} • {partner.accountNumber}
+                </Text>
+              </div>
+              <Select
+                label="NIP code"
+                placeholder={partner.bankName}
+                data={bankOptions}
+                clearable
+                searchable
+                nothingFoundMessage="No banks match your search"
+                value={form.values.nipCode}
+                onChange={(value) =>
+                  form.setFieldValue("nipCode", value ?? partner.nipCode)
+                }
+                error={form.errors.nipCode}
+              />
+            </Group>
+            <TextInput
+              label="Display label"
+              withAsterisk
+              {...form.getInputProps("name")}
+            />
+          </Stack>
+        </Card>
+
+        <Card radius="lg" withBorder>
+          <Stack gap="md">
+            <Group justify="space-between" align="flex-start">
+              <div>
+                <Text size="xs" c="dimmed">
+                  Allocation mode
+                </Text>
+                <Title order={4}>
+                  {form.values.allocationType === "percentage"
+                    ? "Percentage"
+                    : "Fixed"}
+                </Title>
+              </div>
+              <SegmentedControl
+                value={form.values.allocationType}
+                onChange={(value) =>
+                  form.setFieldValue(
+                    "allocationType",
+                    value as PaymentPartnerAllocationType
+                  )
+                }
+                data={[
+                  { label: "Percentage", value: "percentage" },
+                  { label: "Fixed amount", value: "fixed" },
+                ]}
+              />
+            </Group>
+            <Group grow>
+              <NumberInput
+                label="Allocation value"
+                withAsterisk
+                min={1}
+                max={
+                  form.values.allocationType === "percentage" ? 99 : undefined
+                }
+                thousandSeparator={
+                  form.values.allocationType === "fixed" ? "," : undefined
+                }
+                rightSection={
+                  form.values.allocationType === "percentage" ? (
+                    <Text size="sm" c="dimmed">
+                      %
+                    </Text>
+                  ) : undefined
+                }
+                leftSection={
+                  form.values.allocationType === "fixed" ? "₦" : undefined
+                }
+                hideControls
+                allowNegative={false}
+                {...form.getInputProps("allocationValue")}
+              />
+              <NumberInput
+                label="Allocation cap"
+                leftSection="₦"
+                hideControls
+                allowNegative={false}
+                {...form.getInputProps("allocationMax")}
+              />
+            </Group>
+            <SegmentedControl
+              value={form.values.feeBearer}
+              onChange={(value) =>
+                form.setFieldValue(
+                  "feeBearer",
+                  value as PaymentPartnerFeeBearer
+                )
+              }
+              data={[
+                { label: "Platform pays fees", value: "business" },
+                { label: "Partners pay fees", value: "sub_accounts" },
+              ]}
+            />
+          </Stack>
+        </Card>
+
+        <Card radius="lg" withBorder>
+          <Stack gap="sm">
+            <Group justify="space-between" align="center">
+              <div>
+                <Text fw={600}>Participation</Text>
+                <Text size="sm" c="dimmed">
+                  Disabled accounts stay on record but stop receiving splits.
+                </Text>
+              </div>
+              <Switch
+                {...form.getInputProps("isActive", { type: "checkbox" })}
+                labelPosition="left"
+                label={form.values.isActive ? "Active" : "Inactive"}
+              />
+            </Group>
+          </Stack>
+        </Card>
+
+        <Group justify="flex-end">
+          <Button variant="subtle" color="gray" type="button" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={isPending}>
+            Save changes
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
 }

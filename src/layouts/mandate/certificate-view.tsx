@@ -3,9 +3,9 @@ import { Alert, Button, Loader } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { Download, ExternalLink, Lock } from "lucide-react";
 
-import { useAuth } from "@/contexts/auth";
-import { useMandateCertificate } from "@/services/hooks";
+import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
+import { useGetMandateCertificate } from "@/api/mandate-certificate/hooks";
 
 const nairaFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -14,9 +14,8 @@ const nairaFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 export function MandateCertificateView() {
-  const { currentUser, loading } = useAuth();
-  const userId = currentUser?.uid ?? "";
-  const { data, isLoading, isError } = useMandateCertificate(userId);
+  const { user, loading } = useAuth();
+  const { data, isLoading, isError } = useGetMandateCertificate(user?.id);
 
   const formattedAmount = useMemo(() => {
     if (!data?.amount) return nairaFormatter.format(0);
@@ -36,7 +35,7 @@ export function MandateCertificateView() {
     );
   }
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="mx-auto w-full max-w-3xl rounded-4xl border border-sage-green/50 bg-white/90 p-10 text-center shadow-[0_40px_120px_rgba(0,35,19,0.08)]">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-mist-green text-deep-forest">
@@ -120,7 +119,7 @@ export function MandateCertificateView() {
       <div className="rounded-4xl border-4 border-institutional-green/30 bg-white p-10 shadow-[0_50px_140px_rgba(0,35,19,0.12)]">
         <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/50">
           <span>Certificate</span>
-          <span className="text-deep-forest/70">{data.certificateNumber}</span>
+          {/* <span className="text-deep-forest/70">{data.frequency}</span> */}
         </div>
         <div className="mt-6 flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-deep-forest text-2xl font-bold text-vibrant-lime">
@@ -173,7 +172,7 @@ export function MandateCertificateView() {
               {data.chairmanName}
             </p>
             <p className="text-xs uppercase tracking-[0.4em] text-deep-forest/60">
-              {data.chairmanTitle}
+              Chairman, Laumga Foundation
             </p>
           </div>
         </div>

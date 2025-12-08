@@ -2,7 +2,6 @@ import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Mail, Lock } from "lucide-react";
-import { LoginSchema, type LoginFormValues } from "@/services/validation";
 import {
   TextInput,
   PasswordInput,
@@ -14,22 +13,17 @@ import {
   Divider,
   Text,
 } from "@mantine/core";
-import { useLogin, useLoginWithProvider } from "@/services/hooks";
-import {
-  googleProvider,
-  facebookProvider,
-  microsoftProvider,
-} from "@/services/firebase";
+import { useLogin } from "@/api/user/hooks";
+import type { LoginFormValues } from "@/api/login/types";
+import { loginSchema } from "@/api/login/schema";
 
 export function LoginForm() {
   const navigate = useNavigate();
 
   const { mutate, isPending } = useLogin();
-  const { mutate: loginWithProvider, isPending: isSocialLoginPending } =
-    useLoginWithProvider();
 
   const form = useForm<LoginFormValues>({
-    validate: zod4Resolver(LoginSchema),
+    validate: zod4Resolver(loginSchema),
     initialValues: {
       email: "",
       password: "",
@@ -40,26 +34,20 @@ export function LoginForm() {
   const handleSubmit = async (values: LoginFormValues) => {
     mutate(values, {
       onSuccess: () => {
-        navigate({ to: "/" });
+        navigate({ to: "/mandate" });
       },
     });
   };
 
-  const handleSocialLogin = (provider: "google" | "facebook" | "microsoft") => {
-    const providerMap = {
-      google: googleProvider,
-      facebook: facebookProvider,
-      microsoft: microsoftProvider,
-    };
+  // const handleSocialLogin = (provider: "google" | "facebook" | "microsoft") => {
+  //   const providerMap = {
+  //     google: googleProvider,
+  //     facebook: facebookProvider,
+  //     microsoft: microsoftProvider,
+  //   };
+  // };
 
-    loginWithProvider(providerMap[provider], {
-      onSuccess: () => {
-        navigate({ to: "/" });
-      },
-    });
-  };
-
-  const isLoading = isPending || isSocialLoginPending;
+  const isLoading = isPending;
 
   return (
     <div className="p-6 sm:p-8 lg:p-12 w-full flex-1 place-content-center">
@@ -82,7 +70,7 @@ export function LoginForm() {
                   fullWidth
                   size="lg"
                   variant="outline"
-                  onClick={() => handleSocialLogin("google")}
+                  // onClick={() => handleSocialLogin("google")}
                   disabled={isLoading}
                   leftSection={
                     <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -116,7 +104,7 @@ export function LoginForm() {
                   fullWidth
                   size="lg"
                   variant="outline"
-                  onClick={() => handleSocialLogin("facebook")}
+                  // onClick={() => handleSocialLogin("facebook")}
                   disabled={isLoading}
                   leftSection={
                     <svg className="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
@@ -135,7 +123,7 @@ export function LoginForm() {
                   fullWidth
                   size="lg"
                   variant="outline"
-                  onClick={() => handleSocialLogin("microsoft")}
+                  // onClick={() => handleSocialLogin("microsoft")}
                   disabled={isLoading}
                   leftSection={
                     <svg className="h-5 w-5" fill="#0078D4" viewBox="0 0 24 24">
@@ -169,13 +157,13 @@ export function LoginForm() {
           >
             <Stack gap="md">
               <TextInput
-                radius="md"
                 label="Email Address"
                 placeholder="you@example.com"
                 {...form.getInputProps("email")}
                 type="email"
                 autoComplete="email"
                 required
+                radius="xl"
                 size="lg"
                 disabled={isLoading}
                 labelProps={{
@@ -186,12 +174,12 @@ export function LoginForm() {
               />
 
               <PasswordInput
-                radius="md"
                 label="Password"
                 placeholder="••••••••••••"
                 {...form.getInputProps("password")}
                 autoComplete="current-password"
                 required
+                radius="xl"
                 size="lg"
                 labelProps={{
                   lh: 2,
@@ -227,8 +215,8 @@ export function LoginForm() {
                 loading={isPending}
                 disabled={isLoading}
                 fullWidth
+                radius="xl"
                 size="lg"
-                radius="md"
                 className="bg-institutional-green hover:bg-institutional-green/90 text-white font-semibold transition-colors mt-2"
               >
                 Log In

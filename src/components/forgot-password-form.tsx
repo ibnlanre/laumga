@@ -2,11 +2,11 @@ import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { Link } from "@tanstack/react-router";
 import { Mail } from "lucide-react";
-import type { ForgotPasswordFormValues } from "@/services/validation";
-import { ForgotPasswordSchema } from "@/services/validation";
 import { TextInput, Button, Stack, Anchor } from "@mantine/core";
-import { useResetPassword } from "@/services/hooks";
 import { useState } from "react";
+import { useResetPassword } from "@/api/user/hooks";
+import type { ForgotPasswordFormValues } from "@/api/login/types";
+import { forgotPasswordSchema } from "@/api/login/schema";
 
 export function ForgotPasswordForm() {
   const [submittedEmail, setSubmittedEmail] = useState("");
@@ -14,7 +14,7 @@ export function ForgotPasswordForm() {
   const { mutate, isPending, isSuccess } = useResetPassword();
 
   const form = useForm<ForgotPasswordFormValues>({
-    validate: zod4Resolver(ForgotPasswordSchema),
+    validate: zod4Resolver(forgotPasswordSchema),
     initialValues: {
       email: "",
     },

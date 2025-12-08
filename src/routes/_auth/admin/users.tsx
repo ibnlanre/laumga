@@ -16,23 +16,18 @@ import { Eye, Check, X, Ban, RefreshCw } from "lucide-react";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import { formatDate } from "@/utils/date";
-import { useFetchUsers, useUpdateUser } from "@/services/hooks";
-import type { User, ApprovalStatus } from "@/api/user";
+import type { ApprovalStatus, User } from "@/api/user/types";
+import { useListUsers, useUpdateUser } from "@/api/user/hooks";
 
 export const Route = createFileRoute("/_auth/admin/users")({
   component: UserManagement,
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      status: (search.status as ApprovalStatus) || undefined,
-    };
-  },
 });
 
 function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
-  const { data: users = [], isLoading } = useFetchUsers();
+  const { data: users = [], isLoading } = useListUsers();
   const updateUserMutation = useUpdateUser();
 
   const columnHelper = createColumnHelper<User>();
@@ -45,13 +40,12 @@ function UserManagement() {
         return (
           <Group gap="sm">
             <Avatar
-              src={userRow.profilePictureUrl}
+              src={userRow.photoUrl}
               alt={`${userRow.firstName} ${userRow.lastName}`}
               size="md"
               radius="xl"
             >
-              {userRow.firstName?.[0]}
-              {userRow.lastName?.[0]}
+              {userRow.fullName}
             </Avatar>
             <div>
               <Text size="sm" fw={500}>
@@ -65,15 +59,6 @@ function UserManagement() {
           </Group>
         );
       },
-    }),
-
-    columnHelper.accessor("membershipId", {
-      header: "Membership ID",
-      cell: (info) => (
-        <Text size="sm" ff="monospace">
-          {info.getValue() ?? "N/A"}
-        </Text>
-      ),
     }),
 
     columnHelper.accessor("email", {
@@ -129,7 +114,7 @@ function UserManagement() {
                   variant="light"
                   color="green"
                   onClick={() =>
-                    handleStatusChange(info.row.original.email, "approved")
+                    handleStatusChange("approved")
                   }
                 >
                   <Check className="size-4" />
@@ -140,7 +125,7 @@ function UserManagement() {
                   variant="light"
                   color="red"
                   onClick={() =>
-                    handleStatusChange(info.row.original.email, "rejected")
+                    handleStatusChange("rejected")
                   }
                 >
                   <X className="size-4" />
@@ -155,7 +140,7 @@ function UserManagement() {
                 variant="light"
                 color="orange"
                 onClick={() =>
-                  handleStatusChange(info.row.original.email, "suspended")
+                  handleStatusChange("suspended")
                 }
               >
                 <Ban className="size-4" />
@@ -169,7 +154,7 @@ function UserManagement() {
                 variant="light"
                 color="green"
                 onClick={() =>
-                  handleStatusChange(info.row.original.email, "approved")
+                  handleStatusChange("approved")
                 }
               >
                 <RefreshCw className="size-4" />
@@ -182,12 +167,15 @@ function UserManagement() {
   ] as ColumnDef<User>[];
 
   const handleStatusChange = async (
-    userId: string,
+ 
     newStatus: ApprovalStatus
   ) => {
+    if (!selectedUser) return;
+
     await updateUserMutation.mutateAsync({
-      userId: userId,
-      updates: { status: newStatus },
+      user: selectedUser,
+      data: { status: newStatus },
+      id: selectedUser.id,
     });
 
     setDetailsOpened(false);
@@ -260,11 +248,7 @@ function UserManagement() {
         {selectedUser && (
           <Stack gap="md">
             <Group>
-              <Avatar
-                src={selectedUser.profilePictureUrl}
-                size="xl"
-                radius="md"
-              >
+              <Avatar src={selectedUser.photoUrl} size="xl" radius="md">
                 {selectedUser.firstName[0]}
                 {selectedUser.lastName[0]}
               </Avatar>
@@ -280,14 +264,6 @@ function UserManagement() {
             </Group>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Text size="xs" c="dimmed">
-                  Membership ID
-                </Text>
-                <Text size="sm" fw={500} ff="monospace">
-                  {selectedUser.membershipId || "N/A"}
-                </Text>
-              </div>
               <div>
                 <Text size="xs" c="dimmed">
                   Email
@@ -347,7 +323,7 @@ function UserManagement() {
                   variant="outline"
                   color="red"
                   onClick={() =>
-                    handleStatusChange(selectedUser.email, "rejected")
+                    handleStatusChange("rejected")
                   }
                   loading={updateUserMutation.isPending}
                 >
@@ -358,7 +334,7 @@ function UserManagement() {
                   variant="filled"
                   color="green"
                   onClick={() =>
-                    handleStatusChange(selectedUser.email, "approved")
+                    handleStatusChange("approved")
                   }
                   loading={updateUserMutation.isPending}
                 >
@@ -374,7 +350,7 @@ function UserManagement() {
                   variant="outline"
                   color="orange"
                   onClick={() =>
-                    handleStatusChange(selectedUser.email, "suspended")
+                    handleStatusChange("suspended")
                   }
                   loading={updateUserMutation.isPending}
                 >
@@ -390,7 +366,7 @@ function UserManagement() {
                   variant="filled"
                   color="green"
                   onClick={() =>
-                    handleStatusChange(selectedUser.email, "approved")
+                    handleStatusChange("approved")
                   }
                   loading={updateUserMutation.isPending}
                 >

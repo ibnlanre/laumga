@@ -3,12 +3,12 @@ import { Fragment, useState } from "react";
 import { Search, ArrowRight, Loader2, BookOpen } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { useFetchArticles, useSearchArticles } from "@/services/hooks";
 import { type Variables } from "@/client/core-query";
-import type { ArticleData } from "@/api/article";
 import { useDebouncedValue } from "@mantine/hooks";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
+import type { ArticleData } from "@/api/article/types";
+import { useListArticles } from "@/api/article/hooks";
 
 const bulletinSearchSchema = z.object({
   category: z
@@ -42,9 +42,9 @@ function RouteComponent() {
   const articleVariables: Variables<ArticleData> = {
     filterBy: [
       {
-        field: "isPublished",
+        field: "status",
         operator: "==",
-        value: true,
+        value: "published",
       },
     ],
   };
@@ -58,17 +58,10 @@ function RouteComponent() {
   }
 
   const { data: articles, isLoading: isLoadingArticles } =
-    useFetchArticles(articleVariables);
+    useListArticles(articleVariables);
 
-  const { data: searchResults, isLoading: isLoadingSearch } = useSearchArticles(
-    debouncedSearch || ""
-  );
-
-  const displayArticles = debouncedSearch
-    ? searchResults
-    : articles?.slice(0, limit);
-  const isLoading = debouncedSearch ? isLoadingSearch : isLoadingArticles;
-
+  const displayArticles = articles?.slice(0, limit);
+  const isLoading = isLoadingArticles;
   const featuredArticle = displayArticles?.[0];
   const gridArticles = displayArticles?.slice(1);
   const hasMore = (articles?.length || 0) > (displayArticles?.length || 0);
@@ -208,12 +201,12 @@ function RouteComponent() {
                     <p className="text-base font-normal leading-relaxed text-deep-forest/70 line-clamp-3">
                       {featuredArticle.excerpt || featuredArticle.content}
                     </p>
-                    <p className="text-sm font-medium text-institutional-green">
+                    {/* <p className="text-sm font-medium text-institutional-green">
                       By {featuredArticle.authorName || "Unknown Author"} •{" "}
                       {formatDate(
                         featuredArticle.publishedAt || featuredArticle.createdAt
                       )}
-                    </p>
+                    </p> */}
                     <div className="mt-4">
                       <Link
                         to="/bulletin/$article"

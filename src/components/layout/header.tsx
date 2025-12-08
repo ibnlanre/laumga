@@ -1,6 +1,8 @@
 import { Group, Burger, Drawer, Button, Anchor, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+
+import { useLogout } from "@/api/user/hooks";
 
 interface NavItem {
   label: string;
@@ -40,11 +42,21 @@ const NAV_ITEMS: Record<HeaderVariant, NavItem[]> = {
 
 export function Header({ variant, className = "" }: HeaderProps) {
   const [opened, { toggle, close }] = useDisclosure(false);
+
   const routerState = useRouterState();
+  const navigate = useNavigate();
   const currentPath = routerState.location.pathname;
 
   const items = NAV_ITEMS[variant];
   const isPublic = variant === "public";
+
+  const { mutateAsync, isPending } = useLogout();
+
+  const handleLogout = async () => {
+    await mutateAsync().then(() => {
+      navigate({ to: "/" });
+    });
+  };
 
   const isActive = (href: string) => {
     if (href === "/") {
@@ -63,9 +75,11 @@ export function Header({ variant, className = "" }: HeaderProps) {
           <Group justify="space-between" h={70}>
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-vibrant-lime-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
+              <img
+                src="/laumga-logo.jpeg"
+                alt="LAUMGA emblem"
+                className="size-10 object-scale-down"
+              />
               <span className="text-xl font-bold text-deep-forest-900">
                 LAUMGA
               </span>
@@ -90,8 +104,8 @@ export function Header({ variant, className = "" }: HeaderProps) {
               ))}
             </Group>
 
-            {/* CTA Buttons (Public Only) */}
-            {isPublic && (
+            {/* Auth Actions */}
+            {isPublic ? (
               <Group gap="md" visibleFrom="md">
                 <Button
                   variant="subtle"
@@ -109,6 +123,17 @@ export function Header({ variant, className = "" }: HeaderProps) {
                   Join LAUMGA
                 </Button>
               </Group>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="hidden border-deep-forest text-deep-forest md:inline-flex"
+                onClick={handleLogout}
+                loading={isPending}
+                disabled={isPending}
+              >
+                Log Out
+              </Button>
             )}
 
             {/* Mobile Burger */}
@@ -116,7 +141,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
               opened={opened}
               onClick={toggle}
               hiddenFrom="md"
-              color="var(--mantine-color-gray-7)"
+              color="gray.7"
             />
           </Group>
         </div>
@@ -130,9 +155,11 @@ export function Header({ variant, className = "" }: HeaderProps) {
         padding="xl"
         title={
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-vibrant-lime-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
-            </div>
+            <img
+              src="/laumga-logo.jpeg"
+              alt="LAUMGA emblem"
+              className="w-10 h-10 rounded-full object-cover border border-sage-green"
+            />
             <span className="text-xl font-bold text-deep-forest-900">
               LAUMGA
             </span>
@@ -158,7 +185,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
             </Anchor>
           ))}
 
-          {isPublic && (
+          {isPublic ? (
             <>
               <div className="border-t border-gray-200 my-4" />
               <Button
@@ -179,6 +206,25 @@ export function Header({ variant, className = "" }: HeaderProps) {
                 className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
               >
                 Join LAUMGA
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="border-t border-gray-200 my-4" />
+              <Button
+                type="button"
+                variant="filled"
+                color="deep-forest"
+                fullWidth
+                className="text-white"
+                onClick={() => {
+                  close();
+                  handleLogout();
+                }}
+                loading={isPending}
+                disabled={isPending}
+              >
+                Log Out
               </Button>
             </>
           )}

@@ -151,6 +151,7 @@ export function PhoneInput({
   value: _value,
   onChange: _onChange,
   defaultValue,
+  autoComplete = "tel-national",
   ...props
 }: PhoneInputProps) {
   const [value, onChange] = useUncontrolled({
@@ -224,6 +225,8 @@ export function PhoneInput({
   return (
     <InputBase
       {...props}
+      type="tel"
+      autoComplete={autoComplete}
       component={IMaskInput}
       inputRef={inputRef}
       leftSection={
@@ -344,7 +347,10 @@ function CountrySelect({
         combobox.closeDropdown();
       }}
     >
-      <Combobox.Target withAriaAttributes={false}>
+      <Combobox.Target
+        autoComplete="tel-country-code"
+        withAriaAttributes={false}
+      >
         <ActionIcon
           variant="transparent"
           onClick={() => combobox.toggleDropdown()}

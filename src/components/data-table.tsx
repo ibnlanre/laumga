@@ -307,6 +307,7 @@ export function DataTable<TData>({
                 filters.map((filter) => (
                   <Select
                     clearable
+                    searchable
                     data={filter.options}
                     key={filter.key}
                     leftSection={<Filter size={16} />}

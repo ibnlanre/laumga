@@ -4,10 +4,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, MapPin, Users, Search, CalendarOff } from "lucide-react";
 import { formatDate } from "@/utils/date";
 
-import { useFetchEvents } from "@/services/hooks";
 import { type Variables } from "@/client/core-query";
-import type { EventData } from "@/api/event";
-import type { Event, EventType } from "@/api/event";
+import type { Event, EventData, EventType } from "@/api/event/types";
+import { useListEvents } from "@/api/event/hooks";
 
 export const Route = createFileRoute("/_public/_default/events")({
   component: EventsPage,
@@ -30,7 +29,7 @@ function EventsPage() {
 
   const eventVariables: Variables<EventData> = {
     filterBy: [],
-    sortBy: [{ field: "date", value: "asc" }],
+    sortBy: [{ field: "startDate", value: "asc" }],
   };
 
   if (selectedType !== "all") {
@@ -43,13 +42,13 @@ function EventsPage() {
 
   if (showUpcoming) {
     eventVariables.filterBy!.push({
-      field: "date",
+      field: "startDate",
       operator: ">=",
       value: new Date(),
     });
   }
 
-  const { data: events, isLoading } = useFetchEvents(eventVariables);
+  const { data: events, isLoading } = useListEvents(eventVariables);
 
   const filteredEvents = events?.filter((event) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -175,7 +174,11 @@ function EventsPage() {
   );
 }
 
-function EventCard({ event }: { event: Event }) {
+interface EventCardProps {
+  event: Event;
+}
+
+function EventCard({ event }: EventCardProps) {
   const isFull = event.currentAttendees >= (event.maxAttendees || 0);
 
   return (
@@ -203,7 +206,9 @@ function EventCard({ event }: { event: Event }) {
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm text-deep-forest/70">
             <Calendar className="size-4 text-institutional-green" />
-            <span>{formatDate(event.date, "MMMM d, yyyy 'at' h:mm a")}</span>
+            <span>
+              {formatDate(event.startDate, "MMMM d, yyyy 'at' h:mm a")}
+            </span>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-deep-forest/70">

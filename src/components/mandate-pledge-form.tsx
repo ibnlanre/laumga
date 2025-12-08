@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
@@ -29,15 +29,15 @@ import {
   Vote,
 } from "lucide-react";
 
-import {
-  createMandateSchema,
-  type CreateMandateInput,
-  type MandateDuration,
-  type MandateFrequency,
-} from "@/api/mandate";
-import { mono, type SupportedBank } from "@/api/mono";
-import { useAuth } from "@/contexts/auth";
-import { useCreateMandate } from "@/services/hooks";
+import { createMandateSchema } from "@/api/mandate/schema";
+import type {
+  CreateMandateInput,
+  MandateDuration,
+  MandateFrequency,
+} from "@/api/mandate/types";
+import { useAuth } from "@/contexts/use-auth";
+import { useCreateMandate } from "@/api/mandate/hooks";
+import { useFetchMonoBanks } from "@/api/mono/hooks";
 
 const TIER_AMOUNTS = {
   supporter: 500000,
@@ -157,16 +157,13 @@ export function MandatePledgeForm({
   tier,
   amount,
 }: MandatePledgeFormProps = {}) {
+  const { user } = useAuth();
+
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const createMandate = useCreateMandate();
+
+  const monoBanks = useFetchMonoBanks();
   const [monoUrl, setMonoUrl] = useState<string | null>(null);
-  const [banks, setBanks] = useState<SupportedBank[]>([]);
-  const [loadingBanks, setLoadingBanks] = useState(true);
-  const bankOptions = useMemo(
-    () => banks.map((bank) => ({ label: bank.label, value: bank.bankCode })),
-    [banks]
-  );
 
   const getInitialAmount = () => {
     if (amount) return amount;
@@ -175,19 +172,6 @@ export function MandatePledgeForm({
     }
     return TIER_AMOUNTS.supporter;
   };
-
-  useEffect(() => {
-    async function fetchBanks() {
-      try {
-        const supportedBanks = await mono.bank.fetchAll();
-        setBanks(supportedBanks);
-      } finally {
-        setLoadingBanks(false);
-      }
-    }
-
-    fetchBanks();
-  }, []);
 
   const form = useForm<CreateMandateInput>({
     initialValues: {
@@ -213,10 +197,10 @@ export function MandatePledgeForm({
   };
 
   const handleSubmit = async (data: CreateMandateInput) => {
-    if (!currentUser) return;
+    if (!user) return;
 
     const result = await createMandate.mutateAsync({
-      userId: currentUser.uid,
+      user,
       data,
     });
 
@@ -476,18 +460,16 @@ export function MandatePledgeForm({
 
             <Select
               label="Bank"
-              placeholder={
-                loadingBanks ? "Loading banks..." : "Select your bank"
-              }
-              data={bankOptions}
+              data={monoBanks.data || []}
+              clearable
               searchable
-              disabled={loadingBanks}
+              disabled={monoBanks.isPending}
               nothingFoundMessage="No direct-debit banks yet"
               comboboxProps={{
                 transitionProps: { transition: "fade", duration: 100 },
               }}
               withAsterisk
-              leftSection={loadingBanks ? <Loader size="xs" /> : null}
+              leftSection={monoBanks.isPending ? <Loader size="xs" /> : null}
               {...form.getInputProps("bankCode")}
               classNames={inputClassNames}
               size="lg"

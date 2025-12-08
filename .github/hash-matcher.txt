@@ -1,2 +1,4 @@
-\[([^\]]*?)\]\(#[^\)]+?\)
+\[([^\]]*?)\]\([#/][^\)]+?\)
 Replace with: `$1`
+
+Works for "[title](//link)", "[title](#link)", and "[](#link)".

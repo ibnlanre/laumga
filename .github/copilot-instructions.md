@@ -49,11 +49,23 @@ This guide outlines essential patterns and conventions for developing the Laumga
 
 ## API Patterns
 
-Use the `@ibnlanre/builder` library for all API interactions:
+Utilize the `@ibnlanre/builder` library for all API interactions to maintain consistency and type safety.
 
-- **Queries:** `api.module.function.$use(params)` - matches the function signature.
-- **Mutations:** `api.module.function.$get()` - no parameters required.
-- Reference: `src/services/hooks.ts` (all hooks follow this pattern).
+- **Queries:** Employ `api.module.function.$use(params)` for parameterized queries, ensuring `params` aligns with the function signature.
+- **Mutations:** Use `api.module.function.$get()` for operations without parameters.
+- Depend on the builder's `$use` (for parameterized keys and execution) and `$get` (for stable keys) rather than manually constructing query keys or directly accessing the cache.
+- Organize domain modules with the following structure:
+  - `schema.ts`: Zod schemas (upstream payloads employ `FieldValue` for log entries; downstream conversions transform timestamps to `Date`).
+  - `types.ts`: Strict Firestore generics and `Variables` helpers.
+  - `index.ts`: CRUD operations and builder integration. Limit to CRUD functions (like `create`, `update`, `get`, `list`, `remove`) and export a single `module` object via `createBuilder`.
+  - `hooks.ts`: React Query bindings.
+- For intricate workflows, incorporate `handlers.ts` to assemble base hooks (e.g., for slug validation or publish/archive operations), preserving declarative views. `handlers.ts` should **only** contain hooks, and not direct Firestore calls.
+- Ensure every `create`/`update` mutation accepts a `{ user, data }` structure, performs schema validation, and applies audit fields using `record(user)`. Integrate schemas based on `dateSchema`/`fieldValueSchema` (refer to `src/schema/date.ts`) to store `FieldValue` timestamps upstream and return `Date` objects downstream.
+- Keep `index.ts` lean: **only** wire `create`, `update`, `list`, `get`, `remove`. Delegate specialized filters (e.g., state-based chapters, publish/archive, member counts) to `handlers.ts`, where `Variables<T>` configurations can be prebuilt and `list`/`update` primitives reused.
+- In derived hooks, persist use of builder-generated keys (`module.method.$use(params)`) for `queryKey` and `queryFn`, even for narrowed list queries via `filterBy`, `sortBy`, `limit`, etc. Refrain from creating custom endpoints for single-record fetches when a filtered `list` is adequate.
+- When a workflow touches ancillary collections (e.g., event registrations), create a separate module directory under the api folder for it (e.g., `event-registration/`). The core builder still exposes only CRUD, while handlers coordinate multi-collection logic and reuse base hooks for data hydration.
+- Enforce uniqueness (e.g., `slug`) in `create` handlers through Firestore queries prior to insertions.
+- Log user metadata for all status changes (like `created`, `published`, `updated`, `archived`) with `record(user)`.
 
 ## Forms & Validation
 

@@ -13,7 +13,7 @@ import { Notifications } from "@mantine/notifications";
 
 import styles from "../styles.css?url";
 import { NotFound } from "@/components/not-found";
-import { AuthProvider } from "@/contexts/auth";
+import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
 

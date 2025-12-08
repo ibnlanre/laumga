@@ -14,6 +14,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
@@ -58,6 +59,11 @@ const AuthMandateRoute = AuthMandateRouteImport.update({
 const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/reset-password': typeof PublicResetPasswordRoute
   '/': typeof PublicIndexRoute
   '/admin/articles': typeof AuthAdminArticlesRoute
   '/admin/events': typeof AuthAdminEventsRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/reset-password': typeof PublicResetPasswordRoute
   '/': typeof PublicIndexRoute
   '/admin/articles': typeof AuthAdminArticlesRoute
   '/admin/events': typeof AuthAdminEventsRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/_auth/gallery': typeof AuthGalleryRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
+  '/_public/reset-password': typeof PublicResetPasswordRoute
   '/_public/': typeof PublicIndexRoute
   '/_auth/admin/articles': typeof AuthAdminArticlesRoute
   '/_auth/admin/events': typeof AuthAdminEventsRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/'
     | '/admin/articles'
     | '/admin/events'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/'
     | '/admin/articles'
     | '/admin/events'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/_auth/gallery'
     | '/_public/forgot-password'
     | '/_public/login'
+    | '/_public/reset-password'
     | '/_public/'
     | '/_auth/admin/articles'
     | '/_auth/admin/events'
@@ -398,6 +410,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/reset-password': {
+      id: '/_public/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof PublicResetPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/login': {
@@ -659,6 +678,7 @@ const PublicDefaultEventsRouteWithChildren =
 interface PublicRouteChildren {
   PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
+  PublicResetPasswordRoute: typeof PublicResetPasswordRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicDefaultAboutUsRoute: typeof PublicDefaultAboutUsRoute
   PublicDefaultContactUsRoute: typeof PublicDefaultContactUsRoute
@@ -673,6 +693,7 @@ interface PublicRouteChildren {
 const PublicRouteChildren: PublicRouteChildren = {
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
+  PublicResetPasswordRoute: PublicResetPasswordRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicDefaultAboutUsRoute: PublicDefaultAboutUsRoute,
   PublicDefaultContactUsRoute: PublicDefaultContactUsRoute,

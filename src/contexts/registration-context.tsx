@@ -5,17 +5,16 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import {
-  type AccountCredentialsFormValues,
-  type RegistrationFormValues,
-  registrationSchema,
-  type LocationDetailsFormValues,
-  type PersonalDetailsFormValues,
-  personalDetailsSchema,
-} from "@/api/registration";
 import { createFormContext } from "@mantine/form";
 import { usePagination } from "@mantine/hooks";
 import { zod4Resolver } from "mantine-form-zod-resolver";
+import { registrationSchema } from "@/api/registration/schema";
+import type {
+  RegistrationFormValues,
+  PersonalDetailsFormValues,
+  LocationDetailsFormValues,
+  AccountCredentialsFormValues,
+} from "@/api/registration/types";
 
 export type RegistrationStep = 1 | 2 | 3;
 type RegistrationPanel = "steps" | "review";
@@ -54,7 +53,7 @@ const initialFormValues: RegistrationFormValues = {
   maidenName: "",
   nickname: "",
   gender: "male",
-  profilePictureUrl: "",
+  photoUrl: "",
   dateOfBirth: "",
   phoneNumber: "",
   classSet: null,
@@ -146,7 +145,6 @@ export function RegistrationProvider({ children }: PropsWithChildren) {
 function selectPersonalDetails(
   values: RegistrationFormValues
 ): PersonalDetailsFormValues {
-  personalDetailsSchema.keyof().options;
   const {
     title,
     firstName,
@@ -155,7 +153,7 @@ function selectPersonalDetails(
     maidenName,
     nickname,
     gender,
-    profilePictureUrl,
+    photoUrl,
     dateOfBirth,
     phoneNumber,
     classSet,
@@ -169,7 +167,7 @@ function selectPersonalDetails(
     maidenName,
     nickname,
     gender,
-    profilePictureUrl,
+    photoUrl,
     dateOfBirth,
     phoneNumber,
     classSet,

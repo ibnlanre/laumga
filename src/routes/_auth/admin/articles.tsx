@@ -16,16 +16,16 @@ import {
   Switch,
 } from "@mantine/core";
 import { Eye, Check, X, Trash2, Star } from "lucide-react";
-import { formatDate } from "@/utils/date";
 
-import {
-  useFetchArticles,
-  useUpdateArticle,
-  useDeleteArticle,
-} from "@/services/hooks";
-import type { Article } from "@/api/article";
 import { PageLoader } from "@/components/page-loader";
 import { DataTable } from "@/components/data-table";
+import type { Article, ArticleStatus } from "@/api/article/types";
+import {
+  useListArticles,
+  useRemoveArticle,
+  useUpdateArticle,
+} from "@/api/article/hooks";
+import { useAuth } from "@/contexts/use-auth";
 
 export const Route = createFileRoute("/_auth/admin/articles")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -35,12 +35,14 @@ export const Route = createFileRoute("/_auth/admin/articles")({
 });
 
 function ArticlesAdmin() {
+  const { user } = useAuth();
+
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
-  const { data: articles = [], isLoading } = useFetchArticles();
+  const { data: articles = [], isLoading } = useListArticles();
   const updateArticleMutation = useUpdateArticle();
-  const deleteArticleMutation = useDeleteArticle();
+  const deleteArticleMutation = useRemoveArticle();
 
   const columnHelper = createColumnHelper<Article>();
 
@@ -62,10 +64,16 @@ function ArticlesAdmin() {
     setDetailsOpened(true);
   };
 
-  const handleStatusChange = async (articleId: string, newStatus: string) => {
+  const handleStatusChange = async (
+    articleId: string,
+    newStatus: ArticleStatus
+  ) => {
+    if (!user) return;
+
     await updateArticleMutation.mutateAsync({
       id: articleId,
       data: { status: newStatus },
+      user,
     });
 
     setDetailsOpened(false);
@@ -75,9 +83,12 @@ function ArticlesAdmin() {
     articleId: string,
     isFeatured: boolean
   ) => {
+    if (!user) return;
+
     await updateArticleMutation.mutateAsync({
       id: articleId,
       data: { featured: !isFeatured },
+      user,
     });
   };
 
@@ -107,11 +118,6 @@ function ArticlesAdmin() {
           </Text>
         </div>
       ),
-    }),
-
-    columnHelper.accessor("authorName", {
-      header: "Author",
-      cell: (info) => <Text size="sm">{info.getValue()}</Text>,
     }),
 
     columnHelper.accessor("category", {
@@ -148,20 +154,6 @@ function ArticlesAdmin() {
           color="yellow"
         />
       ),
-    }),
-
-    columnHelper.accessor("publishedAt", {
-      header: "Published",
-      cell: (info) => {
-        const publishedAt = info.getValue();
-        return (
-          <Text size="xs" c="dimmed">
-            {publishedAt
-              ? formatDate(publishedAt, "MMM dd, yyyy")
-              : "Not published"}
-          </Text>
-        );
-      },
     }),
 
     columnHelper.display({
@@ -311,29 +303,11 @@ function ArticlesAdmin() {
             <Grid>
               <Grid.Col span={6}>
                 <Text size="sm" fw={500} c="dimmed">
-                  Author
-                </Text>
-                <Text size="sm">{selectedArticle.authorName}</Text>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
                   Category
                 </Text>
                 <Badge variant="light">{selectedArticle.category}</Badge>
               </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Published Date
-                </Text>
-                <Text size="sm">
-                  {selectedArticle.publishedAt
-                    ? formatDate(
-                        selectedArticle.publishedAt,
-                        "MMMM dd, yyyy 'at' hh:mm a"
-                      )
-                    : "Not published yet"}
-                </Text>
-              </Grid.Col>
+
               <Grid.Col span={6}>
                 <Text size="sm" fw={500} c="dimmed">
                   Featured Article

@@ -8,21 +8,19 @@ import {
   Inbox,
   Settings,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { LoadingState } from "@/components/loading-state";
 import { DataTable } from "@/components/data-table";
 import { MandateHeader } from "@/layouts/mandate/header";
-import { useAuth } from "@/contexts/auth";
-import {
-  useFetchActiveMandate,
-  useFetchUserTransactions,
-  useGlobalFeed,
-} from "@/services/hooks";
-import type { TransactionData } from "@/api/mandate";
+import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
+import type { MandateTransaction } from "@/api/mandate-transaction/types";
+import { useGetActiveMandate } from "@/api/mandate/handlers";
+import { useFeed } from "@/api/feed/hooks";
+import { useListUserMandateTransactions } from "@/api/mandate-transaction/handlers";
 
 const NAIRA_FORMATTER = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -36,7 +34,7 @@ const tierScale = [
   { tier: "guardian", amount: 2_500_000 },
 ] as const;
 
-const transactionColumns: ColumnDef<TransactionData>[] = [
+const transactionColumns: ColumnDef<MandateTransaction>[] = [
   {
     accessorKey: "paidAt",
     header: "Date",
@@ -108,51 +106,29 @@ export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
 });
 
 function RouteComponent() {
-  const { currentUser } = useAuth();
-  const userId = currentUser?.uid ?? "";
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
+    data: feedData = [],
     isLoading: feedLoading,
     isError: feedError,
-  } = useGlobalFeed(10);
+  } = useFeed();
 
   const { data: activeMandate, isLoading: mandateLoading } =
-    useFetchActiveMandate(userId);
+    useGetActiveMandate(userId);
 
   const { data: transactions = [], isLoading: transactionsLoading } =
-    useFetchUserTransactions(userId);
+    useListUserMandateTransactions(userId);
 
   const observerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!observerRef.current || !hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(observerRef.current);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const feedItems = data?.pages.flatMap((page) => page.items) ?? [];
   const currentAmount = activeMandate?.amount ?? 0;
   const statusLabel = activeMandate?.status
     ? capitalize(activeMandate.status)
     : "No mandate yet";
   const tierLabel = formatTierLabel(activeMandate?.tier);
-  const totalCollected = formatCurrencyOrPlaceholder(
-    activeMandate?.totalCollected
-  );
+
   const { percent: tierProgress, label: tierProgressLabel } = currentAmount
     ? getNextTierMeta(currentAmount)
     : { percent: 0, label: "Progress to next tier" };
@@ -246,14 +222,6 @@ function RouteComponent() {
 
                 <article className="rounded-3xl border border-sage-green/30 bg-white/90 p-6 shadow-lg">
                   <div className="flex h-full flex-col gap-5">
-                    <div>
-                      <p className="text-sm font-medium text-deep-forest/70">
-                        Total contributed
-                      </p>
-                      <p className="text-4xl font-bold tracking-tight text-deep-forest">
-                        {totalCollected}
-                      </p>
-                    </div>
                     <div className="space-y-2">
                       <div className="h-2.5 w-full rounded-full bg-mist-green/60">
                         <div
@@ -279,8 +247,7 @@ function RouteComponent() {
                           <Activity className="h-6 w-6" />
                         </div>
                         <p className="text-4xl font-bold tracking-tight text-deep-forest">
-                          {activeMandate.totalTransactions ??
-                            transactions.length}
+                          {transactions.length}
                         </p>
                       </div>
                     </div>
@@ -339,19 +306,20 @@ function RouteComponent() {
                   message="We will retry shortly. Refresh if the issue persists."
                 />
               </div>
-            ) : feedItems.length ? (
+            ) : feedData.length ? (
               <ul className="mt-6 space-y-4">
-                {feedItems.map((item, index) => (
+                {feedData.map((item, index) => (
                   <li
                     key={`${item.timestamp}-${index}`}
                     className="flex flex-col gap-2 rounded-2xl border border-sage-green/40 bg-mist-green/30 px-4 py-3 text-deep-forest"
                   >
                     <span className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
-                      {item.type === "mandate" ? "Mandate" : "Registration"}
+                      {item.type === "donation" ? "Mandate" : "Registration"}
                     </span>
+
                     <p className="text-sm text-deep-forest/80">
-                      {item.type === "mandate"
-                        ? `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${item.location} joined the ${item.tier} tier`
+                      {item.type === "donation"
+                        ? `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${item.location} donated`
                         : `🚀 New member from ${item.location} registered`}
                     </p>
                   </li>
@@ -447,11 +415,6 @@ function RouteComponent() {
 function formatCurrencyFromKobo(value?: number | null) {
   if (value == null) return "₦0";
   return NAIRA_FORMATTER.format(Math.round(value / 100));
-}
-
-function formatCurrencyOrPlaceholder(value?: number | null) {
-  if (value == null) return "Awaiting first debit";
-  return formatCurrencyFromKobo(value);
 }
 
 function formatTierLabel(tier?: string | null) {

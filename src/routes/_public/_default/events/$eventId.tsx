@@ -11,14 +11,14 @@ import {
 } from "lucide-react";
 import { formatDate, formatTime } from "@/utils/date";
 
-import {
-  useFetchEvent,
-  useRegisterForEvent,
-  useCheckEventRegistration,
-} from "@/services/hooks";
-import { useAuth } from "@/contexts/auth";
+import { useAuth } from "@/contexts/use-auth";
 import { notifications } from "@mantine/notifications";
 import { isPast } from "date-fns";
+import {
+  useCheckIfUserRegisteredForEvent,
+  useCreateEventRegistration,
+} from "@/api/event-registration/hooks";
+import { useGetEvent } from "@/api/event/hooks";
 
 export const Route = createFileRoute("/_public/_default/events/$eventId")({
   component: EventDetailPage,
@@ -26,17 +26,17 @@ export const Route = createFileRoute("/_public/_default/events/$eventId")({
 
 function EventDetailPage() {
   const navigate = useNavigate();
-  const registerMutation = useRegisterForEvent();
-  
+  const registerMutation = useCreateEventRegistration();
+
   const [opened, { open, close }] = useDisclosure(false);
 
   const { eventId } = Route.useParams();
-  const { currentUser, userData } = useAuth();
+  const { user } = useAuth();
 
-  const { data: event, isLoading } = useFetchEvent(eventId);
-  const { data: isRegistered } = useCheckEventRegistration(
+  const { data: event, isLoading } = useGetEvent(eventId);
+  const { data: isRegistered } = useCheckIfUserRegisteredForEvent(
     eventId,
-    currentUser?.uid || ""
+    user?.id
   );
 
   if (isLoading) {
@@ -62,13 +62,13 @@ function EventDetailPage() {
     );
   }
 
-  const eventDate = event.date.toDate();
+  const eventDate = formatDate(event.startDate);
   const isFull =
     event.maxAttendees && event.currentAttendees >= event.maxAttendees;
   const isPastEvent = isPast(eventDate);
 
   const handleRegister = async () => {
-    if (!currentUser || !userData) {
+    if (!user) {
       notifications.show({
         title: "Login Required",
         message: "Please login to register for this event",
@@ -79,11 +79,13 @@ function EventDetailPage() {
     }
 
     await registerMutation.mutateAsync({
-      eventId: event.id,
-      userId: currentUser.uid,
-      userData: {
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
+      user,
+      data: {
+        eventId: event.id,
+        email: user.email,
+        attending: "yes",
+        registered: null,
+        updated: null,
       },
     });
 

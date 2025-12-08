@@ -26,8 +26,8 @@ export function AuthSidebar({
         <div className="flex">
           <img
             alt="LAUMGA Crest"
-            className="h-16 w-16"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHBTD3WgPQvsf3uqULVrorUrr4lRZ1wX7rNNKYdG3dWqUMCm45rLyh8gkiJdQ2dnomhyD_rBtOSqRgkaviI7rmYI3pQ-wx6P4LFg_cYOMehn7-IL4-UiDo_polBKtShxwoCMfoZ_Tmw6SSZkFsBShKrxO8gp9u7gyKEr7PoUDU6kWPBN1VGk-kqlkJQ0YB_nnjeafLfAkW8VCzbTBEbmKDlQ8l2lFmSzsyfOkT8S9vy5nXC02fK4gfBNbVCE-THvhQMrixligYdI0"
+            className="size-16 object-scale-down"
+            src="/laumga-logo.jpeg"
           />
         </div>
 

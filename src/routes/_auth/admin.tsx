@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_auth/admin")({
       });
     }
 
-    const userData = await user.fetch(currentUser.uid);
+    const userData = await user.$use.get(currentUser.uid);
 
     const canAccess =
       userData?.role === "admin" || userData?.role === "super-admin";

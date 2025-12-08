@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   VITE_WHITELISTED_ADMIN_EMAILS: string;
+  VITE_SUPER_ADMIN_EMAILS?: string;
+
   VITE_FIREBASE_API_KEY: string;
   VITE_FIREBASE_AUTH_DOMAIN: string;
   VITE_FIREBASE_PROJECT_ID: string;
@@ -9,6 +11,8 @@ interface ImportMetaEnv {
   VITE_FIREBASE_MESSAGING_SENDER_ID: string;
   VITE_FIREBASE_APP_ID: string;
   VITE_FIREBASE_MEASUREMENT_ID: string;
+
+  VITE_MONO_API_URL: string;
   VITE_MONO_PUBLIC_KEY: string;
   VITE_MONO_SECRET_KEY: string;
 }

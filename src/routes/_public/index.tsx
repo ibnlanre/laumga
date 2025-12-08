@@ -10,11 +10,9 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useFetchArticles, useFetchEvents } from "@/services/hooks";
-import { type Variables } from "@/client/core-query";
-import type { ArticleData } from "@/api/article";
-import type { EventData } from "@/api/event";
 import { formatDate } from "@/utils/date";
+import { useListArticles } from "@/api/article/hooks";
+import { useListEvents } from "@/api/event/hooks";
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
@@ -23,25 +21,20 @@ export const Route = createFileRoute("/_public/")({
 //  <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/5 bg-sage-green h-[40vh] md:h-auto my-auto md:my-0"></div>
 
 function RouteComponent() {
-  const articleVariables = {
-    filterBy: [{ field: "isPublished", operator: "==", value: true }],
-    sortBy: [{ field: "publishedAt", value: "desc" }],
-  } as unknown as Variables<ArticleData>;
+  const { data: articles } = useListArticles({
+    filterBy: [{ field: "status", operator: "==", value: "published" }],
+  });
 
-  const { data: articles } = useFetchArticles(articleVariables);
-
-  const eventsVariables: Variables<EventData> = {
+  const { data: events } = useListEvents({
     filterBy: [
       {
-        field: "date",
+        field: "startDate",
         operator: ">=",
         value: new Date(),
       },
     ],
-    sortBy: [{ field: "date", value: "asc" }],
-  };
-
-  const { data: events } = useFetchEvents(eventsVariables);
+    sortBy: [{ field: "startDate", value: "asc" }],
+  });
 
   return (
     <main>
@@ -268,7 +261,7 @@ function RouteComponent() {
                   <div className="p-6">
                     <p className="text-sm text-gray-500 mb-2">
                       {formatDate(
-                        article.publishedAt || article.createdAt,
+                        article.published?.at || article.created?.at,
                         "MMMM d, yyyy"
                       )}
                     </p>
@@ -303,10 +296,10 @@ function RouteComponent() {
                 >
                   <div className="text-center w-20">
                     <p className="text-3xl font-bold text-olive">
-                      {formatDate(event.date, "d")}
+                      {formatDate(event.startDate, "d")}
                     </p>
                     <p className="text-sm font-semibold text-gray-500 uppercase">
-                      {formatDate(event.date, "MMM")}
+                      {formatDate(event.startDate, "MMM")}
                     </p>
                   </div>
                   <div>

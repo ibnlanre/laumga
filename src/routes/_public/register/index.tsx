@@ -12,6 +12,7 @@ import {
   Alert,
   PasswordInput,
   Text,
+  Avatar,
 } from "@mantine/core";
 import {
   ArrowLeft,
@@ -29,12 +30,6 @@ import {
 import { DateInput, YearPickerInput } from "@mantine/dates";
 import { Form } from "@mantine/form";
 import { modals } from "@mantine/modals";
-import { upload } from "@/api/upload";
-import {
-  accountCredentialsSchema,
-  locationDetailsSchema,
-  personalDetailsSchema,
-} from "@/api/registration";
 import { RegistrationLayout } from "@/components/registration-layout";
 import { PhoneInput } from "@/components/phone-input";
 import { PasswordStrengthCheck } from "@/components/password-strength-check";
@@ -43,8 +38,15 @@ import {
   useRegistrationForm,
 } from "@/contexts/registration-context";
 import { useCountryOptions, useStateOptions } from "@/services/location";
-import { useFetchChapterByState, useCreateUser } from "@/services/hooks";
 import { formatDate } from "@/utils/date";
+import { useImageUpload } from "@/api/upload/hooks";
+import { useCreateUser } from "@/api/user/hooks";
+import {
+  accountCredentialsSchema,
+  locationDetailsSchema,
+  personalDetailsSchema,
+} from "@/api/registration/schema";
+import { useChapterByState } from "@/api/chapter/handlers";
 
 export const Route = createFileRoute("/_public/register/")({
   component: RouteComponent,
@@ -90,24 +92,26 @@ function PersonalDetailsStep() {
   const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
     useState(false);
 
+  const { mutateAsync } = useImageUpload();
+
   const handlePhotoChange = async (file: File | null) => {
-    form.clearFieldError("profilePictureUrl");
+    form.clearFieldError("photoUrl");
 
     if (!file) {
-      form.setFieldValue("profilePictureUrl", "");
+      form.setFieldValue("photoUrl", "");
       return;
     }
 
     try {
       setIsUploadingProfilePicture(true);
-      const uploadedUrl = await upload.image(file);
-      form.setFieldValue("profilePictureUrl", uploadedUrl);
+      const uploadedUrl = await mutateAsync(file);
+      form.setFieldValue("photoUrl", uploadedUrl);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "Unable to upload profile picture";
-      form.setFieldError("profilePictureUrl", message);
+      form.setFieldError("photoUrl", message);
     } finally {
       setIsUploadingProfilePicture(false);
     }
@@ -142,6 +146,7 @@ function PersonalDetailsStep() {
               placeholder="e.g. Dr., Engr., Prof."
               key={form.key("title")}
               {...form.getInputProps("title")}
+              autoComplete="section-personal honorific-prefix"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -152,6 +157,7 @@ function PersonalDetailsStep() {
               withAsterisk
               key={form.key("lastName")}
               {...form.getInputProps("lastName")}
+              autoComplete="section-personal family-name"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -162,6 +168,7 @@ function PersonalDetailsStep() {
               withAsterisk
               key={form.key("firstName")}
               {...form.getInputProps("firstName")}
+              autoComplete="section-personal given-name"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -171,6 +178,7 @@ function PersonalDetailsStep() {
               placeholder="Optional"
               key={form.key("middleName")}
               {...form.getInputProps("middleName")}
+              autoComplete="section-personal additional-name"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -178,7 +186,7 @@ function PersonalDetailsStep() {
             <TextInput
               label={
                 <div className="flex items-center gap-1">
-                  Nickname/Kunyah
+                  Nickname / Kunyah
                   <Tooltip
                     withArrow
                     label="Your alias or nickname from school days or within the association."
@@ -192,6 +200,7 @@ function PersonalDetailsStep() {
               placeholder="e.g. Abu Labeeb"
               key={form.key("nickname")}
               {...form.getInputProps("nickname")}
+              autoComplete="section-personal nickname"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -206,6 +215,7 @@ function PersonalDetailsStep() {
               withAsterisk
               key={form.key("gender")}
               {...form.getInputProps("gender")}
+              autoComplete="section-personal sex"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -219,6 +229,7 @@ function PersonalDetailsStep() {
                 placeholder="If applicable"
                 key={form.key("maidenName")}
                 {...form.getInputProps("maidenName")}
+                autoComplete="off"
                 labelProps={{ lh: 2, fz: "sm" }}
                 radius="lg"
                 size="lg"
@@ -235,6 +246,7 @@ function PersonalDetailsStep() {
               valueFormat="YYYY-MM-DD"
               key={form.key("dateOfBirth")}
               {...form.getInputProps("dateOfBirth")}
+              autoComplete="section-personal bday"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -246,6 +258,7 @@ function PersonalDetailsStep() {
               {...form.getInputProps("phoneNumber")}
               key={form.key("phoneNumber")}
               withAsterisk
+              autoComplete="section-personal tel-national"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -256,7 +269,7 @@ function PersonalDetailsStep() {
               placeholder="Upload photo"
               accept="image/*"
               leftSection={<Upload className="size-4" />}
-              key={form.key("profilePictureUrl")}
+              key={form.key("photoUrl")}
               onChange={handlePhotoChange}
               disabled={isUploadingProfilePicture}
               leftSectionPointerEvents="none"
@@ -315,9 +328,8 @@ function LocationDetailsStep() {
     originStateOptions.length || isLoadingOriginStates;
   const hasResidenceStateSelect =
     residenceStateOptions.length || isLoadingResidenceStates;
-  const { data: chapter } = useFetchChapterByState(
-    form.values.stateOfResidence
-  );
+  const { data: chapter } = useChapterByState(form.values.stateOfResidence);
+
   const isNigeriaResidence = form.values.countryOfResidence === "Nigeria";
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (evt) => {
@@ -352,6 +364,8 @@ function LocationDetailsStep() {
               data={countryOptions}
               key={form.key("countryOfOrigin")}
               {...form.getInputProps("countryOfOrigin")}
+              autoComplete="section-origin country-name"
+              clearable
               searchable
               withAsterisk
               leftSection={<Globe size={16} />}
@@ -365,10 +379,12 @@ function LocationDetailsStep() {
                 label="State of Origin"
                 placeholder="Select your state..."
                 data={originStateOptions}
+                clearable
                 searchable
                 withAsterisk
                 key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
+                autoComplete="section-origin address-level1"
                 disabled={isLoadingOriginStates}
                 rightSection={
                   isLoadingOriginStates ? <Loader size="sm" /> : undefined
@@ -385,6 +401,7 @@ function LocationDetailsStep() {
                 withAsterisk
                 key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
+                autoComplete="section-origin address-level1"
                 labelProps={{ lh: 2, fz: "sm" }}
                 radius="lg"
                 size="lg"
@@ -397,11 +414,13 @@ function LocationDetailsStep() {
               label="Country of Residence"
               placeholder="Select country..."
               data={countryOptions}
+              clearable
               searchable
               withAsterisk
               leftSection={<Globe size={16} />}
               key={form.key("countryOfResidence")}
               {...form.getInputProps("countryOfResidence")}
+              autoComplete="section-residence country-name"
               disabled={countryOptionsLoading}
               rightSection={
                 countryOptionsLoading ? <Loader size="sm" /> : undefined
@@ -417,10 +436,12 @@ function LocationDetailsStep() {
                 label="State of Residence"
                 placeholder="Select your state..."
                 data={residenceStateOptions}
+                clearable
                 searchable
                 withAsterisk
                 key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
+                autoComplete="section-residence address-level1"
                 disabled={isLoadingResidenceStates}
                 rightSection={
                   isLoadingResidenceStates ? <Loader size="sm" /> : undefined
@@ -437,6 +458,7 @@ function LocationDetailsStep() {
                 withAsterisk
                 key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
+                autoComplete="section-residence address-level1"
                 labelProps={{ lh: 2, fz: "sm" }}
                 radius="lg"
                 size="lg"
@@ -465,6 +487,7 @@ function LocationDetailsStep() {
           leftSection={<Home size={16} />}
           key={form.key("address")}
           {...form.getInputProps("address")}
+          autoComplete="section-residence street-address"
           labelProps={{ lh: 2, fz: "sm" }}
           radius="lg"
           size="lg"
@@ -494,7 +517,11 @@ function LocationDetailsStep() {
 function CredentialsStep() {
   const form = useRegistrationForm();
   const { previousStep, markStepComplete, openReviewPanel } = useRegistration();
+
+  const [password, setPassword] = useState("");
   const [isPasswordVisible, setPasswordVisible] = useState(false);
+
+  form.watch("password", ({ value }) => setPassword(value));
 
   const handleSubmit = () => {
     if (validateCredentials(form)) return;
@@ -528,6 +555,7 @@ function CredentialsStep() {
             leftSection={<Mail size={16} />}
             key={form.key("email")}
             {...form.getInputProps("email")}
+            autoComplete="section-credentials email"
             labelProps={{ lh: 2, fz: "sm" }}
             radius="lg"
             size="lg"
@@ -543,11 +571,13 @@ function CredentialsStep() {
               leftSection={<Shield size={16} />}
               key={form.key("password")}
               {...form.getInputProps("password")}
+              autoComplete="section-credentials new-password"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
             />
-            <PasswordStrengthCheck password={form.values.password} />
+
+            <PasswordStrengthCheck password={password} />
           </div>
         </Stack>
 
@@ -580,6 +610,7 @@ function CredentialsStep() {
 
 function ReviewPanel() {
   const {
+    form,
     personalDetails,
     locationDetails,
     credentials,
@@ -587,10 +618,13 @@ function ReviewPanel() {
     goToStep,
     reset,
   } = useRegistration();
-  const { data: chapter } = useFetchChapterByState(
-    locationDetails.stateOfResidence || ""
-  );
-  const createUserMutation = useCreateUser();
+
+  console.log("personalDetails", personalDetails);
+  console.log("locationDetails", locationDetails);
+  console.log("credentials", credentials);
+
+  const { data: chapter } = useChapterByState(locationDetails.stateOfResidence);
+  const { mutateAsync, isPending } = useCreateUser();
   const navigate = useNavigate();
 
   const handleEdit = (step: 1 | 2 | 3) => {
@@ -598,50 +632,8 @@ function ReviewPanel() {
     goToStep(step);
   };
 
-  const handleSubmit = async () => {
-    if (!personalDetails || !locationDetails || !credentials) {
-      closeReviewPanel();
-      goToStep(1);
-      return;
-    }
-
-    const year = new Date().getFullYear().toString().slice(-2);
-    const randomId = Math.floor(Math.random() * 999)
-      .toString()
-      .padStart(3, "0");
-    const membershipId = `LAU/${year}/${randomId}`;
-
-    const userData = {
-      email: credentials.email,
-      title: personalDetails.title || null,
-      firstName: personalDetails.firstName,
-      lastName: personalDetails.lastName,
-      middleName: personalDetails.middleName || null,
-      maidenName: personalDetails.maidenName || null,
-      nickname: personalDetails.nickname || null,
-      gender: personalDetails.gender,
-      dateOfBirth: personalDetails.dateOfBirth,
-      phoneNumber: personalDetails.phoneNumber,
-      address: locationDetails.address,
-      membershipId,
-      profilePictureUrl: personalDetails.profilePictureUrl || null,
-      countryOfOrigin: locationDetails.countryOfOrigin,
-      stateOfOrigin: locationDetails.stateOfOrigin,
-      countryOfResidence: locationDetails.countryOfResidence,
-      stateOfResidence: locationDetails.stateOfResidence,
-      chapterId: chapter?.id || "",
-      classSet: personalDetails.classSet,
-      status: "pending",
-      role: "member",
-      fcmToken: null,
-      created: null,
-      modified: null,
-    } as const;
-
-    await createUserMutation.mutateAsync({
-      data: userData,
-      password: credentials.password,
-    });
+  const handleSubmit = async (values: typeof form.values) => {
+    await mutateAsync({ data: values });
 
     modals.open({
       title: (
@@ -649,10 +641,8 @@ function ReviewPanel() {
           <CheckCircle className="h-6 w-6 text-vibrant-lime" />
           <Text size="xl" fw={700} c="deep-forest">
             Welcome Home,{" "}
-            {personalDetails.title || personalDetails.gender === "male"
-              ? "Bro. "
-              : "Sis. "}
-            {personalDetails.firstName}!
+            {values.title || values.gender === "male" ? "Bro. " : "Sis. "}
+            {values.firstName}!
           </Text>
         </div>
       ),
@@ -691,13 +681,7 @@ function ReviewPanel() {
       sidebarTitle="Seal Your Legacy."
       sidebarDescription="You're one step away from becoming part of something greater."
     >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-        className="space-y-6"
-      >
+      <form onSubmit={form.onSubmit(handleSubmit)} className="space-y-6">
         <div>
           <h2 className="font-serif text-3xl font-bold text-deep-forest mb-2">
             Review & Submit
@@ -719,12 +703,13 @@ function ReviewPanel() {
           </button>
           <div className="flex items-start gap-6">
             <div className="shrink-0">
-              <img
+              <Avatar
+                size={24}
                 alt="Profile Picture"
-                className="h-24 w-24 rounded-full border-4 border-institutional-green object-cover"
+                radius="xl"
+                className="rounded-full border-[1.75px] border-institutional-green object-cover"
                 src={
-                  personalDetails?.profilePictureUrl ||
-                  "https://via.placeholder.com/96"
+                  personalDetails?.photoUrl || "https://via.placeholder.com/96"
                 }
               />
             </div>
@@ -778,11 +763,43 @@ function ReviewPanel() {
                     <span className="font-semibold text-deep-forest">
                       Class Set:
                     </span>{" "}
-                    {personalDetails.classSet}
+                    {formatDate(personalDetails.classSet, "yyyy")}
                   </p>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="relative rounded-lg bg-white p-6 shadow-lg border border-sage-green">
+          <button
+            type="button"
+            onClick={() => handleEdit(3)}
+            className="absolute top-4 right-4 text-institutional-green transition-transform hover:scale-110"
+            aria-label="Edit account credentials"
+          >
+            <Edit className="h-5 w-5" />
+          </button>
+          <div className="space-y-4">
+            <h3 className="font-serif text-2xl font-bold text-deep-forest">
+              Account Security
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <p>
+                <span className="font-semibold text-deep-forest">Email:</span>{" "}
+                {credentials.email || "Not provided"}
+              </p>
+              <p>
+                <span className="font-semibold text-deep-forest">
+                  Password:
+                </span>{" "}
+                ••••••••
+              </p>
+            </div>
+            <p className="text-sm text-gray-600">
+              You can reset your password at any time after completing
+              registration.
+            </p>
           </div>
         </div>
 
@@ -857,38 +874,6 @@ function ReviewPanel() {
           </div>
         </div>
 
-        <div className="relative rounded-lg bg-white p-6 shadow-lg border border-sage-green">
-          <button
-            type="button"
-            onClick={() => handleEdit(3)}
-            className="absolute top-4 right-4 text-institutional-green transition-transform hover:scale-110"
-            aria-label="Edit account credentials"
-          >
-            <Edit className="h-5 w-5" />
-          </button>
-          <div className="space-y-4">
-            <h3 className="font-serif text-2xl font-bold text-deep-forest">
-              Account Security
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-              <p>
-                <span className="font-semibold text-deep-forest">Email:</span>{" "}
-                {credentials.email || "Not provided"}
-              </p>
-              <p>
-                <span className="font-semibold text-deep-forest">
-                  Password:
-                </span>{" "}
-                ••••••••
-              </p>
-            </div>
-            <p className="text-sm text-gray-600">
-              You can reset your password at any time after completing
-              registration.
-            </p>
-          </div>
-        </div>
-
         <div className="flex items-center justify-between pt-4">
           <button
             type="button"
@@ -900,12 +885,10 @@ function ReviewPanel() {
           </button>
           <button
             type="submit"
-            disabled={createUserMutation.isPending}
+            disabled={isPending}
             className="rounded-lg bg-vibrant-lime py-4 px-8 text-base font-bold uppercase tracking-wider text-deep-forest transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-vibrant-lime/50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {createUserMutation.isPending
-              ? "SUBMITTING..."
-              : "SUBMIT APPLICATION"}
+            {isPending ? "SUBMITTING..." : "SUBMIT APPLICATION"}
           </button>
         </div>
       </form>
