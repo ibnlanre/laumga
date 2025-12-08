@@ -1,35 +1,8 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
 import { useAuth } from "@/contexts/use-auth";
-import { auth } from "@/services/firebase";
-import { user } from "@/api/user";
 
 export const Route = createFileRoute("/_auth")({
-  beforeLoad: async ({ location }) => {
-    const currentUser = auth.currentUser;
-
-    if (!currentUser) {
-      throw redirect({
-        to: "/login",
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
-
-    const userData = await user.$use.get(currentUser.uid);
-
-    if (!userData) {
-      throw redirect({
-        to: "/login",
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
-
-    return { userData };
-  },
   component: AuthLayout,
 });
 
