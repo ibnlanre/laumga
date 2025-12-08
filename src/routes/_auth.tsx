@@ -2,7 +2,6 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { Header } from "@/components/layout/header";
 import { useAuth } from "@/contexts/use-auth";
 import { auth } from "@/services/firebase";
-import { user } from "@/api/user";
 
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async ({ location }) => {
@@ -16,26 +15,16 @@ export const Route = createFileRoute("/_auth")({
         },
       });
     }
-
-    const userData = await user.$use.get(currentUser.uid);
-
-    if (!userData) {
-      throw redirect({
-        to: "/login",
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
-
-    return { userData };
   },
   component: AuthLayout,
 });
 
 function AuthLayout() {
   const { user } = useAuth();
-  const isPrivileged = user?.role === "admin" || user?.role === "super-admin";
+
+  console.log("Authenticated user:", user);
+
+  const isPrivileged = ["admin", "super-admin"].includes(user?.role || "");
   const variant = isPrivileged ? "admin" : "auth";
 
   return (
