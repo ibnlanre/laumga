@@ -11,17 +11,18 @@ const accountNumberSchema = z
   .string()
   .min(10, "Account number must be at least 10 digits");
 
-export const paymentPartnerFormSchema = z
-  .object({
-    name: z.string().min(1, "Partner name is required"),
-    accountNumber: accountNumberSchema,
-    nipCode: z.string().min(1, "NIP code is required"),
-    allocationType: allocationTypeSchema,
-    allocationValue: z.number().positive(),
-    allocationMax: z.number().positive().nullable().default(null),
-    feeBearer: feeBearerSchema.default("business"),
-    isActive: z.boolean().default(true),
-  })
+export const paymentPartnerBaseSchema = z.object({
+  name: z.string().min(1, "Partner name is required"),
+  accountNumber: accountNumberSchema,
+  nipCode: z.string().min(1, "NIP code is required"),
+  allocationType: allocationTypeSchema,
+  allocationValue: z.number().positive(),
+  allocationMax: z.number().positive().nullable().default(null),
+  feeBearer: feeBearerSchema.default("business"),
+  isActive: z.boolean().default(true),
+});
+
+export const paymentPartnerFormSchema = paymentPartnerBaseSchema
   .refine(
     (data) => {
       if (data.allocationType === "percentage") {
@@ -47,7 +48,7 @@ export const paymentPartnerFormSchema = z
     }
   );
 
-export const paymentPartnerDataSchema = paymentPartnerFormSchema.extend({
+export const paymentPartnerDataSchema = paymentPartnerBaseSchema.extend({
   bankName: z.string().min(1, "Bank name is required"),
   monoSubAccountId: z.string().min(1, "Mono sub-account ID is required"),
   bankCode: z.string().min(1, "Bank code is required"),

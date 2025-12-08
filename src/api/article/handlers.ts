@@ -17,10 +17,10 @@ export function useGetRelatedArticles(articleId?: string) {
   });
 }
 
-// export function useIncrementArticleViewCount(articleId: string) {
-//   return useQuery({
-//     queryKey: article.incrementViewCount.$get(articleId),
-//     queryFn: () => article.$use.incrementViewCount(articleId),
-//     enabled: !!articleId,
-//   });
-// }
+export function useIncrementArticleViewCount(articleId: string) {
+  return useQuery({
+    queryKey: article.incrementViewCount.$get(articleId),
+    queryFn: () => article.$use.incrementViewCount(articleId),
+    enabled: !!articleId,
+  });
+}

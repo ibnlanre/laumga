@@ -2,7 +2,6 @@ import { useEffect, useState, type PropsWithChildren } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 import { auth } from "@/services/firebase";
-import { registerFirebaseAuthServiceWorker } from "@/services/firebase-auth-service-worker";
 import { useCurrentUser } from "@/api/user/hooks";
 import { AuthContext } from "./auth-context";
 
@@ -12,35 +11,16 @@ interface AuthProviderProps extends PropsWithChildren {}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
   const { mutateAsync } = useCurrentUser();
 
   useEffect(() => {
-    registerFirebaseAuthServiceWorker();
-  }, []);
-
-  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await mutateAsync(firebaseUser.uid);
-        setUser(data);
-      } catch (error) {
-        console.error("Error fetching current user:", error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+      if (!firebaseUser) return;
+      mutateAsync(firebaseUser.uid).then(setUser)
     });
 
     return unsubscribe;
-  }, [mutateAsync]);
+  }, []);
 
   const logout = async () => {
     await signOut(auth);
@@ -48,7 +28,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, logout }}>
       {children}
     </AuthContext.Provider>
   );

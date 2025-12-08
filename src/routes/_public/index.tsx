@@ -13,14 +13,16 @@ import { Link } from "@tanstack/react-router";
 import { formatDate } from "@/utils/date";
 import { useListArticles } from "@/api/article/hooks";
 import { useListEvents } from "@/api/event/hooks";
+import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
 });
 
-//  <div className="absolute right-0 top-0 bottom-0 w-full md:w-2/5 bg-sage-green h-[40vh] md:h-auto my-auto md:my-0"></div>
+const now = dayjs().toJSON();
 
 function RouteComponent() {
+
   const { data: articles } = useListArticles({
     filterBy: [{ field: "status", operator: "==", value: "published" }],
   });
@@ -30,7 +32,7 @@ function RouteComponent() {
       {
         field: "startDate",
         operator: ">=",
-        value: new Date(),
+        value: now,
       },
     ],
     sortBy: [{ field: "startDate", value: "asc" }],

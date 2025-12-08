@@ -2,6 +2,7 @@ import { user } from ".";
 import type { Options } from "@/client/options";
 import { queryOptions, useQuery, useMutation } from "@tanstack/react-query";
 import type { ListUserVariables } from "./types";
+import { useServerFn } from "@tanstack/react-start";
 
 export function useListUsers(
   variables?: ListUserVariables,
@@ -39,7 +40,7 @@ export function useCreateUser() {
 export function useCurrentUser() {
   return useMutation({
     mutationKey: user.get.$get(),
-    mutationFn: user.$use.get,
+    mutationFn: (user.$use.get),
   });
 }
 

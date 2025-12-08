@@ -7,12 +7,10 @@ import { auth } from "@/services/firebase";
 export const Route = createFileRoute("/_public")({
   beforeLoad: async ({ location }) => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
 
     // const userData = await user.$use.get(currentUser.uid);
 
     // if (userData) {
-    //   const adminRoles = ["admin", "super-admin"];
     //   const isAdmin = adminRoles.includes(userData.role);
 
     //   throw redirect({

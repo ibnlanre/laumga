@@ -59,9 +59,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
   };
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return currentPath === "/";
-    }
+    if (href === "/") return currentPath === "/";
     return currentPath.startsWith(href);
   };
 

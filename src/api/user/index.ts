@@ -11,8 +11,8 @@ import {
   type AuthProvider,
 } from "firebase/auth";
 import { collection, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-
 import { auth, db } from "@/services/firebase";
+
 import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
 
 import {
@@ -34,7 +34,6 @@ import type {
   UpstreamUserDocument,
 } from "./types";
 import { record } from "@/utils/record";
-import { isSuperAdminEmail } from "@/utils/super-admin";
 
 async function list(variables?: ListUserVariables) {
   const usersRef = collection(db, USERS_COLLECTION) as DownstreamUserCollection;
@@ -43,19 +42,17 @@ async function list(variables?: ListUserVariables) {
   return await getQueryDocs(usersQuery, userSchema);
 }
 
-async function get(userId: string | null) {
+const get = (async (userId: string | null) => {
   if (!userId) return null;
 
   const userRef = doc(db, USERS_COLLECTION, userId) as DownstreamUserDocument;
   return await getQueryDoc(userRef, userSchema);
-}
+});
 
 async function create(variables: CreateUserVariables) {
-  const { data } = variables;
+  const { data,  } = variables;
 
-  const isSuperAdmin = isSuperAdminEmail(data.email);
-  const role = isSuperAdmin ? "super-admin" : data.role;
-  const validated = createUserSchema.parse({ ...data, role });
+  const validated = createUserSchema.parse(data);
 
   await setPersistence(auth, browserLocalPersistence);
   const credential = await createUserWithEmailAndPassword(

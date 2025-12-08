@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth/admin")({
     const userData = await user.$use.get(currentUser.uid);
 
     const canAccess =
-      userData?.role === "admin" || userData?.role === "super-admin";
+      userData?.role === "admin";
 
     if (!canAccess) {
       throw redirect({ to: "/login" });

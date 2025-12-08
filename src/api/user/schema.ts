@@ -14,7 +14,7 @@ export const approvalStatusSchema = z.enum([
   "suspended",
 ]);
 
-export const userRoleSchema = z.enum(["member", "admin", "super-admin"]);
+export const userRoleSchema = z.enum(["member", "admin"]);
 
 const userBaseSchema = registrationSchema.extend({
   fullName: z.string().default(""),

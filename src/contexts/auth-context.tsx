@@ -4,7 +4,6 @@ import type { User } from "@/api/user/types";
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
   logout: () => Promise<void>;
 }
 

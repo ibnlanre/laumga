@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   type DocumentReference,
   deleteDoc,
+  increment,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
@@ -177,7 +178,25 @@ async function getArticleBySlug(slug: string) {
   );
 }
 
+async function incrementViewCount(articleId: string) {
+  const articleRef = doc(
+    db,
+    ARTICLES_COLLECTION,
+    articleId
+  ) as UpstreamArticleDocument;
+
+  const article = await get(articleId);
+  if (!article) {
+    throw new Error("Article not found");
+  }
+
+  await updateDoc(articleRef, {
+    viewCount: increment(1),
+  });
+}
+
 export const article = createBuilder({
+  incrementViewCount,
   getArticleBySlug,
   related,
   archive,
