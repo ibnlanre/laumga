@@ -29,6 +29,7 @@ import { Route as PublicDefaultContactUsRouteImport } from './routes/_public/_de
 import { Route as PublicDefaultAboutUsRouteImport } from './routes/_public/_default/about-us'
 import { Route as AuthMandateLayoutRouteImport } from './routes/_auth/mandate/_layout'
 import { Route as AuthAdminUsersRouteImport } from './routes/_auth/admin/users'
+import { Route as AuthAdminRolesRouteImport } from './routes/_auth/admin/roles'
 import { Route as AuthAdminPaymentPartnersRouteImport } from './routes/_auth/admin/payment-partners'
 import { Route as AuthAdminGalleryRouteImport } from './routes/_auth/admin/gallery'
 import { Route as AuthAdminEventsRouteImport } from './routes/_auth/admin/events'
@@ -135,6 +136,11 @@ const AuthAdminUsersRoute = AuthAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthAdminRoute,
 } as any)
+const AuthAdminRolesRoute = AuthAdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 const AuthAdminPaymentPartnersRoute =
   AuthAdminPaymentPartnersRouteImport.update({
     id: '/payment-partners',
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/admin/events': typeof AuthAdminEventsRoute
   '/admin/gallery': typeof AuthAdminGalleryRoute
   '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
+  '/admin/roles': typeof AuthAdminRolesRoute
   '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutRouteWithChildren
   '/about-us': typeof PublicDefaultAboutUsRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/admin/events': typeof AuthAdminEventsRoute
   '/admin/gallery': typeof AuthAdminGalleryRoute
   '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
+  '/admin/roles': typeof AuthAdminRolesRoute
   '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutIndexRoute
   '/about-us': typeof PublicDefaultAboutUsRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/_auth/admin/events': typeof AuthAdminEventsRoute
   '/_auth/admin/gallery': typeof AuthAdminGalleryRoute
   '/_auth/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
+  '/_auth/admin/roles': typeof AuthAdminRolesRoute
   '/_auth/admin/users': typeof AuthAdminUsersRoute
   '/_auth/mandate': typeof AuthMandateRouteWithChildren
   '/_auth/mandate/_layout': typeof AuthMandateLayoutRouteWithChildren
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/payment-partners'
+    | '/admin/roles'
     | '/admin/users'
     | '/mandate'
     | '/about-us'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/payment-partners'
+    | '/admin/roles'
     | '/admin/users'
     | '/mandate'
     | '/about-us'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/_auth/admin/events'
     | '/_auth/admin/gallery'
     | '/_auth/admin/payment-partners'
+    | '/_auth/admin/roles'
     | '/_auth/admin/users'
     | '/_auth/mandate'
     | '/_auth/mandate/_layout'
@@ -517,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminUsersRouteImport
       parentRoute: typeof AuthAdminRoute
     }
+    '/_auth/admin/roles': {
+      id: '/_auth/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AuthAdminRolesRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
     '/_auth/admin/payment-partners': {
       id: '/_auth/admin/payment-partners'
       path: '/payment-partners'
@@ -602,6 +621,7 @@ interface AuthAdminRouteChildren {
   AuthAdminEventsRoute: typeof AuthAdminEventsRoute
   AuthAdminGalleryRoute: typeof AuthAdminGalleryRoute
   AuthAdminPaymentPartnersRoute: typeof AuthAdminPaymentPartnersRoute
+  AuthAdminRolesRoute: typeof AuthAdminRolesRoute
   AuthAdminUsersRoute: typeof AuthAdminUsersRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
 }
@@ -611,6 +631,7 @@ const AuthAdminRouteChildren: AuthAdminRouteChildren = {
   AuthAdminEventsRoute: AuthAdminEventsRoute,
   AuthAdminGalleryRoute: AuthAdminGalleryRoute,
   AuthAdminPaymentPartnersRoute: AuthAdminPaymentPartnersRoute,
+  AuthAdminRolesRoute: AuthAdminRolesRoute,
   AuthAdminUsersRoute: AuthAdminUsersRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,
 }

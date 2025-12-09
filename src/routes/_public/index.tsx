@@ -10,19 +10,15 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { formatDate } from "@/utils/date";
+import { formatDate, now } from "@/utils/date";
 import { useListArticles } from "@/api/article/hooks";
 import { useListEvents } from "@/api/event/hooks";
-import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
 });
 
-const now = dayjs().toJSON();
-
 function RouteComponent() {
-
   const { data: articles } = useListArticles({
     filterBy: [{ field: "status", operator: "==", value: "published" }],
   });

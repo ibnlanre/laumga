@@ -14,13 +14,13 @@ import type {
   updateUserSchema,
   userDataSchema,
   userSchema,
-  userRoleSchema,
 } from "./schema";
 import type { LoginFormValues } from "../login/types";
 
+export type { Permission } from "../../schema/permissions";
+
 export type Gender = z.infer<typeof genderSchema>;
 export type ApprovalStatus = z.infer<typeof approvalStatusSchema>;
-export type UserRole = z.infer<typeof userRoleSchema>;
 
 export type UserProfile = z.infer<typeof userDataSchema>;
 export type UserProfileInput = z.input<typeof userDataSchema>;

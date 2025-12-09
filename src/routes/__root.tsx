@@ -16,9 +16,9 @@ import { NotFound } from "@/components/not-found";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
+// import { TanStackDevtools } from "@tanstack/react-devtools";
+// import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+// import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -174,7 +174,8 @@ function RootDocument({ children }: PropsWithChildren) {
             </MantineProvider>
           </AuthProvider>
 
-          <TanStackDevtools
+          {/* <TanStackDevtools
+            
             config={{
               position: "bottom-right",
             }}
@@ -188,7 +189,7 @@ function RootDocument({ children }: PropsWithChildren) {
                 render: <ReactQueryDevtoolsPanel />,
               },
             ]}
-          />
+          /> */}
         </QueryClientProvider>
 
         <Scripts />

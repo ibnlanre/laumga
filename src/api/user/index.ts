@@ -42,15 +42,15 @@ async function list(variables?: ListUserVariables) {
   return await getQueryDocs(usersQuery, userSchema);
 }
 
-const get = (async (userId: string | null) => {
+const get = async (userId: string | null) => {
   if (!userId) return null;
 
   const userRef = doc(db, USERS_COLLECTION, userId) as DownstreamUserDocument;
   return await getQueryDoc(userRef, userSchema);
-});
+};
 
 async function create(variables: CreateUserVariables) {
-  const { data,  } = variables;
+  const { data } = variables;
 
   const validated = createUserSchema.parse(data);
 
@@ -82,8 +82,8 @@ async function create(variables: CreateUserVariables) {
 
 async function update(variables: UpdateUserVariables) {
   const { id, data, user } = variables;
-  const userRef = doc(db, USERS_COLLECTION, id) as UpstreamUserDocument;
 
+  const userRef = doc(db, USERS_COLLECTION, id) as UpstreamUserDocument;
   const validated = updateUserSchema.parse(data);
 
   const updateData = {

@@ -57,6 +57,8 @@ const initialFormValues: RegistrationFormValues = {
   dateOfBirth: "",
   phoneNumber: "",
   classSet: null,
+  faculty: "",
+  department: "",
   countryOfOrigin: "Nigeria",
   stateOfOrigin: "",
   countryOfResidence: "Nigeria",
@@ -68,7 +70,6 @@ const initialFormValues: RegistrationFormValues = {
 
 export function RegistrationProvider({ children }: PropsWithChildren) {
   const form = useCreateRegistrationForm({
-    mode: "uncontrolled",
     initialValues: initialFormValues,
     validate: zod4Resolver(registrationSchema),
   });
@@ -156,6 +157,8 @@ function selectPersonalDetails(
     photoUrl,
     dateOfBirth,
     phoneNumber,
+    faculty,
+    department,
     classSet,
   } = values;
 
@@ -170,6 +173,8 @@ function selectPersonalDetails(
     photoUrl,
     dateOfBirth,
     phoneNumber,
+    faculty,
+    department,
     classSet,
   } satisfies PersonalDetailsFormValues;
 }

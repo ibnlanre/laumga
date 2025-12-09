@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Badge, Skeleton, TextInput } from "@mantine/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, MapPin, Users, Search, CalendarOff } from "lucide-react";
-import { formatDate } from "@/utils/date";
+import { formatDate, now } from "@/utils/date";
 
 import { type Variables } from "@/client/core-query";
 import type { Event, EventData, EventType } from "@/api/event/types";
@@ -44,7 +44,7 @@ function EventsPage() {
     eventVariables.filterBy!.push({
       field: "startDate",
       operator: ">=",
-      value: new Date(),
+      value: now,
     });
   }
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { dateSchema, fieldValueSchema } from "@/schema/date";
 import { registrationSchema } from "../registration/schema";
+import { DEFAULT_ROLE } from "../../schema/permissions";
 
 export const USERS_COLLECTION = "users";
 
@@ -14,13 +15,33 @@ export const approvalStatusSchema = z.enum([
   "suspended",
 ]);
 
-export const userRoleSchema = z.enum(["member", "admin"]);
+interface NameFields {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+const createFullName = <T extends NameFields>(data: T) => {
+  if (data.fullName) return data;
+
+  const { firstName, lastName } = data;
+  const fullName = [firstName, lastName]
+    .filter(Boolean)
+    .map((value = "") => value.trim())
+    .join(" ")
+    .trim();
+
+  return {
+    ...data,
+    fullName,
+  };
+};
 
 const userBaseSchema = registrationSchema.extend({
   fullName: z.string().default(""),
   chapterId: z.string().nullable().default(null),
   status: approvalStatusSchema.default("pending"),
-  role: userRoleSchema.default("member"),
+  role: z.string().default(DEFAULT_ROLE),
   created: dateSchema,
   updated: dateSchema,
 });
@@ -32,38 +53,11 @@ const createUserBaseSchema = userBaseSchema.extend({
   updated: fieldValueSchema,
 });
 
-export const createUserSchema = createUserBaseSchema.transform((data) => {
-  if (data.fullName) return data;
-
-  const { firstName, lastName } = data;
-  console.log({ firstName, lastName });
-  const fullName = [firstName, lastName]
-    .filter(Boolean)
-    .map((value) => value.trim())
-    .join(" ");
-
-  return {
-    ...data,
-    fullName,
-  };
-});
+export const createUserSchema = createUserBaseSchema.transform(createFullName);
 
 export const updateUserSchema = createUserBaseSchema
   .partial()
-  .transform((data) => {
-    if (data.fullName) return data;
-
-    const { firstName, lastName } = data;
-    const fullName = [firstName, lastName]
-      .filter(Boolean)
-      .map((value = "") => value.trim())
-      .join(" ");
-
-    return {
-      ...data,
-      fullName,
-    };
-  });
+  .transform(createFullName);
 
 export const userSchema = userDataSchema.extend({
   id: z.string(),

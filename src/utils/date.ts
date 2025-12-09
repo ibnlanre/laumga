@@ -88,6 +88,4 @@ export function toTimestamp(date: DateInput): number | null {
 /**
  * Get current timestamp in milliseconds
  */
-export function now(): number {
-  return Date.now();
-}
+export const now = Date.now();

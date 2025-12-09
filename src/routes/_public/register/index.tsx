@@ -43,6 +43,8 @@ import { useImageUpload } from "@/api/upload/hooks";
 import { useCreateUser } from "@/api/user/hooks";
 import {
   accountCredentialsSchema,
+  departmentsByFaculty,
+  faculties,
   locationDetailsSchema,
   personalDetailsSchema,
 } from "@/api/registration/schema";
@@ -92,7 +94,7 @@ function PersonalDetailsStep() {
   const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
     useState(false);
 
-  const { mutateAsync } = useImageUpload();
+  const imageQuery = useImageUpload();
 
   const handlePhotoChange = async (file: File | null) => {
     form.clearFieldError("photoUrl");
@@ -104,7 +106,7 @@ function PersonalDetailsStep() {
 
     try {
       setIsUploadingProfilePicture(true);
-      const uploadedUrl = await mutateAsync(file);
+      const uploadedUrl = await imageQuery.mutateAsync(file);
       form.setFieldValue("photoUrl", uploadedUrl);
     } catch (error) {
       const message =
@@ -126,6 +128,13 @@ function PersonalDetailsStep() {
     nextStep();
   };
 
+  const faculty = form.values.faculty;
+  const departmentOptions = departmentsByFaculty[faculty];
+
+  form.watch("faculty", () => {
+    form.setFieldValue("department", null);
+  });
+
   return (
     <RegistrationLayout
       sidebarTitle="The Prestige Application"
@@ -144,7 +153,6 @@ function PersonalDetailsStep() {
             <TextInput
               label="Title"
               placeholder="e.g. Dr., Engr., Prof."
-              key={form.key("title")}
               {...form.getInputProps("title")}
               autoComplete="section-personal honorific-prefix"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -155,7 +163,6 @@ function PersonalDetailsStep() {
               label="Surname"
               placeholder="e.g. Al-Faruq"
               withAsterisk
-              key={form.key("lastName")}
               {...form.getInputProps("lastName")}
               autoComplete="section-personal family-name"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -166,7 +173,6 @@ function PersonalDetailsStep() {
               label="First Name"
               placeholder="e.g. Aminah"
               withAsterisk
-              key={form.key("firstName")}
               {...form.getInputProps("firstName")}
               autoComplete="section-personal given-name"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -176,7 +182,6 @@ function PersonalDetailsStep() {
             <TextInput
               label="Middle Name"
               placeholder="Optional"
-              key={form.key("middleName")}
               {...form.getInputProps("middleName")}
               autoComplete="section-personal additional-name"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -198,7 +203,6 @@ function PersonalDetailsStep() {
                 </div>
               }
               placeholder="e.g. Abu Labeeb"
-              key={form.key("nickname")}
               {...form.getInputProps("nickname")}
               autoComplete="section-personal nickname"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -213,7 +217,6 @@ function PersonalDetailsStep() {
                 { value: "female", label: "Sister (Female)" },
               ]}
               withAsterisk
-              key={form.key("gender")}
               {...form.getInputProps("gender")}
               autoComplete="section-personal sex"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -227,7 +230,6 @@ function PersonalDetailsStep() {
               <TextInput
                 label="Maiden Name"
                 placeholder="If applicable"
-                key={form.key("maidenName")}
                 {...form.getInputProps("maidenName")}
                 autoComplete="off"
                 labelProps={{ lh: 2, fz: "sm" }}
@@ -241,10 +243,8 @@ function PersonalDetailsStep() {
             <DateInput
               label="Date of Birth"
               placeholder="Select date"
-              withAsterisk
               maxDate={new Date()}
               valueFormat="YYYY-MM-DD"
-              key={form.key("dateOfBirth")}
               {...form.getInputProps("dateOfBirth")}
               autoComplete="section-personal bday"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -256,7 +256,6 @@ function PersonalDetailsStep() {
               label="Phone Number"
               placeholder="080XXXXXXXX"
               {...form.getInputProps("phoneNumber")}
-              key={form.key("phoneNumber")}
               withAsterisk
               autoComplete="section-personal tel-national"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -269,7 +268,6 @@ function PersonalDetailsStep() {
               placeholder="Upload photo"
               accept="image/*"
               leftSection={<Upload className="size-4" />}
-              key={form.key("photoUrl")}
               onChange={handlePhotoChange}
               disabled={isUploadingProfilePicture}
               leftSectionPointerEvents="none"
@@ -285,8 +283,35 @@ function PersonalDetailsStep() {
               withAsterisk
               maxDate={new Date()}
               placeholder="Select year"
-              key={form.key("classSet")}
               {...form.getInputProps("classSet")}
+              labelProps={{ lh: 2, fz: "sm" }}
+              radius="lg"
+              size="lg"
+            />
+
+            <Select
+              label="Faculty"
+              withAsterisk
+              clearable
+              searchable
+              placeholder="Select your faculty"
+              data={faculties}
+              {...form.getInputProps("faculty")}
+              autoComplete="section-education faculty"
+              labelProps={{ lh: 2, fz: "sm" }}
+              radius="lg"
+              size="lg"
+            />
+
+            <Select
+              label="Department"
+              withAsterisk
+              clearable
+              searchable
+              placeholder="Enter your department"
+              data={departmentOptions || []}
+              {...form.getInputProps("department")}
+              autoComplete="section-education department"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
@@ -362,7 +387,6 @@ function LocationDetailsStep() {
               label="Country of Origin"
               placeholder="Select country..."
               data={countryOptions}
-              key={form.key("countryOfOrigin")}
               {...form.getInputProps("countryOfOrigin")}
               autoComplete="section-origin country-name"
               clearable
@@ -382,7 +406,6 @@ function LocationDetailsStep() {
                 clearable
                 searchable
                 withAsterisk
-                key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
                 autoComplete="section-origin address-level1"
                 disabled={isLoadingOriginStates}
@@ -399,7 +422,6 @@ function LocationDetailsStep() {
                 label="State/Region of Origin"
                 placeholder="e.g. California, Ontario, etc."
                 withAsterisk
-                key={form.key("stateOfOrigin")}
                 {...form.getInputProps("stateOfOrigin")}
                 autoComplete="section-origin address-level1"
                 labelProps={{ lh: 2, fz: "sm" }}
@@ -418,7 +440,6 @@ function LocationDetailsStep() {
               searchable
               withAsterisk
               leftSection={<Globe size={16} />}
-              key={form.key("countryOfResidence")}
               {...form.getInputProps("countryOfResidence")}
               autoComplete="section-residence country-name"
               disabled={countryOptionsLoading}
@@ -439,7 +460,6 @@ function LocationDetailsStep() {
                 clearable
                 searchable
                 withAsterisk
-                key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
                 autoComplete="section-residence address-level1"
                 disabled={isLoadingResidenceStates}
@@ -456,7 +476,6 @@ function LocationDetailsStep() {
                 label="State/Region of Residence"
                 placeholder="e.g. Texas, London, etc."
                 withAsterisk
-                key={form.key("stateOfResidence")}
                 {...form.getInputProps("stateOfResidence")}
                 autoComplete="section-residence address-level1"
                 labelProps={{ lh: 2, fz: "sm" }}
@@ -485,7 +504,6 @@ function LocationDetailsStep() {
           placeholder="Your full address"
           withAsterisk
           leftSection={<Home size={16} />}
-          key={form.key("address")}
           {...form.getInputProps("address")}
           autoComplete="section-residence street-address"
           labelProps={{ lh: 2, fz: "sm" }}
@@ -553,7 +571,6 @@ function CredentialsStep() {
             type="email"
             withAsterisk
             leftSection={<Mail size={16} />}
-            key={form.key("email")}
             {...form.getInputProps("email")}
             autoComplete="section-credentials email"
             labelProps={{ lh: 2, fz: "sm" }}
@@ -569,7 +586,6 @@ function CredentialsStep() {
               visible={isPasswordVisible}
               onVisibilityChange={setPasswordVisible}
               leftSection={<Shield size={16} />}
-              key={form.key("password")}
               {...form.getInputProps("password")}
               autoComplete="section-credentials new-password"
               labelProps={{ lh: 2, fz: "sm" }}
@@ -618,10 +634,6 @@ function ReviewPanel() {
     goToStep,
     reset,
   } = useRegistration();
-
-  console.log("personalDetails", personalDetails);
-  console.log("locationDetails", locationDetails);
-  console.log("credentials", credentials);
 
   const { data: chapter } = useChapterByState(locationDetails.stateOfResidence);
   const { mutateAsync, isPending } = useCreateUser();

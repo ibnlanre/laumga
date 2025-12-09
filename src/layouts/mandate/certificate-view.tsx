@@ -14,7 +14,7 @@ const nairaFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 export function MandateCertificateView() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { data, isLoading, isError } = useGetMandateCertificate(user?.id);
 
   const formattedAmount = useMemo(() => {
@@ -27,7 +27,7 @@ export function MandateCertificateView() {
     return formatDate(data.startDate, "MMMM d, yyyy");
   }, [data?.startDate]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex w-full items-center justify-center py-20">
         <Loader color="green" size="lg" />
