@@ -1,56 +1,27 @@
 import { createBuilder } from "@ibnlanre/builder";
-import {
-  collection,
-  doc,
-  query,
-  setDoc,
-  where,
-  limit,
-} from "firebase/firestore";
+import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
 import { db } from "@/services/firebase";
 import { record } from "@/utils/record";
-import { getQueryDocs } from "@/client/core-query";
+import { getQueryDoc } from "@/client/core-query";
 
 import {
   createMandateCertificateDataSchema,
   MANDATE_CERTIFICATES_COLLECTION,
   mandateCertificateSchema,
+  updateMandateCertificateDataSchema,
 } from "./schema";
 import type {
-  MandateCertificatesCollection,
   MandateCertificateDocument,
-  IssueMandateCertificateVariables,
+  CreateMandateCertificateVariables,
+  UpdateMandateCertificateVariables,
 } from "./types";
 import { mandateCertificateSettings } from "./settings";
 
-async function get(userId: string) {
-  if (!userId) return null;
-
-  const certificatesRef = collection(
-    db,
-    MANDATE_CERTIFICATES_COLLECTION
-  ) as MandateCertificatesCollection;
-
-  const certificatesQuery = query(
-    certificatesRef,
-    where("userId", "==", userId),
-    limit(1)
-  );
-
-  const results = await getQueryDocs(
-    certificatesQuery,
-    mandateCertificateSchema
-  );
-  return results[0] ?? null;
-}
-
-async function create(variables: IssueMandateCertificateVariables) {
+async function create(variables: CreateMandateCertificateVariables) {
   const { mandate, user } = variables;
 
   const certificateData = createMandateCertificateDataSchema.parse({
-    mandateId: mandate.id,
-    userId: user.id,
     userName: user.fullName,
     amount: mandate.amount,
     frequency: mandate.frequency,
@@ -75,7 +46,42 @@ async function create(variables: IssueMandateCertificateVariables) {
   await setDoc(ref, certificateData);
 }
 
+async function update(variables: UpdateMandateCertificateVariables) {
+  const { id, data } = variables;
+
+  const validated = updateMandateCertificateDataSchema.parse(data);
+
+  const certificateRef = doc(
+    db,
+    MANDATE_CERTIFICATES_COLLECTION,
+    id
+  ) as MandateCertificateDocument;
+
+  await updateDoc(certificateRef, validated);
+}
+
+async function get(id: string) {
+  const certificatesRef = doc(
+    db,
+    MANDATE_CERTIFICATES_COLLECTION,
+    id
+  ) as MandateCertificateDocument;
+
+  return await getQueryDoc(certificatesRef, mandateCertificateSchema);
+}
+
+async function remove(id: string) {
+  const certificateRef = doc(
+    db,
+    MANDATE_CERTIFICATES_COLLECTION,
+    id
+  ) as MandateCertificateDocument;
+
+  await deleteDoc(certificateRef);
+}
+
 export const mandateCertificate = createBuilder({
   get,
   create,
+  update,
 });

@@ -3,12 +3,19 @@ import type {
   CollectionReference,
   DocumentData,
   DocumentReference,
+  DocumentSnapshot,
   OrderByDirection,
-  Query,
   WhereFilterOp,
 } from "firebase/firestore";
 
-import { getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
+import {
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  where,
+  Query,
+} from "firebase/firestore";
 import type z from "zod";
 
 export const FilterOperator = Object.freeze({
@@ -87,22 +94,39 @@ export async function getQueryDocs<
   });
 
   if (result.success) return result.data;
-  console.error("Error fetching documents:", result.error);
   return [];
 }
+
+async function getDocument<
+  DocumentType extends DocumentData,
+  Schema extends z.ZodType,
+>(snapshot: DocumentSnapshot<DocumentType, DocumentData>, schema: Schema) {
+  if (!snapshot.exists()) return null;
+  const data = { id: snapshot.id, ...snapshot.data() };
+  return schema.parse(data);
+}
+
+type Reference<DocumentType extends DocumentData> =
+  | DocumentReference<DocumentType>
+  | Query<DocumentType>;
 
 export async function getQueryDoc<
   DocumentType extends DocumentData,
   Schema extends z.ZodType,
->(reference: DocumentReference<DocumentType>, schema: Schema) {
+>(reference: Reference<DocumentType>, schema: Schema) {
   const result = await tryCatch(async () => {
+    if (reference instanceof Query) {
+      const result = await getDocs(reference);
+      if (result.empty) return null;
+
+      const [snapshot] = result.docs;
+      return getDocument(snapshot, schema);
+    }
+
     const snapshot = await getDoc(reference);
-    if (!snapshot.exists()) return null;
-    const data = { id: snapshot.id, ...snapshot.data() };
-    return schema.parse(data);
+    return getDocument(snapshot, schema);
   });
 
   if (result.success) return result.data;
-  console.error("Error fetching document:", result.error);
   return null;
 }

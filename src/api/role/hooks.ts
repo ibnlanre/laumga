@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, type DefaultError, type QueryKey } from "@tanstack/react-query";
 
 import type { Options } from "@/client/options";
 import { role } from "./index";
@@ -55,3 +55,4 @@ export function useGetRole(id?: string) {
     enabled: !!id,
   });
 }
+

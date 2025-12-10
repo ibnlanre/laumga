@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/v4";
 import { zodValidator } from "@tanstack/zod-adapter";
 
-import { MandatePledgeForm } from "@/components/mandate-pledge-form";
+import { MandatePledgeForm } from "@/layouts/mandate/mandate-pledge-form";
 import { MandateHeader } from "@/layouts/mandate/header";
 
 const pledgeSearchSchema = z.object({

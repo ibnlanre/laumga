@@ -37,14 +37,14 @@ import {
   useUpdateRole,
 } from "@/api/role/hooks";
 import { roleDataSchema } from "@/api/role/schema";
-import type { Role, RoleInput } from "@/api/role/types";
+import type { Role, RoleForm } from "@/api/role/types";
 
 const columnHelper = createColumnHelper<Role>();
 
 const CREATE_ROLE_MODAL_ID = "create-role-modal";
 const EDIT_ROLE_MODAL_ID = "edit-role-modal";
 
-export const Route = createFileRoute("/_auth/admin/roles")({
+export const Route = createFileRoute("/admin/roles")({
   component: RoleManagement,
 });
 
@@ -65,7 +65,7 @@ function RoleManagement() {
 
   const closeModal = (modalId: string) => modals.close(modalId);
 
-  const handleCreateRole = async (values: RoleInput) => {
+  const handleCreateRole = async (values: RoleForm) => {
     if (!user) return;
     await createRole.mutateAsync({
       user,
@@ -75,7 +75,7 @@ function RoleManagement() {
     closeModal(CREATE_ROLE_MODAL_ID);
   };
 
-  const handleUpdateRole = async (roleId: string, values: RoleInput) => {
+  const handleUpdateRole = async (roleId: string, values: RoleForm) => {
     if (!user) return;
     await updateRole.mutateAsync({
       id: roleId,
@@ -114,11 +114,7 @@ function RoleManagement() {
 
     modals.open({
       modalId: EDIT_ROLE_MODAL_ID,
-      title: (
-        <Title order={3} className="text-deep-forest">
-          Edit {record.name}
-        </Title>
-      ),
+      title: `Edit ${record.name}`,
       radius: "lg",
       children: (
         <RoleForm
@@ -352,9 +348,9 @@ function PermissionBadges({ permissions }: { permissions: Permission[] }) {
 
 interface RoleFormProps {
   mode: "create" | "edit";
-  initialValues: RoleInput;
+  initialValues: RoleForm;
   submitting: boolean;
-  onSubmit: (values: RoleInput) => Promise<void> | void;
+  onSubmit: (values: RoleForm) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -365,7 +361,7 @@ function RoleForm({
   onSubmit,
   onCancel,
 }: RoleFormProps) {
-  const form = useForm<RoleInput>({
+  const form = useForm<RoleForm>({
     initialValues,
     validate: zod4Resolver(roleDataSchema),
   });
@@ -416,7 +412,7 @@ function RoleForm({
   );
 }
 
-function getDefaultFormValues(): RoleInput {
+function getDefaultFormValues(): RoleForm {
   return {
     name: "",
     description: "",
@@ -425,7 +421,7 @@ function getDefaultFormValues(): RoleInput {
   };
 }
 
-function roleToFormValues(role: Role): RoleInput {
+function roleToFormValues(role: Role): RoleForm {
   return {
     name: role.name,
     description: role.description,

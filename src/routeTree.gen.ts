@@ -11,29 +11,29 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminRolesRouteImport } from './routes/admin/roles'
+import { Route as AdminPaymentPartnersRouteImport } from './routes/admin/payment-partners'
+import { Route as AdminGalleryRouteImport } from './routes/admin/gallery'
+import { Route as AdminEventsRouteImport } from './routes/admin/events'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
 import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
-import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
-import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin/index'
 import { Route as PublicDefaultNewsletterRouteImport } from './routes/_public/_default/newsletter'
 import { Route as PublicDefaultMembershipRouteImport } from './routes/_public/_default/membership'
 import { Route as PublicDefaultEventsRouteImport } from './routes/_public/_default/events'
 import { Route as PublicDefaultContactUsRouteImport } from './routes/_public/_default/contact-us'
 import { Route as PublicDefaultAboutUsRouteImport } from './routes/_public/_default/about-us'
 import { Route as AuthMandateLayoutRouteImport } from './routes/_auth/mandate/_layout'
-import { Route as AuthAdminUsersRouteImport } from './routes/_auth/admin/users'
-import { Route as AuthAdminRolesRouteImport } from './routes/_auth/admin/roles'
-import { Route as AuthAdminPaymentPartnersRouteImport } from './routes/_auth/admin/payment-partners'
-import { Route as AuthAdminGalleryRouteImport } from './routes/_auth/admin/gallery'
-import { Route as AuthAdminEventsRouteImport } from './routes/_auth/admin/events'
-import { Route as AuthAdminArticlesRouteImport } from './routes/_auth/admin/articles'
 import { Route as PublicDefaultBulletinIndexRouteImport } from './routes/_public/_default/bulletin/index'
 import { Route as AuthMandateLayoutIndexRouteImport } from './routes/_auth/mandate/_layout.index'
 import { Route as PublicDefaultEventsEventIdRouteImport } from './routes/_public/_default/events/$eventId'
@@ -44,6 +44,11 @@ import { Route as AuthMandateLayoutCertificateRouteImport } from './routes/_auth
 
 const AuthMandateRouteImport = createFileRoute('/_auth/mandate')()
 
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
   getParentRoute: () => rootRouteImport,
@@ -61,6 +66,41 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PublicRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRolesRoute = AdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentPartnersRoute = AdminPaymentPartnersRouteImport.update({
+  id: '/payment-partners',
+  path: '/payment-partners',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminGalleryRoute = AdminGalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventsRoute = AdminEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminArticlesRoute = AdminArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => AdminRoute,
 } as any)
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -87,20 +127,10 @@ const AuthAlumniRoute = AuthAlumniRouteImport.update({
   path: '/alumni',
   getParentRoute: () => AuthRoute,
 } as any)
-const AuthAdminRoute = AuthAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthRoute,
-} as any)
 const PublicRegisterIndexRoute = PublicRegisterIndexRouteImport.update({
   id: '/register/',
   path: '/register/',
   getParentRoute: () => PublicRoute,
-} as any)
-const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthAdminRoute,
 } as any)
 const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
   id: '/_default/newsletter',
@@ -130,37 +160,6 @@ const PublicDefaultAboutUsRoute = PublicDefaultAboutUsRouteImport.update({
 const AuthMandateLayoutRoute = AuthMandateLayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => AuthMandateRoute,
-} as any)
-const AuthAdminUsersRoute = AuthAdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
-const AuthAdminRolesRoute = AuthAdminRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
-const AuthAdminPaymentPartnersRoute =
-  AuthAdminPaymentPartnersRouteImport.update({
-    id: '/payment-partners',
-    path: '/payment-partners',
-    getParentRoute: () => AuthAdminRoute,
-  } as any)
-const AuthAdminGalleryRoute = AuthAdminGalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
-const AuthAdminEventsRoute = AuthAdminEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AuthAdminRoute,
-} as any)
-const AuthAdminArticlesRoute = AuthAdminArticlesRouteImport.update({
-  id: '/articles',
-  path: '/articles',
-  getParentRoute: () => AuthAdminRoute,
 } as any)
 const PublicDefaultBulletinIndexRoute =
   PublicDefaultBulletinIndexRouteImport.update({
@@ -204,26 +203,26 @@ const AuthMandateLayoutCertificateRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/admin': typeof AuthAdminRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/alumni': typeof AuthAlumniRoute
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/admin/articles': typeof AdminArticlesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/gallery': typeof AdminGalleryRoute
+  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
-  '/admin/articles': typeof AuthAdminArticlesRoute
-  '/admin/events': typeof AuthAdminEventsRoute
-  '/admin/gallery': typeof AuthAdminGalleryRoute
-  '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
-  '/admin/roles': typeof AuthAdminRolesRoute
-  '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutRouteWithChildren
   '/about-us': typeof PublicDefaultAboutUsRoute
   '/contact-us': typeof PublicDefaultContactUsRoute
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
-  '/admin/': typeof AuthAdminIndexRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -234,25 +233,26 @@ export interface FileRoutesByFullPath {
   '/bulletin': typeof PublicDefaultBulletinIndexRoute
 }
 export interface FileRoutesByTo {
+  '/admin': typeof AdminRouteWithChildren
   '/alumni': typeof AuthAlumniRoute
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/admin/articles': typeof AdminArticlesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/gallery': typeof AdminGalleryRoute
+  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
-  '/admin/articles': typeof AuthAdminArticlesRoute
-  '/admin/events': typeof AuthAdminEventsRoute
-  '/admin/gallery': typeof AuthAdminGalleryRoute
-  '/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
-  '/admin/roles': typeof AuthAdminRolesRoute
-  '/admin/users': typeof AuthAdminUsersRoute
   '/mandate': typeof AuthMandateLayoutIndexRoute
   '/about-us': typeof PublicDefaultAboutUsRoute
   '/contact-us': typeof PublicDefaultContactUsRoute
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
-  '/admin': typeof AuthAdminIndexRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -265,19 +265,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
-  '/_auth/admin': typeof AuthAdminRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/_auth/alumni': typeof AuthAlumniRoute
   '/_auth/gallery': typeof AuthGalleryRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
+  '/admin/articles': typeof AdminArticlesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/gallery': typeof AdminGalleryRoute
+  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/users': typeof AdminUsersRoute
   '/_public/': typeof PublicIndexRoute
-  '/_auth/admin/articles': typeof AuthAdminArticlesRoute
-  '/_auth/admin/events': typeof AuthAdminEventsRoute
-  '/_auth/admin/gallery': typeof AuthAdminGalleryRoute
-  '/_auth/admin/payment-partners': typeof AuthAdminPaymentPartnersRoute
-  '/_auth/admin/roles': typeof AuthAdminRolesRoute
-  '/_auth/admin/users': typeof AuthAdminUsersRoute
   '/_auth/mandate': typeof AuthMandateRouteWithChildren
   '/_auth/mandate/_layout': typeof AuthMandateLayoutRouteWithChildren
   '/_public/_default/about-us': typeof PublicDefaultAboutUsRoute
@@ -285,7 +286,6 @@ export interface FileRoutesById {
   '/_public/_default/events': typeof PublicDefaultEventsRouteWithChildren
   '/_public/_default/membership': typeof PublicDefaultMembershipRoute
   '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
-  '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
   '/_auth/mandate/_layout/certificate': typeof AuthMandateLayoutCertificateRoute
   '/_auth/mandate/_layout/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -304,20 +304,20 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/'
     | '/admin/articles'
+    | '/admin/dashboard'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
+    | '/'
     | '/mandate'
     | '/about-us'
     | '/contact-us'
     | '/events'
     | '/membership'
     | '/newsletter'
-    | '/admin/'
     | '/register'
     | '/mandate/certificate'
     | '/mandate/dashboard'
@@ -328,25 +328,26 @@ export interface FileRouteTypes {
     | '/bulletin'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/admin'
     | '/alumni'
     | '/gallery'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/'
     | '/admin/articles'
+    | '/admin/dashboard'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
+    | '/'
     | '/mandate'
     | '/about-us'
     | '/contact-us'
     | '/events'
     | '/membership'
     | '/newsletter'
-    | '/admin'
     | '/register'
     | '/mandate/certificate'
     | '/mandate/dashboard'
@@ -358,19 +359,20 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_auth'
     | '/_public'
-    | '/_auth/admin'
+    | '/admin'
     | '/_auth/alumni'
     | '/_auth/gallery'
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/reset-password'
+    | '/admin/articles'
+    | '/admin/dashboard'
+    | '/admin/events'
+    | '/admin/gallery'
+    | '/admin/payment-partners'
+    | '/admin/roles'
+    | '/admin/users'
     | '/_public/'
-    | '/_auth/admin/articles'
-    | '/_auth/admin/events'
-    | '/_auth/admin/gallery'
-    | '/_auth/admin/payment-partners'
-    | '/_auth/admin/roles'
-    | '/_auth/admin/users'
     | '/_auth/mandate'
     | '/_auth/mandate/_layout'
     | '/_public/_default/about-us'
@@ -378,7 +380,6 @@ export interface FileRouteTypes {
     | '/_public/_default/events'
     | '/_public/_default/membership'
     | '/_public/_default/newsletter'
-    | '/_auth/admin/'
     | '/_public/register/'
     | '/_auth/mandate/_layout/certificate'
     | '/_auth/mandate/_layout/dashboard'
@@ -392,10 +393,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_public': {
       id: '/_public'
       path: ''
@@ -423,6 +432,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/roles': {
+      id: '/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AdminRolesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payment-partners': {
+      id: '/admin/payment-partners'
+      path: '/payment-partners'
+      fullPath: '/admin/payment-partners'
+      preLoaderRoute: typeof AdminPaymentPartnersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/gallery': {
+      id: '/admin/gallery'
+      path: '/gallery'
+      fullPath: '/admin/gallery'
+      preLoaderRoute: typeof AdminGalleryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/events': {
+      id: '/admin/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AdminEventsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/articles': {
+      id: '/admin/articles'
+      path: '/articles'
+      fullPath: '/admin/articles'
+      preLoaderRoute: typeof AdminArticlesRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_public/reset-password': {
       id: '/_public/reset-password'
@@ -459,26 +517,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAlumniRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/_auth/admin': {
-      id: '/_auth/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthAdminRouteImport
-      parentRoute: typeof AuthRoute
-    }
     '/_public/register/': {
       id: '/_public/register/'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof PublicRegisterIndexRouteImport
       parentRoute: typeof PublicRoute
-    }
-    '/_auth/admin/': {
-      id: '/_auth/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AuthAdminIndexRouteImport
-      parentRoute: typeof AuthAdminRoute
     }
     '/_public/_default/newsletter': {
       id: '/_public/_default/newsletter'
@@ -521,48 +565,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/mandate'
       preLoaderRoute: typeof AuthMandateLayoutRouteImport
       parentRoute: typeof AuthMandateRoute
-    }
-    '/_auth/admin/users': {
-      id: '/_auth/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AuthAdminUsersRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/admin/roles': {
-      id: '/_auth/admin/roles'
-      path: '/roles'
-      fullPath: '/admin/roles'
-      preLoaderRoute: typeof AuthAdminRolesRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/admin/payment-partners': {
-      id: '/_auth/admin/payment-partners'
-      path: '/payment-partners'
-      fullPath: '/admin/payment-partners'
-      preLoaderRoute: typeof AuthAdminPaymentPartnersRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/admin/gallery': {
-      id: '/_auth/admin/gallery'
-      path: '/gallery'
-      fullPath: '/admin/gallery'
-      preLoaderRoute: typeof AuthAdminGalleryRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/admin/events': {
-      id: '/_auth/admin/events'
-      path: '/events'
-      fullPath: '/admin/events'
-      preLoaderRoute: typeof AuthAdminEventsRouteImport
-      parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/admin/articles': {
-      id: '/_auth/admin/articles'
-      path: '/articles'
-      fullPath: '/admin/articles'
-      preLoaderRoute: typeof AuthAdminArticlesRouteImport
-      parentRoute: typeof AuthAdminRoute
     }
     '/_public/_default/bulletin/': {
       id: '/_public/_default/bulletin/'
@@ -616,30 +618,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthAdminRouteChildren {
-  AuthAdminArticlesRoute: typeof AuthAdminArticlesRoute
-  AuthAdminEventsRoute: typeof AuthAdminEventsRoute
-  AuthAdminGalleryRoute: typeof AuthAdminGalleryRoute
-  AuthAdminPaymentPartnersRoute: typeof AuthAdminPaymentPartnersRoute
-  AuthAdminRolesRoute: typeof AuthAdminRolesRoute
-  AuthAdminUsersRoute: typeof AuthAdminUsersRoute
-  AuthAdminIndexRoute: typeof AuthAdminIndexRoute
-}
-
-const AuthAdminRouteChildren: AuthAdminRouteChildren = {
-  AuthAdminArticlesRoute: AuthAdminArticlesRoute,
-  AuthAdminEventsRoute: AuthAdminEventsRoute,
-  AuthAdminGalleryRoute: AuthAdminGalleryRoute,
-  AuthAdminPaymentPartnersRoute: AuthAdminPaymentPartnersRoute,
-  AuthAdminRolesRoute: AuthAdminRolesRoute,
-  AuthAdminUsersRoute: AuthAdminUsersRoute,
-  AuthAdminIndexRoute: AuthAdminIndexRoute,
-}
-
-const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
-  AuthAdminRouteChildren,
-)
-
 interface AuthMandateLayoutRouteChildren {
   AuthMandateLayoutCertificateRoute: typeof AuthMandateLayoutCertificateRoute
   AuthMandateLayoutDashboardRoute: typeof AuthMandateLayoutDashboardRoute
@@ -670,14 +648,12 @@ const AuthMandateRouteWithChildren = AuthMandateRoute._addFileChildren(
 )
 
 interface AuthRouteChildren {
-  AuthAdminRoute: typeof AuthAdminRouteWithChildren
   AuthAlumniRoute: typeof AuthAlumniRoute
   AuthGalleryRoute: typeof AuthGalleryRoute
   AuthMandateRoute: typeof AuthMandateRouteWithChildren
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthAdminRoute: AuthAdminRouteWithChildren,
   AuthAlumniRoute: AuthAlumniRoute,
   AuthGalleryRoute: AuthGalleryRoute,
   AuthMandateRoute: AuthMandateRouteWithChildren,
@@ -729,9 +705,32 @@ const PublicRouteChildren: PublicRouteChildren = {
 const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
+interface AdminRouteChildren {
+  AdminArticlesRoute: typeof AdminArticlesRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminEventsRoute: typeof AdminEventsRoute
+  AdminGalleryRoute: typeof AdminGalleryRoute
+  AdminPaymentPartnersRoute: typeof AdminPaymentPartnersRoute
+  AdminRolesRoute: typeof AdminRolesRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminArticlesRoute: AdminArticlesRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminEventsRoute: AdminEventsRoute,
+  AdminGalleryRoute: AdminGalleryRoute,
+  AdminPaymentPartnersRoute: AdminPaymentPartnersRoute,
+  AdminRolesRoute: AdminRolesRoute,
+  AdminUsersRoute: AdminUsersRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

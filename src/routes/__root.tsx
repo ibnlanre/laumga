@@ -10,17 +10,34 @@ import {
   mantineHtmlProps,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import {} from "firebase/auth";
 
 import styles from "../styles.css?url";
 import { NotFound } from "@/components/not-found";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
+import { auth } from "@/services/firebase";
+import { user } from "@/api/user";
 // import { TanStackDevtools } from "@tanstack/react-devtools";
 // import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 // import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRoute({
+  ssr: false,
+  beforeLoad: async () => {
+    await auth.authStateReady();
+    const currentUser = await auth.currentUser;
+
+    console.log("Current user in root route:", currentUser);
+
+    if (!currentUser) {
+      return { isAuthenticated: false, client: null };
+    }
+
+    const client = await user.$use.get(currentUser.uid);
+    return { isAuthenticated: !!currentUser, client };
+  },
   head: () => ({
     meta: [
       {

@@ -67,7 +67,7 @@ const EDIT_PARTNER_MODAL_ID = "edit-payment-partner-modal";
 
 type BankOption = { label: string; value: string };
 
-export const Route = createFileRoute("/_auth/admin/payment-partners")({
+export const Route = createFileRoute("/admin/payment-partners")({
   component: PaymentPartnerDashboard,
 });
 
@@ -160,11 +160,7 @@ function PaymentPartnerDashboard() {
 
     modals.open({
       modalId: CREATE_PARTNER_MODAL_ID,
-      title: (
-        <Title order={3} className="text-deep-forest">
-          New split account
-        </Title>
-      ),
+      title: "New split account",
       size: "xl",
       radius: "xl",
       children: (
@@ -183,11 +179,7 @@ function PaymentPartnerDashboard() {
 
       modals.open({
         modalId: EDIT_PARTNER_MODAL_ID,
-        title: (
-          <Title order={3} className="text-deep-forest">
-            Edit {partner.name}
-          </Title>
-        ),
+        title: `Edit ${partner.name}`,
         size: "xl",
         radius: "xl",
         children: (

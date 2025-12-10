@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { LoginForm } from "@/components/login-form";
+import { LoginForm } from "@/layouts/public/login-form";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
 

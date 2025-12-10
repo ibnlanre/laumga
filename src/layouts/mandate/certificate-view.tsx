@@ -83,6 +83,8 @@ export function MandateCertificateView() {
     );
   }
 
+  console.log("Mandate certificate data:", data);
+
   if (!data) {
     return (
       <div className="mx-auto w-full max-w-2xl rounded-3xl border border-sage-green/40 bg-white/80 p-10 text-center shadow-2xl">
@@ -106,7 +108,7 @@ export function MandateCertificateView() {
     );
   }
 
-  const frequencyLabel = data.frequency.replace("-", " ");
+  const frequencyLabel = data.frequency?.replace("-", " ");
 
   const handleDownload = () => {
     if (typeof window !== "undefined") {

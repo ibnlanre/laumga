@@ -8,11 +8,13 @@ import type {
   createEventRegistrationSchema,
   updateEventRegistrationSchema,
   eventRegistrationSchema,
+  eventRegistrationFormSchema,
 } from "./schema";
 import type { User } from "../user/types";
 import type { Variables } from "@/client/core-query";
 
 export type EventRegistration = z.infer<typeof eventRegistrationSchema>;
+export type EventRegistrationForm = z.infer<typeof eventRegistrationFormSchema>;
 export type EventRegistrationData = z.infer<typeof eventRegistrationDataSchema>;
 export type CreateEventRegistrationData = z.infer<
   typeof createEventRegistrationSchema

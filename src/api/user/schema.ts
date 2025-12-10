@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import { dateSchema, fieldValueSchema } from "@/schema/date";
 import { registrationSchema } from "../registration/schema";
-import { DEFAULT_ROLE } from "../../schema/permissions";
 
 export const USERS_COLLECTION = "users";
 
@@ -41,7 +40,6 @@ const userBaseSchema = registrationSchema.extend({
   fullName: z.string().default(""),
   chapterId: z.string().nullable().default(null),
   status: approvalStatusSchema.default("pending"),
-  role: z.string().default(DEFAULT_ROLE),
   created: dateSchema,
   updated: dateSchema,
 });

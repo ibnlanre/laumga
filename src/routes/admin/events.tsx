@@ -26,7 +26,7 @@ import {
 import type { Event, EventStatus } from "@/api/event/types";
 import { useAuth } from "@/contexts/use-auth";
 
-export const Route = createFileRoute("/_auth/admin/events")({
+export const Route = createFileRoute("/admin/events")({
   validateSearch: (search: Record<string, unknown>) => ({
     status: (search.status as string) || undefined,
   }),

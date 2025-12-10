@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ForgotPasswordForm } from "@/components/forgot-password-form";
+import { ForgotPasswordForm } from "@/layouts/public/forgot-password-form";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
 

@@ -15,7 +15,7 @@ const permissionsArraySchema = z
   .min(1, "Select at least one permission")
   .transform((values) => Array.from(new Set(values)).sort());
 
-export const roleInputSchema = z.object({
+export const roleFormSchema = z.object({
   name: roleNameSchema,
   description: z
     .string()
@@ -26,12 +26,12 @@ export const roleInputSchema = z.object({
   permissions: permissionsArraySchema,
 });
 
-export const roleDataSchema = roleInputSchema.extend({
+export const roleDataSchema = roleFormSchema.extend({
   created: dateSchema,
   updated: dateSchema,
 });
 
-export const createRoleSchema = roleInputSchema.extend({
+export const createRoleSchema = roleFormSchema.extend({
   created: fieldValueSchema,
   updated: fieldValueSchema,
 });

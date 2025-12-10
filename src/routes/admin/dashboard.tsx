@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useListUsers } from "@/api/user/hooks";
 
-export const Route = createFileRoute("/_auth/admin/")({
+export const Route = createFileRoute("/admin/dashboard")({
   component: AdminDashboard,
 });
 

@@ -7,7 +7,6 @@ interface AuthContextType {
   user: User | null;
   logout: () => Promise<void>;
   permissions: Permissions;
-  isLoggingIn: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType>(null!);

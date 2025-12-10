@@ -13,6 +13,7 @@ import {
   PasswordInput,
   Text,
   Avatar,
+  Textarea,
 } from "@mantine/core";
 import {
   ArrowLeft,
@@ -499,9 +500,11 @@ function LocationDetailsStep() {
           </Alert>
         )}
 
-        <TextInput
+        <Textarea
           label="Residential Address"
           placeholder="Your full address"
+          minRows={3}
+          autosize
           withAsterisk
           leftSection={<Home size={16} />}
           {...form.getInputProps("address")}
@@ -651,7 +654,7 @@ function ReviewPanel() {
       title: (
         <div className="flex items-center gap-2">
           <CheckCircle className="h-6 w-6 text-vibrant-lime" />
-          <Text size="xl" fw={700} c="deep-forest">
+          <Text size="xl" fw={700} className="text-deep-forest">
             Welcome Home,{" "}
             {values.title || values.gender === "male" ? "Bro. " : "Sis. "}
             {values.firstName}!
@@ -666,8 +669,8 @@ function ReviewPanel() {
           </Text>
           <Button
             fullWidth
+            autoContrast
             variant="outline"
-            color="deep-forest"
             size="lg"
             onClick={() => {
               modals.closeAll();

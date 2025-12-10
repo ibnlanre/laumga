@@ -44,7 +44,7 @@ const getFeatureBadgeColor = (isFeatured: boolean) =>
 const isValidStatusFilter = (value: unknown): value is StatusFilter =>
   statusOptions.some((option) => option.value === value);
 
-export const Route = createFileRoute("/_auth/admin/gallery")({
+export const Route = createFileRoute("/admin/gallery")({
   validateSearch: (search: Record<string, unknown>) => ({
     status: isValidStatusFilter(search.status) ? search.status : undefined,
   }),

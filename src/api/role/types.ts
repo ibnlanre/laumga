@@ -9,14 +9,14 @@ import type { User } from "../user/types";
 import type {
   createRoleSchema,
   roleDataSchema,
-  roleInputSchema,
+  roleFormSchema,
   roleSchema,
   updateRoleSchema,
 } from "./schema";
 
 export type RoleData = z.infer<typeof roleDataSchema>;
 export type Role = z.infer<typeof roleSchema>;
-export type RoleInput = z.infer<typeof roleInputSchema>;
+export type RoleForm = z.infer<typeof roleFormSchema>;
 export type CreateRoleData = z.infer<typeof createRoleSchema>;
 export type UpdateRoleData = z.infer<typeof updateRoleSchema>;
 
@@ -29,11 +29,11 @@ export type ListRoleVariables = Variables<RoleData>;
 
 export interface CreateRoleVariables {
   user: User;
-  data: RoleInput;
+  data: RoleForm;
 }
 
 export interface UpdateRoleVariables {
   user: User;
   id: string;
-  data: RoleInput;
+  data: RoleForm;
 }

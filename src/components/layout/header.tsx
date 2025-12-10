@@ -29,14 +29,17 @@ const NAV_ITEMS: Record<HeaderVariant, NavItem[]> = {
     { label: "My Mandate", href: "/mandate" },
     { label: "Alumni", href: "/alumni" },
     { label: "Gallery", href: "/gallery" },
-    { label: "Events", href: "/events" },
   ],
   admin: [
-    { label: "My Mandate", href: "/mandate" },
-    { label: "Alumni", href: "/alumni" },
-    { label: "Gallery", href: "/gallery" },
-    { label: "Events", href: "/events" },
-    { label: "Admin", href: "/admin" },
+    { label: "Dashboard", href: "/admin" },
+    { label: "Mandates", href: "/admin/mandates" },
+    { label: "Alumni", href: "/admin/alumni" },
+    { label: "Articles", href: "/admin/articles" },
+    { label: "Events", href: "/admin/events" },
+    { label: "Gallery", href: "/admin/gallery" },
+    { label: "Payment Partners", href: "/admin/payment-partners" },
+    { label: "Roles", href: "/admin/roles" },
+    { label: "Users", href: "/admin/users" },
   ],
 };
 

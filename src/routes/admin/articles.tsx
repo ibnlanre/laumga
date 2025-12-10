@@ -27,7 +27,7 @@ import {
 } from "@/api/article/hooks";
 import { useAuth } from "@/contexts/use-auth";
 
-export const Route = createFileRoute("/_auth/admin/articles")({
+export const Route = createFileRoute("/admin/articles")({
   validateSearch: (search: Record<string, unknown>) => ({
     status: (search.status as string) || undefined,
   }),

@@ -1,25 +1,18 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { RegistrationProvider } from "@/contexts/registration-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { auth } from "@/services/firebase";
 
 export const Route = createFileRoute("/_public")({
-  beforeLoad: async ({ location }) => {
-    const currentUser = auth.currentUser;
-
-    // const userData = await user.$use.get(currentUser.uid);
-
-    // if (userData) {
-    //   const isAdmin = adminRoles.includes(userData.role);
-
-    //   throw redirect({
-    //     to: isAdmin ? "/admin" : "/mandate",
-    //     search: {
-    //       redirect: location.href,
-    //     },
-    //   });
-    // }
+  beforeLoad: async ({ location, context }) => {
+    if (context.isAuthenticated) {
+      throw redirect({
+        to: "/mandate",
+        search: {
+          redirect: location.href,
+        },
+      });
+    }
   },
   component: Layout,
 });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
-import { ResetPasswordForm } from "@/components/reset-password-form";
+import { ResetPasswordForm } from "@/layouts/public/reset-password-form";
 
 const resetPasswordSearchSchema = z.object({
   oobCode: z.string().min(1, "Reset code is required"),
