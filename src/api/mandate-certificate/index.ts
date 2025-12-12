@@ -17,6 +17,7 @@ import type {
   UpdateMandateCertificateVariables,
 } from "./types";
 import { mandateCertificateSettings } from "./settings";
+import { mandate } from "../mandate";
 
 async function create(variables: CreateMandateCertificateVariables) {
   const { mandate, user } = variables;
@@ -26,7 +27,6 @@ async function create(variables: CreateMandateCertificateVariables) {
     amount: mandate.amount,
     frequency: mandate.frequency,
     tier: mandate.tier,
-    startDate: mandate.startDate,
     created: record(user),
   });
 
@@ -80,8 +80,16 @@ async function remove(id: string) {
   await deleteDoc(certificateRef);
 }
 
+async function getActive(userId: string) {
+  const activeMandate = await mandate.$use.getActive(userId);
+  if (!activeMandate) return null;
+  return mandateCertificate.$use.get(activeMandate.id);
+}
+
 export const mandateCertificate = createBuilder({
   get,
   create,
   update,
+  remove,
+  getActive,
 });

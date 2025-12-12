@@ -1,54 +1,12 @@
-import { addMonths, addYears } from "date-fns";
-
 import type { PaymentPartner } from "@/api/payment-partner/types";
 import type { MonoSplitConfiguration } from "@/api/mono/types";
-import type {
-  MandateDuration,
-  MandateFrequency,
-  MandateStatus,
-  MandateTier,
-} from "./types";
-import type { User } from "@/api/user/types";
+import type { MandateStatus, MandateTier } from "./types";
 
 export function determineTier(amount: number): MandateTier {
   if (amount === 500_000) return "supporter";
   if (amount === 1_000_000) return "builder";
   if (amount === 2_500_000) return "guardian";
   return "custom";
-}
-
-export function calculateEndDate(
-  startDate: Date,
-  duration: MandateDuration
-): Date {
-  switch (duration) {
-    case "12-months":
-      return addYears(startDate, 1);
-    case "24-months":
-      return addYears(startDate, 2);
-    case "indefinite":
-      return addYears(startDate, 10);
-    default:
-      return addYears(startDate, 1);
-  }
-}
-
-export function computeNextChargeDate(
-  startDate: Date,
-  frequency: MandateFrequency
-): Date {
-  switch (frequency) {
-    case "monthly":
-      return addMonths(startDate, 1);
-    case "quarterly":
-      return addMonths(startDate, 3);
-    case "annually":
-      return addYears(startDate, 1);
-    case "one-time":
-      return startDate;
-    default:
-      return startDate;
-  }
 }
 
 export function generateMandateReference(userId: string): string {
@@ -112,7 +70,7 @@ export function buildSplitConfiguration(
     const totalFixed = subAccounts.reduce((sum, { value }) => sum + value, 0);
     if (totalFixed > totalAmount) {
       throw new Error(
-        "Allocated fixed amounts exceed the contribution value. Adjust partner splits."
+        `Allocated fixed totals (${totalFixed}) exceed the contribution value (${totalAmount}). Adjust partner splits.`
       );
     }
   }
@@ -140,16 +98,4 @@ export function mapMonoStatus(status: string): MandateStatus {
     default:
       return "initiated";
   }
-}
-
-export function toAuditActor(partial: {
-  id: string;
-  fullName?: string | null;
-  photoUrl?: string | null;
-}): Pick<User, "id" | "fullName" | "photoUrl"> {
-  return {
-    id: partial.id,
-    fullName: partial.fullName ?? "",
-    photoUrl: partial.photoUrl ?? null,
-  };
 }

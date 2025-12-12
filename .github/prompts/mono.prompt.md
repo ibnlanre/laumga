@@ -99,7 +99,7 @@ axios
     "id": "6578295bbf09b0a505bc567c",
     "name": "Samuel Olamide",
     "first_name": "Samuel",
-    "last_name": "Samuel Olamide",
+    "last_name": "Olamide",
     "email": "samuel@olamide.com",
     "phone": "08012345678",
     "address": "23 shittu animashaun street",

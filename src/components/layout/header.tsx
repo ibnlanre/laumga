@@ -1,6 +1,7 @@
 import { Group, Burger, Drawer, Button, Anchor, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Section } from "@/components/section";
 
 import { useLogout } from "@/api/user/hooks";
 
@@ -72,10 +73,13 @@ export function Header({ variant, className = "" }: HeaderProps) {
       <header
         className={`sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 ${className}`}
       >
-        <div className="container mx-auto px-4">
+        <Section>
           <Group justify="space-between" h={70}>
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
+            <Link
+              to={isPublic ? "/" : variant === "auth" ? "/mandate" : "/admin"}
+              className="flex items-center gap-2"
+            >
               <img
                 src="/laumga-logo.jpeg"
                 alt="LAUMGA emblem"
@@ -145,7 +149,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
               color="gray.7"
             />
           </Group>
-        </div>
+        </Section>
       </header>
 
       {/* Mobile Drawer */}

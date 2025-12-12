@@ -1,0 +1,343 @@
+import React, { useState } from 'react';
+import { TextInput, NumberInput, Select, Button, Stack, Group, Text, Alert, Modal, Stepper, Paper } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { z } from 'zod';
+import { zod4Resolver } from 'mantine-form-zod-resolver';
+import { modals } from '@mantine/modals';
+
+// Zod Schema for Donation Form
+const donationSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().regex(/^0[0-9]{10}$/, 'Phone must be 11 digits starting with 0'),
+  address: z.string().min(10, 'Address must be at least 10 characters').max(100, 'Address must not exceed 100 characters'),
+  bvn: z.string().regex(/^[0-9]{11}$/, 'BVN must be exactly 11 digits'),
+  accountNumber: z.string().regex(/^[0-9]{10}$/, 'Account number must be 10 digits'),
+  bankCode: z.string().min(1, 'Please select a bank'),
+  monthlyAmount: z.number().min(200, 'Minimum donation is ₦200'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+});
+
+type DonationFormValues = z.infer<typeof donationSchema>;
+
+// Mock bank list (you'd fetch this from Mono's API)
+const BANKS = [
+  { value: '044', label: 'Access Bank' },
+  { value: '063', label: 'Diamond Bank' },
+  { value: '050', label: 'Ecobank' },
+  { value: '070', label: 'Fidelity Bank' },
+  { value: '011', label: 'First Bank of Nigeria' },
+  { value: '214', label: 'First City Monument Bank' },
+  { value: '058', label: 'Guaranty Trust Bank' },
+  { value: '030', label: 'Heritage Bank' },
+  { value: '301', label: 'Jaiz Bank' },
+  { value: '082', label: 'Keystone Bank' },
+  { value: '526', label: 'Parallex Bank' },
+  { value: '076', label: 'Polaris Bank' },
+  { value: '101', label: 'Providus Bank' },
+  { value: '221', label: 'Stanbic IBTC Bank' },
+  { value: '068', label: 'Standard Chartered Bank' },
+  { value: '232', label: 'Sterling Bank' },
+  { value: '100', label: 'Suntrust Bank' },
+  { value: '302', label: 'TAJ Bank' },
+  { value: '102', label: 'Titan Trust Bank' },
+  { value: '032', label: 'Union Bank' },
+  { value: '033', label: 'United Bank for Africa' },
+  { value: '215', label: 'Unity Bank' },
+  { value: '035', label: 'Wema Bank' },
+  { value: '057', label: 'Zenith Bank' },
+];
+
+function DonationMandateForm() {
+  const [loading, setLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [mandateUrl, setMandateUrl] = useState('');
+  const [error, setError] = useState('');
+
+  const form = useForm<DonationFormValues>({
+    validate: zod4Resolver(donationSchema),
+    initialValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      address: '',
+      bvn: '',
+      accountNumber: '',
+      bankCode: '',
+      monthlyAmount: 1000,
+      startDate: '',
+      endDate: '',
+    },
+  });
+
+  // Step 1: Create Mono Customer
+  const createMonoCustomer = async (values: DonationFormValues) => {
+    const response = await fetch('YOUR_FIREBASE_FUNCTION_URL/createMonoCustomer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: values.email,
+        first_name: values.firstName,
+        last_name: values.lastName,
+        address: values.address,
+        phone: values.phone,
+        identity: {
+          type: 'bvn',
+          number: values.bvn,
+        },
+      }),
+    });
+
+    if (!response.ok) throw new Error('Failed to create customer');
+    return response.json();
+  };
+
+  // Step 2: Create Fixed Mandate with Split Payment
+  const createFixedMandate = async (customerId: string, values: DonationFormValues) => {
+    // Calculate dates
+    const startDate = new Date(values.startDate);
+    const endDate = new Date(values.endDate);
+    const initialDebitDate = new Date(startDate);
+    initialDebitDate.setDate(initialDebitDate.getDate() + 1);
+
+    const response = await fetch('YOUR_FIREBASE_FUNCTION_URL/createMandate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: values.monthlyAmount * 100, // Convert to kobo
+        type: 'recurring-debit',
+        method: 'mandate',
+        mandate_type: 'emandate', // or 'signed' based on your preference
+        debit_type: 'fixed',
+        description: 'Monthly Donation',
+        reference: `DONATION-${Date.now()}`,
+        customer: { id: customerId },
+        start_date: values.startDate,
+        end_date: values.endDate,
+        frequency: 'monthly',
+        retrial_frequency: 3, // Retry 3 times if failed
+        initial_debit_date: initialDebitDate.toISOString().split('T')[0],
+        grace_period: 3, // 3 days grace period
+        minimum_due: values.monthlyAmount * 100 * 0.5, // 50% minimum
+        redirect_url: window.location.origin + '/donation-success',
+        // Split payment configuration
+        split: {
+          type: 'percentage',
+          fee_bearer: 'business', // Your organization pays the fees
+          distribution: [
+            {
+              account: 'SUB_ACCOUNT_ID_1', // Replace with actual sub-account ID from Mono
+              value: 60, // 60% to first account
+            },
+            {
+              account: 'SUB_ACCOUNT_ID_2', // Replace with actual sub-account ID from Mono
+              value: 40, // 40% to second account
+            },
+          ],
+        },
+      }),
+    });
+
+    if (!response.ok) throw new Error('Failed to create mandate');
+    return response.json();
+  };
+
+  // Step 3: Save to Firebase
+  const saveToFirebase = async (userId: string, mandateData: any) => {
+    await fetch('YOUR_FIREBASE_FUNCTION_URL/saveMandateData', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        mandateId: mandateData.mandate_id,
+        customerId: mandateData.customer,
+        monthlyAmount: mandateData.amount / 100,
+        status: 'pending_authorization',
+        createdAt: new Date().toISOString(),
+      }),
+    });
+  };
+
+  const handleSubmit = async (values: DonationFormValues) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // Step 1: Create Mono Customer
+      setActiveStep(1);
+      const customerResponse = await createMonoCustomer(values);
+      const customerId = customerResponse.data.id;
+
+      // Step 2: Create Fixed Mandate with Split Payment
+      setActiveStep(2);
+      const mandateResponse = await createFixedMandate(customerId, values);
+      
+      // Step 3: Save to Firebase (assumes you have user ID from Firebase Auth)
+      setActiveStep(3);
+      const userId = 'CURRENT_USER_ID'; // Get from Firebase Auth context
+      await saveToFirebase(userId, mandateResponse.data);
+
+      // Step 4: Open Mono Authorization Widget
+      setMandateUrl(mandateResponse.data.mono_url);
+      setActiveStep(4);
+
+      // Open modal with instructions
+      modals.open({
+        title: 'Complete Mandate Authorization',
+        children: (
+          <Stack>
+            <Text size="sm">
+              To complete your monthly donation setup, you need to authorize the mandate.
+              Click the button below to proceed.
+            </Text>
+            <Alert color="blue" title="E-Mandate Authorization">
+              You'll need to send ₦50 to a designated account to verify your bank account.
+              This is a one-time verification required by NIBSS.
+            </Alert>
+            <Button
+              component="a"
+              href={mandateResponse.data.mono_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+            >
+              Authorize Mandate
+            </Button>
+          </Stack>
+        ),
+      });
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Paper p="xl" withBorder>
+      <Stack gap="md">
+        <Text size="xl" fw={700}>Set Up Monthly Donation</Text>
+        
+        <Stepper active={activeStep}>
+          <Stepper.Step label="Details" description="Personal information" />
+          <Stepper.Step label="Customer" description="Create Mono customer" />
+          <Stepper.Step label="Mandate" description="Setup payment mandate" />
+          <Stepper.Step label="Save" description="Store information" />
+          <Stepper.Step label="Authorize" description="Complete authorization" />
+        </Stepper>
+
+        {error && (
+          <Alert color="red" title="Error">
+            {error}
+          </Alert>
+        )}
+
+        <Group grow>
+          <TextInput
+            label="First Name"
+            placeholder="John"
+            required
+            {...form.getInputProps('firstName')}
+          />
+          <TextInput
+            label="Last Name"
+            placeholder="Doe"
+            required
+            {...form.getInputProps('lastName')}
+          />
+        </Group>
+
+        <TextInput
+          label="Email"
+          placeholder="john@example.com"
+          required
+          {...form.getInputProps('email')}
+        />
+
+        <TextInput
+          label="Phone Number"
+          placeholder="08012345678"
+          required
+          {...form.getInputProps('phone')}
+        />
+
+        <TextInput
+          label="Address"
+          placeholder="123 Main Street, Lagos"
+          required
+          {...form.getInputProps('address')}
+        />
+
+        <TextInput
+          label="BVN (Bank Verification Number)"
+          placeholder="12345678901"
+          required
+          maxLength={11}
+          {...form.getInputProps('bvn')}
+        />
+
+        <Select
+          label="Bank"
+          placeholder="Select your bank"
+          data={BANKS}
+          required
+          searchable
+          {...form.getInputProps('bankCode')}
+        />
+
+        <TextInput
+          label="Account Number"
+          placeholder="0123456789"
+          required
+          maxLength={10}
+          {...form.getInputProps('accountNumber')}
+        />
+
+        <NumberInput
+          label="Monthly Donation Amount (₦)"
+          placeholder="1000"
+          required
+          min={200}
+          prefix="₦ "
+          thousandSeparator=","
+          {...form.getInputProps('monthlyAmount')}
+        />
+
+        <Group grow>
+          <TextInput
+            label="Start Date"
+            type="date"
+            required
+            {...form.getInputProps('startDate')}
+          />
+          <TextInput
+            label="End Date"
+            type="date"
+            required
+            {...form.getInputProps('endDate')}
+          />
+        </Group>
+
+        <Alert color="blue" title="Payment Information">
+          <Stack gap="xs">
+            <Text size="sm">• Your donation will be automatically debited monthly</Text>
+            <Text size="sm">• Funds will be split between two charitable accounts (60% / 40%)</Text>
+            <Text size="sm">• You can pause or cancel your mandate anytime</Text>
+            <Text size="sm">• Transaction fees are covered by the organization</Text>
+          </Stack>
+        </Alert>
+
+        <Button onClick={() => form.onSubmit(handleSubmit)()} loading={loading} fullWidth size="lg">
+          Set Up Monthly Donation
+        </Button>
+      </Stack>
+    </Paper>
+  );
+}
+
+export default DonationMandateForm;

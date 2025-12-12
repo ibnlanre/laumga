@@ -4,7 +4,6 @@ import { dateSchema, fieldValueSchema } from "@/schema/date";
 
 export const MANDATES_COLLECTION = "mandates";
 
-
 export const mandateTierSchema = z.enum([
   "supporter",
   "builder",
@@ -18,61 +17,58 @@ export const mandateStatusSchema = z.enum([
   "paused",
   "cancelled",
   "completed",
+  "rejected",
 ]);
 
 export const mandateFrequencySchema = z.enum([
+  "daily",
+  "weekly",
   "monthly",
-  "quarterly",
-  "annually",
-  "one-time",
+  "yearly",
 ]);
 
-export const mandateDurationSchema = z.enum([
-  "12-months",
-  "24-months",
-  "indefinite",
-]);
+export const mandateTypeSchema = z.enum(["emandate", "signed", "gsm"]);
 
-const mandateBaseSchema = z.object({
+export const mandateDebitTypeSchema = z.enum(["variable", "fixed"]);
+
+const mandateAmountSchema = z
+  .number()
+  .min(20_000, "Mandates must be at least ₦200 in value (20,000 kobo)")
+  .max(100_000_000, "Mandates cannot exceed ₦1,000,000 (in kobo)");
+
+export const createMandateSchema = z.object({
+  amount: mandateAmountSchema,
+  frequency: mandateFrequencySchema.default("monthly"),
+  startDate: z.date().default(new Date()),
+  endDate: z.date().nullable().default(null),
+});
+
+const mandateFormSchema = z.object({
   userId: z.string(),
   amount: z.number(),
   frequency: mandateFrequencySchema,
-  duration: mandateDurationSchema,
   tier: mandateTierSchema,
   status: mandateStatusSchema,
-  monoMandateId: z.string().nullable(),
-  monoCustomerId: z.string().nullable(),
+  monoMandateId: z.string(),
+  monoCustomerId: z.string(),
   monoReference: z.string(),
-  monoUrl: z.string().nullable(),
-  startDate: z.string(),
-  endDate: z.string(),
-  nextChargeDate: z.string().nullable(),
+  monoUrl: z.string().nullable().default(null),
+  mandateType: mandateTypeSchema,
+  debitType: mandateDebitTypeSchema,
+  startDate: z.date().default(new Date()),
+  endDate: z.date().nullable().default(null),
 });
 
-export const mandateRecordSchema = mandateBaseSchema.extend({
+export const mandateDataSchema = mandateFormSchema.extend({
   created: dateSchema,
   updated: dateSchema,
 });
 
-export const createMandateRecordSchema = mandateBaseSchema.extend({
+export const createMandateDataSchema = mandateFormSchema.extend({
   created: fieldValueSchema,
   updated: fieldValueSchema,
 });
 
-export const mandateSchema = mandateRecordSchema.extend({
+export const mandateSchema = mandateDataSchema.extend({
   id: z.string(),
-});
-
-export const createMandateSchema = z.object({
-  amount: z
-    .number()
-    .min(5_000, "Amount must be at least ₦5,000")
-    .max(1_000_000, "Amount cannot exceed ₦1,000,000"),
-  frequency: mandateFrequencySchema,
-  duration: mandateDurationSchema,
-  accountNumber: z
-    .string()
-    .min(10, "Account number must be at least 10 digits"),
-  bankCode: z.string().min(1, "Bank is required"),
-  bvn: z.string().length(11, "BVN must be 11 digits"),
 });

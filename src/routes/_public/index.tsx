@@ -13,6 +13,7 @@ import { Link } from "@tanstack/react-router";
 import { formatDate, now } from "@/utils/date";
 import { useListArticles } from "@/api/article/hooks";
 import { useListEvents } from "@/api/event/hooks";
+import { Section } from "@/components/section";
 
 export const Route = createFileRoute("/_public/")({
   component: RouteComponent,
@@ -44,7 +45,7 @@ function RouteComponent() {
         />
         <div className="absolute inset-0 bg-linear-to-r from-black/60 to-black/20"></div>
 
-        <div className="relative container mx-auto px-4 lg:px-6 z-10 text-white justify-center grid py-20 sm:py-42 justify-items-center">
+        <Section className="relative z-10 text-white justify-center grid py-20 sm:py-42 justify-items-center">
           <h1 className="text-4xl md:text-6xl font-black tracking-wider font-serif">
             Connecting Generations.
           </h1>
@@ -55,11 +56,11 @@ function RouteComponent() {
             Join a thriving network of professionals, mentors, and friends
             dedicated to spiritual growth and community development.
           </p>
-        </div>
+        </Section>
       </section>
 
       <section className="bg-mist-green py-24 sm:py-32 relative overflow-hidden">
-        <div className="container mx-auto px-4 lg:px-6 relative">
+        <Section className="relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl md:text-5xl font-bold text-deep-forest mb-4 font-serif">
@@ -101,11 +102,11 @@ function RouteComponent() {
               />
             </div>
           </div>
-        </div>
+        </Section>
       </section>
 
       <section className="bg-institutional-green py-20 sm:py-16 text-white">
-        <div className="container mx-auto px-4 lg:px-6">
+        <Section>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full border-2 border-white flex items-center justify-center mb-3">
@@ -136,11 +137,11 @@ function RouteComponent() {
               <p className="mt-1 font-sans">Scholarships</p>
             </div>
           </div>
-        </div>
+        </Section>
       </section>
 
       <section className="bg-sage-green py-24 sm:py-32">
-        <div className="container mx-auto px-4 lg:px-6">
+        <Section>
           <h2 className="text-4xl font-bold text-deep-forest text-center mb-12 font-serif">
             Our Core Values
           </h2>
@@ -182,11 +183,11 @@ function RouteComponent() {
               </p>
             </div>
           </div>
-        </div>
+        </Section>
       </section>
 
       <section className="bg-deep-forest py-24 sm:py-32 text-white overflow-hidden">
-        <div className="container mx-auto px-4 lg:px-6">
+        <Section>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="max-w-lg">
               <h2 className="text-4xl md:text-5xl font-bold mb-6 font-serif">
@@ -236,12 +237,12 @@ function RouteComponent() {
               />
             </div>
           </div>
-        </div>
+        </Section>
       </section>
 
       {articles && articles.length > 0 && (
         <section className="bg-mist-green py-16 sm:py-24">
-          <div className="container mx-auto px-4 lg:px-6">
+          <Section>
             <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
               News &amp; Bulletins
             </h2>
@@ -276,13 +277,13 @@ function RouteComponent() {
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
         </section>
       )}
 
       {events && events.length > 0 && (
         <section className="bg-white py-16 sm:py-24">
-          <div className="container mx-auto px-4 lg:px-6">
+          <Section>
             <h2 className="font-serif text-3xl font-bold text-slate-grey text-center mb-10">
               Upcoming Events
             </h2>
@@ -315,7 +316,7 @@ function RouteComponent() {
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
         </section>
       )}
     </main>

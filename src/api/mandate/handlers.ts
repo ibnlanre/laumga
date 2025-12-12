@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { mandate } from ".";
 
-export function useGetUserMandates(userId: string) {
+export function useGetUserMandate(userId?: string) {
   return useQuery({
-    queryKey: mandate.fetchByUserId.$use(userId),
-    queryFn: () => mandate.$use.fetchByUserId(userId),
+    queryKey: mandate.fetchByUserId.$get(userId),
+    queryFn: () => mandate.$use.fetchByUserId(userId!),
     enabled: !!userId,
   });
 }

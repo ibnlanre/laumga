@@ -1,3 +1,4 @@
+import { Section } from "@/components/section";
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Phone, Mail, Plus } from "lucide-react";
 
@@ -19,7 +20,7 @@ function RouteComponent() {
           </p>
         </div>
       </header>
-      <div className="container mx-auto px-4 pt-16">
+      <Section className="pt-16">
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-5 bg-white shadow-2xl rounded-2xl overflow-hidden max-w-5xl mx-auto">
           <div className="lg:col-span-2 bg-institutional-green p-8 md:p-12 text-white relative overflow-hidden">
             <h2 className="text-2xl font-bold mb-8">Contact Information</h2>
@@ -182,7 +183,7 @@ function RouteComponent() {
             </form>
           </div>
         </div>
-      </div>
+      </Section>
 
       <section className="mt-20 w-full h-96 grid border-y-2 border-vibrant-lime">
         <div className="h-full w-full [grid-area:1/1] relative">
@@ -194,7 +195,7 @@ function RouteComponent() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-20 max-w-3xl">
+      <Section className="py-20 max-w-3xl">
         <h2 className="text-3xl font-bold text-center text-deep-forest mb-10">
           Frequently Asked Questions
         </h2>
@@ -258,7 +259,7 @@ function RouteComponent() {
             </div>
           </div>
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

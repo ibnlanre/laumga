@@ -9,6 +9,7 @@ import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
 import type { ArticleData } from "@/api/article/types";
 import { useListArticles } from "@/api/article/hooks";
+import { Section } from "@/components/section";
 
 const bulletinSearchSchema = z.object({
   category: z
@@ -87,7 +88,7 @@ function RouteComponent() {
   return (
     <Fragment>
       <section className="relative bg-deep-forest text-white py-24 md:py-32 islamic-pattern">
-        <div className="container mx-auto px-6 relative z-10">
+        <Section className="relative z-10">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-display font-medium leading-tight tracking-tighter">
               The LAUMGA Bulletin
@@ -96,7 +97,8 @@ function RouteComponent() {
               Perspectives on Faith, Science, and Society.
             </p>
           </div>
-        </div>
+        </Section>
+        
         <div className="absolute -bottom-6 left-1/2 w-full max-w-4xl -translate-x-1/2 px-6 z-20">
           <div className="flex gap-2 p-2 justify-start md:justify-center rounded-full bg-white/20 backdrop-blur-lg shadow-lg border border-white/20 overflow-x-auto no-scrollbar">
             <button
@@ -180,8 +182,8 @@ function RouteComponent() {
       ) : (
         <Fragment>
           {featuredArticle && !debouncedSearch && (
-            <section className="py-16 md:py-24">
-              <div className="container mx-auto px-6">
+ 
+              <Section className="py-16 md:py-24">
                 <div className="flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-12 bg-white p-6 rounded-lg shadow-sm">
                   <div
                     className="w-full lg:w-1/2 aspect-video bg-cover bg-center rounded-lg flex-1"
@@ -218,11 +220,10 @@ function RouteComponent() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </Section>
           )}
 
-          <section className="container mx-auto px-6 py-24">
+          <Section className="py-24">
             <div className="flex flex-col lg:flex-row gap-12">
               <div className="w-full lg:w-2/3 xl:w-3/4">
                 {displayArticles?.length === 0 ? (
@@ -345,7 +346,7 @@ function RouteComponent() {
                 </button>
               </div>
             )}
-          </section>
+          </Section>
         </Fragment>
       )}
     </Fragment>

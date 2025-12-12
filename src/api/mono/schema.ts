@@ -13,8 +13,6 @@ export const monoCustomerSchema = z.object({
   }),
 });
 
-
-
 export const monoSplitEntrySchema = z.object({
   sub_account: z.string(),
   value: z.number(),
@@ -89,7 +87,6 @@ export const monoMandateResponseSchema = z.object({
     end_date: z.string(),
   }),
 });
-
 
 export const monoMandateDetailsResponseSchema = z.object({
   status: z.string(),

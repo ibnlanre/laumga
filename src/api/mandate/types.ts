@@ -6,34 +6,37 @@ import type { z } from "zod";
 
 import type {
   createMandateSchema,
+  createMandateDataSchema,
   mandateSchema,
-  mandateRecordSchema,
-  createMandateRecordSchema,
-
-  mandateDurationSchema,
+  mandateDataSchema,
   mandateFrequencySchema,
   mandateStatusSchema,
   mandateTierSchema,
+  mandateTypeSchema,
+  mandateDebitTypeSchema,
 } from "./schema";
+import type { Variables } from "@/client/core-query";
 import type { User } from "../user/types";
 
 export type Mandate = z.infer<typeof mandateSchema>;
-export type MandateRecord = z.infer<typeof mandateRecordSchema>;
-export type CreateMandateData = z.infer<typeof createMandateRecordSchema>;
-export type CreateMandateInput = z.infer<typeof createMandateSchema>;
+export type MandateData = z.infer<typeof mandateDataSchema>;
+export type CreateMandateData = z.infer<typeof createMandateDataSchema>;
+export type CreateMandate = z.infer<typeof createMandateSchema>;
 
 export type MandateTier = z.infer<typeof mandateTierSchema>;
 export type MandateStatus = z.infer<typeof mandateStatusSchema>;
 export type MandateFrequency = z.infer<typeof mandateFrequencySchema>;
-export type MandateDuration = z.infer<typeof mandateDurationSchema>;
+export type MandateType = z.infer<typeof mandateTypeSchema>;
+export type MandateDebitType = z.infer<typeof mandateDebitTypeSchema>;
 
-export type MandateCollection = CollectionReference<MandateRecord>;
-export type MandateDocument = DocumentReference<MandateRecord>;
+export type MandateCollection = CollectionReference<CreateMandateData>;
+export type MandateDocument = DocumentReference<CreateMandateData>;
 
+export type ListMandateVariables = Variables<CreateMandateData>;
 
 export interface CreateMandateVariables {
   user: User;
-  data: CreateMandateInput;
+  data: CreateMandate;
 }
 
 export interface UpdateMandateVariables {

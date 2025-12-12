@@ -1,0 +1,532 @@
+// functions/src/index.ts
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import axios from 'axios';
+
+admin.initializeApp();
+
+const MONO_SECRET_KEY = functions.config().mono.secret_key;
+const MONO_BASE_URL = 'https://api.withmono.com';
+
+// ============================================
+// 1. CREATE MONO CUSTOMER
+// ============================================
+export const createMonoCustomer = functions.https.onCall(async (data, context) => {
+  // Verify user is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const response = await axios.post(
+      `${MONO_BASE_URL}/v2/customers`,
+      {
+        email: data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        address: data.address,
+        phone: data.phone,
+        identity: {
+          type: 'bvn',
+          number: data.identity.number,
+        },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mono-sec-key': MONO_SECRET_KEY,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    console.error('Error creating Mono customer:', error.response?.data || error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      error.response?.data?.message || 'Failed to create customer'
+    );
+  }
+});
+
+// ============================================
+// 2. CREATE FIXED MANDATE WITH SPLIT PAYMENT
+// ============================================
+export const createMandate = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const response = await axios.post(
+      `${MONO_BASE_URL}/v2/payments/initiate`,
+      {
+        amount: data.amount,
+        type: 'recurring-debit',
+        method: 'mandate',
+        mandate_type: data.mandate_type,
+        debit_type: 'fixed',
+        description: data.description,
+        reference: data.reference,
+        customer: data.customer,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        frequency: data.frequency,
+        retrial_frequency: data.retrial_frequency,
+        initial_debit_date: data.initial_debit_date,
+        grace_period: data.grace_period,
+        minimum_due: data.minimum_due,
+        redirect_url: data.redirect_url,
+        split: data.split,
+        meta: {},
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mono-sec-key': MONO_SECRET_KEY,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error: any) {
+    console.error('Error creating mandate:', error.response?.data || error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      error.response?.data?.message || 'Failed to create mandate'
+    );
+  }
+});
+
+// ============================================
+// 3. SAVE MANDATE DATA TO FIRESTORE
+// ============================================
+export const saveMandateData = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const mandateRef = admin.firestore().collection('mandates').doc();
+    
+    await mandateRef.set({
+      userId: data.userId,
+      mandateId: data.mandateId,
+      customerId: data.customerId,
+      monthlyAmount: data.monthlyAmount,
+      status: data.status,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Also update user document with mandate reference
+    await admin.firestore().collection('users').doc(data.userId).update({
+      activeMandateId: mandateRef.id,
+      hasActiveMandate: true,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      mandateDocId: mandateRef.id,
+    };
+  } catch (error: any) {
+    console.error('Error saving mandate data:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to save mandate data');
+  }
+});
+
+// ============================================
+// 4. WEBHOOK HANDLER FOR MONO EVENTS
+// ============================================
+export const monoWebhook = functions.https.onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { event, event_id, data } = req.body;
+
+    // Check for duplicate webhooks
+    const webhookRef = admin.firestore().collection('webhook_events').doc(event_id);
+    const webhookDoc = await webhookRef.get();
+
+    if (webhookDoc.exists) {
+      console.log(`Duplicate webhook event: ${event_id}`);
+      res.status(200).json({ message: 'Already processed' });
+      return;
+    }
+
+    // Store webhook event
+    await webhookRef.set({
+      event,
+      event_id,
+      data,
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Handle different webhook events
+    switch (event) {
+      case 'events.mandates.created':
+        await handleMandateCreated(data);
+        break;
+
+      case 'events.mandates.approved':
+        await handleMandateApproved(data);
+        break;
+
+      case 'events.mandates.ready':
+        await handleMandateReady(data);
+        break;
+
+      case 'events.mandates.debit.successful':
+        await handleDebitSuccessful(data);
+        break;
+
+      case 'events.mandates.debit.failed':
+        await handleDebitFailed(data);
+        break;
+
+      case 'events.mandate.action.cancel':
+        await handleMandateCancelled(data);
+        break;
+
+      case 'events.mandate.action.pause':
+        await handleMandatePaused(data);
+        break;
+
+      default:
+        console.log(`Unhandled webhook event: ${event}`);
+    }
+
+    res.status(200).json({ message: 'Webhook received' });
+  } catch (error: any) {
+    console.error('Error processing webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================
+// WEBHOOK EVENT HANDLERS
+// ============================================
+
+async function handleMandateCreated(data: any) {
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.id)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      status: 'created',
+      monoStatus: data.status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+}
+
+async function handleMandateApproved(data: any) {
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.id)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      status: 'approved',
+      monoStatus: data.status,
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send notification to user
+    const mandateData = mandateDoc.data();
+    await sendNotification(mandateData.userId, {
+      title: 'Mandate Approved!',
+      body: 'Your monthly donation mandate has been approved.',
+    });
+  }
+}
+
+async function handleMandateReady(data: any) {
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.id)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      status: 'ready_to_debit',
+      monoStatus: data.status,
+      readyToDebit: true,
+      readyAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send notification to user
+    const mandateData = mandateDoc.data();
+    await sendNotification(mandateData.userId, {
+      title: 'Mandate Active!',
+      body: 'Your monthly donations will now be processed automatically.',
+    });
+  }
+}
+
+async function handleDebitSuccessful(data: any) {
+  // Create transaction record
+  await admin.firestore().collection('transactions').add({
+    mandateId: data.mandate,
+    type: 'debit',
+    status: 'successful',
+    amount: data.amount / 100,
+    fee: data.fee / 100,
+    referenceNumber: data.reference_number,
+    accountDetails: data.account_details,
+    beneficiary: data.beneficiary,
+    date: admin.firestore.Timestamp.fromDate(new Date(data.date)),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Update mandate last debit date
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.mandate)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      lastDebitAt: admin.firestore.FieldValue.serverTimestamp(),
+      totalDebited: admin.firestore.FieldValue.increment(data.amount / 100),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send notification to user
+    const mandateData = mandateDoc.data();
+    await sendNotification(mandateData.userId, {
+      title: 'Donation Successful',
+      body: `Your monthly donation of ₦${(data.amount / 100).toLocaleString()} has been processed.`,
+    });
+  }
+}
+
+async function handleDebitFailed(data: any) {
+  // Create transaction record
+  await admin.firestore().collection('transactions').add({
+    mandateId: data.mandate,
+    type: 'debit',
+    status: 'failed',
+    amount: data.amount / 100,
+    referenceNumber: data.reference_number,
+    accountDetails: data.account_details,
+    failureReason: data.message,
+    responseCode: data.response_code,
+    date: admin.firestore.Timestamp.fromDate(new Date(data.date)),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Send notification to user
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.mandate)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateData = mandatesQuery.docs[0].data();
+    await sendNotification(mandateData.userId, {
+      title: 'Donation Failed',
+      body: 'Your monthly donation could not be processed. Please ensure sufficient funds.',
+    });
+  }
+}
+
+async function handleMandateCancelled(data: any) {
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.mandate)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      status: 'cancelled',
+      cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Update user document
+    const mandateData = mandateDoc.data();
+    await admin.firestore().collection('users').doc(mandateData.userId).update({
+      hasActiveMandate: false,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+}
+
+async function handleMandatePaused(data: any) {
+  const mandatesQuery = await admin
+    .firestore()
+    .collection('mandates')
+    .where('mandateId', '==', data.mandate)
+    .limit(1)
+    .get();
+
+  if (!mandatesQuery.empty) {
+    const mandateDoc = mandatesQuery.docs[0];
+    await mandateDoc.ref.update({
+      status: 'paused',
+      pausedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+async function sendNotification(userId: string, notification: { title: string; body: string }) {
+  try {
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    const userData = userDoc.data();
+
+    if (userData?.fcmToken) {
+      await admin.messaging().send({
+        token: userData.fcmToken,
+        notification,
+      });
+    }
+
+    // Also store notification in Firestore
+    await admin.firestore().collection('notifications').add({
+      userId,
+      title: notification.title,
+      body: notification.body,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+}
+
+// ============================================
+// 5. PAUSE MANDATE
+// ============================================
+export const pauseMandate = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const response = await axios.patch(
+      `${MONO_BASE_URL}/v3/payments/mandates/${data.mandateId}/pause`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mono-sec-key': MONO_SECRET_KEY,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    console.error('Error pausing mandate:', error.response?.data || error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      error.response?.data?.message || 'Failed to pause mandate'
+    );
+  }
+});
+
+// ============================================
+// 6. REINSTATE MANDATE
+// ============================================
+export const reinstateMandate = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const response = await axios.patch(
+      `${MONO_BASE_URL}/v3/payments/mandates/${data.mandateId}/reinstate`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mono-sec-key': MONO_SECRET_KEY,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    console.error('Error reinstating mandate:', error.response?.data || error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      error.response?.data?.message || 'Failed to reinstate mandate'
+    );
+  }
+});
+
+// ============================================
+// 7. CANCEL MANDATE
+// ============================================
+export const cancelMandate = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const response = await axios.patch(
+      `${MONO_BASE_URL}/v3/payments/mandates/${data.mandateId}/cancel`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'mono-sec-key': MONO_SECRET_KEY,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error: any) {
+    console.error('Error cancelling mandate:', error.response?.data || error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      error.response?.data?.message || 'Failed to cancel mandate'
+    );
+  }
+});

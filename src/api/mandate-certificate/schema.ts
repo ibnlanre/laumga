@@ -16,7 +16,6 @@ export const mandateCertificateFormSchema =
     amount: z.number(),
     frequency: mandateFrequencySchema,
     tier: mandateTierSchema,
-    startDate: z.string(),
   });
 
 export const mandateCertificateDataSchema = mandateCertificateFormSchema.extend(

@@ -29,14 +29,11 @@ export const Route = createRootRoute({
     await auth.authStateReady();
     const currentUser = await auth.currentUser;
 
-    console.log("Current user in root route:", currentUser);
-
     if (!currentUser) {
       return { isAuthenticated: false, client: null };
     }
 
-    const client = await user.$use.get(currentUser.uid);
-    return { isAuthenticated: !!currentUser, client };
+    return { isAuthenticated: !!currentUser };
   },
   head: () => ({
     meta: [

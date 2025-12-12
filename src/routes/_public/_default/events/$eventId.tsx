@@ -19,6 +19,7 @@ import {
   useCreateEventRegistration,
 } from "@/api/event-registration/hooks";
 import { useGetEvent } from "@/api/event/hooks";
+import { Section } from "@/components/section";
 
 export const Route = createFileRoute("/_public/_default/events/$eventId")({
   component: EventDetailPage,
@@ -41,16 +42,16 @@ function EventDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="container mx-auto px-4 lg:px-6 py-16">
+      <Section className="py-16">
         <Skeleton height={400} radius="lg" mb="xl" />
         <Skeleton height={200} radius="lg" />
-      </main>
+      </Section>
     );
   }
 
   if (!event) {
     return (
-      <main className="container mx-auto px-4 lg:px-6 py-16 text-center">
+      <Section className="py-16 text-center">
         <CalendarOff className="h-24 w-24 text-deep-forest/30 mb-4 mx-auto" />
         <h1 className="text-3xl font-bold text-deep-forest mb-4">
           Event Not Found
@@ -58,7 +59,7 @@ function EventDetailPage() {
         <Button onClick={() => navigate({ to: "/events" })}>
           Back to Events
         </Button>
-      </main>
+      </Section>
     );
   }
 
@@ -121,7 +122,7 @@ function EventDetailPage() {
         style={{ backgroundImage: `url(${event.imageUrl})` }}
       >
         <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-        <div className="relative container mx-auto px-4 lg:px-6 h-full flex items-end pb-8">
+        <Section className="relative h-full flex items-end pb-8">
           <div>
             <Button
               variant="white"
@@ -143,12 +144,12 @@ function EventDetailPage() {
               {event.title}
             </h1>
           </div>
-        </div>
+        </Section>
       </section>
 
       {/* Event Details */}
       <section className="bg-mist-green py-16">
-        <div className="container mx-auto px-4 lg:px-6">
+        <Section>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2">
@@ -260,7 +261,7 @@ function EventDetailPage() {
               </div>
             </div>
           </div>
-        </div>
+        </Section>
       </section>
 
       {/* Registration Modal */}

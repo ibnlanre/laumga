@@ -6,10 +6,14 @@ import {
   CalendarOff,
   Download,
   Inbox,
-  Settings,
+  Pause,
+  Play,
+  X,
 } from "lucide-react";
 import { useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Text } from "@mantine/core";
+import { modals } from "@mantine/modals";
 
 import { LoadingState } from "@/components/loading-state";
 import { DataTable } from "@/components/data-table";
@@ -19,14 +23,15 @@ import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
 import type { MandateTransaction } from "@/api/mandate-transaction/types";
 import { useGetActiveMandate } from "@/api/mandate/handlers";
+import {
+  usePauseMandate,
+  useReinstateMandate,
+  useCancelMandate,
+} from "@/api/mandate/hooks";
 import { useFeed } from "@/api/feed/hooks";
 import { useListUserMandateTransactions } from "@/api/mandate-transaction/handlers";
-
-const NAIRA_FORMATTER = new Intl.NumberFormat("en-NG", {
-  style: "currency",
-  currency: "NGN",
-  maximumFractionDigits: 0,
-});
+import { formatCurrency } from "@/utils/currency";
+import { capitalize } from "inflection";
 
 const tierScale = [
   { tier: "supporter", amount: 500_000 },
@@ -82,7 +87,7 @@ const transactionColumns: ColumnDef<MandateTransaction>[] = [
     header: "Amount",
     cell: (info) => (
       <span className="font-semibold text-deep-forest">
-        {formatCurrencyFromKobo(info.getValue<number>())}
+        {formatCurrency(info.getValue<number>())}
       </span>
     ),
   },
@@ -95,7 +100,7 @@ const transactionColumns: ColumnDef<MandateTransaction>[] = [
         type="button"
         aria-label={`Download receipt for ${formatDate(row.original.paidAt, "PPP")}`}
       >
-        <Download className="h-4 w-4" />
+        <Download size={16} />
       </button>
     ),
   },
@@ -107,7 +112,6 @@ export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
 
 function RouteComponent() {
   const { user } = useAuth();
-  const userId = user?.id;
 
   const {
     data: feedData = [],
@@ -116,27 +120,85 @@ function RouteComponent() {
   } = useFeed();
 
   const { data: activeMandate, isLoading: mandateLoading } =
-    useGetActiveMandate(userId);
+    useGetActiveMandate(user?.id);
 
   const { data: transactions = [], isLoading: transactionsLoading } =
-    useListUserMandateTransactions(userId);
+    useListUserMandateTransactions(user?.id);
+
+  const pauseMutation = usePauseMandate();
+  const reinstateMutation = useReinstateMandate();
+  const cancelMutation = useCancelMandate();
 
   const observerRef = useRef<HTMLDivElement>(null);
 
-  const currentAmount = activeMandate?.amount ?? 0;
-  const statusLabel = activeMandate?.status
-    ? capitalize(activeMandate.status)
-    : "No mandate yet";
-  const tierLabel = formatTierLabel(activeMandate?.tier);
+  const {
+    amount = 0,
+    frequency = "monthly",
+    status = "No mandate yet",
+    tier = "unassigned",
+    id = "",
+  } = { ...activeMandate };
 
-  const { percent: tierProgress, label: tierProgressLabel } = currentAmount
-    ? getNextTierMeta(currentAmount)
+  const { percent: tierProgress, label: tierProgressLabel } = amount
+    ? getNextTierMeta(amount)
     : { percent: 0, label: "Progress to next tier" };
+
+  const handlePauseMandate = () => {
+    modals.openConfirmModal({
+      title: "Pause Your Mandate",
+      children: (
+        <Text size="sm">
+          Pause your <span className="capitalize">{tier}</span> mandate? You can
+          resume it anytime.
+        </Text>
+      ),
+      labels: { confirm: "Pause", cancel: "Cancel" },
+      onConfirm: async () => {
+        if (!user || !id) return;
+        await pauseMutation.mutateAsync({ id, user });
+      },
+    });
+  };
+
+  const handleResumeMandate = () => {
+    modals.openConfirmModal({
+      title: "Resume Your Mandate",
+      children: (
+        <Text size="sm">
+          Resume your <span className="capitalize">{tier}</span> mandate?
+          Debits will resume on schedule.
+        </Text>
+      ),
+      labels: { confirm: "Resume", cancel: "Cancel" },
+      onConfirm: async () => {
+        if (!user || !activeMandate) return;
+        await reinstateMutation.mutateAsync({ id: id, user });
+      },
+    });
+  };
+
+  const handleCancelMandate = () => {
+    modals.openConfirmModal({
+      title: "Cancel Your Mandate",
+      children: (
+        <Text size="sm">
+          Cancel your <span className="capitalize">{tier}</span> mandate
+          permanently? This action cannot be undone.
+        </Text>
+      ),
+      labels: { confirm: "Cancel", cancel: "Keep It" },
+      confirmProps: { color: "red" },
+      onConfirm: async () => {
+        if (!user || !activeMandate) return;
+        await cancelMutation.mutateAsync({ id: id, user });
+      },
+    });
+  };
 
   return (
     <div className="w-full flex-1 bg-linear-to-b from-mist-green/70 via-white to-white pt-6 sm:pt-8 pb-10 sm:pb-12">
       <div className="mx-auto flex w-full container flex-col gap-8 px-4 sm:px-6 lg:px-8">
-        <MandateHeader disableInteractions={false} />
+        <MandateHeader />
 
         <main className="flex flex-col gap-10 rounded-4xl border border-sage-green/40 bg-white/95 p-6 shadow-[0px_30px_80px_rgba(0,35,19,0.08)] sm:p-10">
           <header className="space-y-3">
@@ -188,33 +250,58 @@ function RouteComponent() {
                           Active Mandate
                         </p>
                         <p className="text-lg font-semibold text-deep-forest">
-                          {tierLabel}
+                          {tier}
                         </p>
                       </div>
-                      <button
-                        className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-deep-forest"
-                        type="button"
-                        aria-label="Manage mandate settings"
-                      >
-                        <Settings className="h-4 w-4" />
-                      </button>
+                      <div className="flex gap-2">
+                        {status === "active" && (
+                          <button
+                            className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-deep-forest"
+                            type="button"
+                            onClick={handlePauseMandate}
+                            aria-label="Pause mandate"
+                            title="Pause mandate"
+                          >
+                            <Pause size={16} />
+                          </button>
+                        )}
+                        {status === "paused" && (
+                          <button
+                            className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-deep-forest"
+                            type="button"
+                            onClick={handleResumeMandate}
+                            aria-label="Resume mandate"
+                            title="Resume mandate"
+                          >
+                            <Play size={16} />
+                          </button>
+                        )}
+                        <button
+                          className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-red-600"
+                          type="button"
+                          onClick={handleCancelMandate}
+                          aria-label="Cancel mandate"
+                          title="Cancel mandate"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     </div>
                     <div className="text-center">
                       <p className="text-4xl font-bold text-deep-forest">
-                        {formatCurrencyFromKobo(activeMandate.amount)}
-                        <span className="ml-1 text-xl font-medium text-deep-forest/70">
-                          / {capitalize(activeMandate.frequency)}
+                        {formatCurrency(amount)}
+                        <span className="ml-1 text-xl font-medium text-deep-forest/70 capitalize">
+                          / {frequency}
                         </span>
                       </p>
                     </div>
                     <p className="flex items-center justify-between text-sm font-medium text-institutional-green">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-vibrant-lime" />
-                        {statusLabel}
+                      <span className="inline-flex items-center gap-2 capitalize">
+                        <span className="size-2 rounded-full bg-vibrant-lime" />
+                        {status}
                       </span>
                       <span className="text-deep-forest/60">
-                        Next charge:{" "}
-                        {formatNextCharge(activeMandate.nextChargeDate)}
+                        Debit schedule managed by Mono
                       </span>
                     </p>
                   </div>
@@ -412,21 +499,6 @@ function RouteComponent() {
   );
 }
 
-function formatCurrencyFromKobo(value?: number | null) {
-  if (value == null) return "₦0";
-  return NAIRA_FORMATTER.format(Math.round(value / 100));
-}
-
-function formatTierLabel(tier?: string | null) {
-  if (!tier) return "Unassigned";
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
-}
-
-function formatNextCharge(nextChargeDate?: string | null) {
-  if (!nextChargeDate) return "Not scheduled";
-  return formatDate(nextChargeDate, "MMM d, yyyy");
-}
-
 function getNextTierMeta(currentAmount: number) {
   const nextTier = tierScale.find((tier) => tier.amount > currentAmount);
   if (!nextTier) {
@@ -437,9 +509,6 @@ function getNextTierMeta(currentAmount: number) {
     100,
     Math.round((currentAmount / nextTier.amount) * 100)
   );
-  return { percent, label: `Progress to ${capitalize(nextTier.tier)}` };
-}
 
-function capitalize(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return { percent, label: `Progress to ${capitalize(nextTier.tier)}` };
 }

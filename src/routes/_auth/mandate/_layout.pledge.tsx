@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/v4";
 import { zodValidator } from "@tanstack/zod-adapter";
 
-import { MandatePledgeForm } from "@/layouts/mandate/mandate-pledge-form";
+import { MandatePledgeForm } from "@/layouts/mandate/pledge-form";
 import { MandateHeader } from "@/layouts/mandate/header";
+import { Stack } from "@mantine/core";
 
 const pledgeSearchSchema = z.object({
   tier: z.enum(["supporter", "builder", "guardian", "custom"]).optional(),
@@ -19,7 +20,7 @@ function RouteComponent() {
   const { tier, amount } = Route.useSearch();
 
   return (
-    <div className="relative flex-1 w-full bg-linear-to-b from-mist-green via-white to-sage-green/40 text-deep-forest pt-6 sm:pt-8 pb-10 sm:pb-12">
+    <div className="relative flex-1 w-full bg-linear-to-b spacey-10 from-mist-green via-white to-sage-green/40 text-deep-forest pt-6 sm:pt-8 pb-10 sm:pb-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -29,10 +30,10 @@ function RouteComponent() {
         }}
       />
 
-      <div className="relative container mx-auto flex flex-col gap-10 px-4 sm:px-6 lg:px-8">
-        <MandateHeader disableInteractions={false} />
+      <Stack gap={40} className="relative">
+        <MandateHeader />
         <MandatePledgeForm tier={tier} amount={amount} />
-      </div>
+      </Stack>
     </div>
   );
 }

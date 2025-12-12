@@ -1,6 +1,5 @@
 import { createBuilder } from "@ibnlanre/builder";
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -13,7 +12,7 @@ import {
 import { db } from "@/services/firebase";
 import { record } from "@/utils/record";
 import { formatDate } from "@/utils/date";
-import { getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
 import { paymentPartner } from "@/api/payment-partner";
 import { mono } from "@/api/mono";
 import { mandateCertificate } from "@/api/mandate-certificate";
@@ -21,7 +20,7 @@ import { mandateCertificate } from "@/api/mandate-certificate";
 import {
   MANDATES_COLLECTION,
   createMandateSchema,
-  mandateRecordSchema,
+  mandateDataSchema,
   mandateSchema,
 } from "./schema";
 import type {
@@ -30,22 +29,18 @@ import type {
   UpdateMandateVariables,
   MandateCollection,
   MandateDocument,
+  ListMandateVariables,
+  MandateDebitType,
+  MandateType,
 } from "./types";
 import {
   buildSplitConfiguration,
-  calculateEndDate,
-  computeNextChargeDate,
   determineTier,
   generateDebitReference,
   generateMandateReference,
   mapMonoStatus,
 } from "./utils";
-import type { MonoCustomerInput } from "@/api/mono/types";
-import { MANDATE_TRANSACTIONS_COLLECTION } from "../mandate-transaction/schema";
-import type {
-  MandateTransactionCollection,
-  CreateMandateTransactionData,
-} from "../mandate-transaction/types";
+import { tryCatch } from "@/utils/try-catch";
 
 async function getActive(userId: string) {
   if (!userId) return null;
@@ -57,8 +52,7 @@ async function getActive(userId: string) {
     where("status", "==", "active")
   );
 
-  const results = await getQueryDocs(activeQuery, mandateSchema);
-  return results[0] ?? null;
+  return await getQueryDoc(activeQuery, mandateSchema);
 }
 
 function mandateRef(mandateId: string) {
@@ -68,46 +62,38 @@ function mandateRef(mandateId: string) {
 async function create(variables: CreateMandateVariables) {
   const { user, data } = variables;
 
-  const payload = createMandateSchema.parse(data);
+  const validated = createMandateSchema.parse(data);
   const partners = await paymentPartner.$use.getActive();
-  const split = buildSplitConfiguration(partners, payload.amount);
+  const split = buildSplitConfiguration(partners, validated.amount);
   const reference = generateMandateReference(user.id);
-  const startDate = new Date();
-  const endDate = calculateEndDate(startDate, payload.duration);
-  const nextChargeDate = computeNextChargeDate(startDate, payload.frequency);
-  const tier = determineTier(payload.amount);
+  const tier = determineTier(validated.amount);
+  const mandateType: MandateType = "emandate";
+  const debitType: MandateDebitType = "fixed";
+  const startDate = formatDate(data.startDate, "yyyy-MM-dd");
+  const endDate = formatDate(data.endDate, "yyyy-MM-dd");
 
-  const monoCustomerPayload: MonoCustomerInput = {
-    email: user.email,
-    type: "individual",
-    first_name: user.firstName,
-    last_name: user.lastName,
-    address: user.address,
-    phone: user.phoneNumber,
-    identity: {
-      type: "bvn",
-      number: payload.bvn,
-    },
-  };
-
-  const customerResponse = await mono.$use.customer.create(monoCustomerPayload);
-  const monoCustomerId = customerResponse.data.id;
+  if (!user.monoCustomerId) {
+    throw new Error(
+      "You need to be registered as a customer to create a mandate."
+    );
+  }
 
   const mandateResponse = await mono.$use.mandate.initiate({
-    amount: payload.amount,
+    amount: validated.amount,
     type: "recurring-debit",
     method: "mandate",
-    mandate_type: "emandate",
-    debit_type: payload.frequency === "one-time" ? "variable" : "variable",
-    description: `LAUMGA Foundation ${payload.frequency} contribution`,
+    mandate_type: mandateType,
+    debit_type: debitType,
+    description: `LAUMGA Foundation ${validated.frequency} contribution`,
     reference,
-    customer: { id: monoCustomerId },
-    start_date: formatDate(startDate, "yyyy-MM-dd"),
-    end_date: formatDate(endDate, "yyyy-MM-dd"),
+    customer: { id: user.monoCustomerId },
+    start_date: startDate,
+    end_date: endDate,
     split,
     meta: {
       userId: user.id,
       tier,
+      frequency: validated.frequency,
     },
   });
 
@@ -116,18 +102,18 @@ async function create(variables: CreateMandateVariables) {
 
   const mandateData: CreateMandateData = {
     userId: user.id,
-    amount: payload.amount,
-    frequency: payload.frequency,
-    duration: payload.duration,
+    amount: validated.amount / 100,
+    frequency: validated.frequency,
     tier,
     status: "initiated",
     monoMandateId: mandateResponse.data.mandate_id,
-    monoCustomerId,
+    monoCustomerId: user.monoCustomerId,
     monoReference: mandateResponse.data.reference,
     monoUrl: mandateResponse.data.mono_url,
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    nextChargeDate: nextChargeDate.toISOString(),
+    mandateType,
+    debitType,
+    startDate: data.startDate,
+    endDate: data.endDate,
     created: record(user),
     updated: record(user),
   };
@@ -145,7 +131,7 @@ async function create(variables: CreateMandateVariables) {
     user,
   });
 
-  return createdMandate;
+  return mandateResponse.data;
 }
 
 async function syncStatus(variables: UpdateMandateVariables) {
@@ -158,12 +144,22 @@ async function syncStatus(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateRecordSchema.parse(snapshot.data());
+  const mandateData = mandateDataSchema.parse(snapshot.data());
   if (!mandateData.monoMandateId) {
     throw new Error("Mono mandate ID not found");
   }
 
-  const monoDetails = await mono.$use.mandate.fetch(mandateData.monoMandateId);
+  const result = await tryCatch(() => {
+    return mono.$use.mandate.fetch(mandateData.monoMandateId!);
+  });
+
+  if (result.success === false) {
+    throw new Error(
+      `Failed to fetch mandate status from Mono: ${result.error}`
+    );
+  }
+
+  const monoDetails = result.data;
   const status = mapMonoStatus(monoDetails.data.status);
 
   await updateDoc(ref, {
@@ -173,7 +169,7 @@ async function syncStatus(variables: UpdateMandateVariables) {
 }
 
 async function debit(variables: UpdateMandateVariables) {
-  const { id, user } = variables;
+  const { id } = variables;
 
   const ref = mandateRef(id);
   const snapshot = await getDoc(ref);
@@ -182,7 +178,7 @@ async function debit(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateRecordSchema.parse(snapshot.data());
+  const mandateData = mandateDataSchema.parse(snapshot.data());
 
   if (mandateData.status !== "active") {
     throw new Error("Mandate is not active");
@@ -192,49 +188,17 @@ async function debit(variables: UpdateMandateVariables) {
   const split = buildSplitConfiguration(partners, mandateData.amount);
   const reference = generateDebitReference(id);
 
-  const debitResponse = await mono.$use.mandate.debit(mandateData.monoMandateId!, {
+  await mono.$use.mandate.debit(mandateData.monoMandateId!, {
     amount: mandateData.amount,
     reference,
     narration: `LAUMGA Foundation ${mandateData.frequency} contribution`,
     split,
   });
 
-  const transactionsRef = collection(
-    db,
-    MANDATE_TRANSACTIONS_COLLECTION
-  ) as MandateTransactionCollection;
-
-  const transactionData: CreateMandateTransactionData = {
-    mandateId: id,
-    userId: mandateData.userId,
-    amount: mandateData.amount,
-    monoReference: reference,
-    monoDebitId: debitResponse.data.reference_number,
-    status: debitResponse.data.status,
-    failureReason: null,
-    paidAt: debitResponse.data.date,
-    created: record(user),
-  };
-
-  const transactionDoc = await addDoc(transactionsRef, transactionData);
-
-  if (debitResponse.data.status === "successful") {
-    const newNextChargeDate = computeNextChargeDate(
-      new Date(),
-      mandateData.frequency
-    );
-
-    await updateDoc(ref, {
-      nextChargeDate: newNextChargeDate.toISOString(),
-      updated: record(user),
-    });
-  }
-
-  return {
-    transactionId: transactionDoc.id,
-    status: debitResponse.data.status,
-    reference,
-  };
+  await updateDoc(ref, {
+    status: "active",
+    updated: record(variables.user),
+  });
 }
 
 async function get(id: string) {
@@ -243,16 +207,17 @@ async function get(id: string) {
 }
 
 async function fetchByUserId(userId: string) {
-  if (!userId) return [];
+  if (!userId) return null;
 
   const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
   const mandatesQuery = query(mandatesRef, where("userId", "==", userId));
 
-  return await getQueryDocs(mandatesQuery, mandateSchema);
+  return await getQueryDoc(mandatesQuery, mandateSchema);
 }
 
 async function pause(variables: UpdateMandateVariables) {
   const { id, user } = variables;
+
   const ref = mandateRef(id);
   const snapshot = await getDoc(ref);
 
@@ -260,10 +225,18 @@ async function pause(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateRecordSchema.parse(snapshot.data());
+  const mandateData = mandateDataSchema.parse(snapshot.data());
 
-  if (mandateData.monoMandateId) {
-    await mono.$use.mandate.pause(mandateData.monoMandateId);
+  if (!mandateData.monoMandateId) {
+    throw new Error("Mono mandate ID not found");
+  }
+
+  const result = await tryCatch(() => {
+    return mono.$use.mandate.pause(mandateData.monoMandateId!);
+  });
+
+  if (result.success === false) {
+    throw new Error(`Failed to pause mandate with Mono: ${result.error}`);
   }
 
   await updateDoc(ref, {
@@ -276,6 +249,7 @@ async function pause(variables: UpdateMandateVariables) {
 
 async function cancel(variables: UpdateMandateVariables) {
   const { id, user } = variables;
+
   const ref = mandateRef(id);
   const snapshot = await getDoc(ref);
 
@@ -283,22 +257,29 @@ async function cancel(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateRecordSchema.parse(snapshot.data());
+  const mandateData = mandateDataSchema.parse(snapshot.data());
 
-  if (mandateData.monoMandateId) {
-    await mono.$use.mandate.cancel(mandateData.monoMandateId);
+  if (!mandateData.monoMandateId) {
+    throw new Error("Mono mandate ID not found");
+  }
+
+  const result = await tryCatch(() => {
+    return mono.$use.mandate.cancel(mandateData.monoMandateId!);
+  });
+
+  if (result.success === false) {
+    throw new Error(`Failed to cancel mandate with Mono: ${result.error}`);
   }
 
   await updateDoc(ref, {
     status: "cancelled",
     updated: record(user),
   });
-
-  return { success: true };
 }
 
 async function reinstate(variables: UpdateMandateVariables) {
   const { id, user } = variables;
+
   const ref = mandateRef(id);
   const snapshot = await getDoc(ref);
 
@@ -306,18 +287,30 @@ async function reinstate(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateRecordSchema.parse(snapshot.data());
+  const mandateData = mandateDataSchema.parse(snapshot.data());
 
-  if (mandateData.monoMandateId) {
-    await mono.$use.mandate.reinstate(mandateData.monoMandateId);
+  if (!mandateData.monoMandateId) {
+    throw new Error("Mono mandate ID not found");
+  }
+
+  const result = await tryCatch(() => {
+    return mono.$use.mandate.reinstate(mandateData.monoMandateId!);
+  });
+
+  if (result.success === false) {
+    throw new Error(`Failed to reinstate mandate with Mono: ${result.error}`);
   }
 
   await updateDoc(ref, {
     status: "active",
     updated: record(user),
   });
+}
 
-  return { success: true };
+async function list(variables?: ListMandateVariables) {
+  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
+  const mandatesQuery = buildQuery(mandatesRef, variables);
+  return await getQueryDocs(mandatesQuery, mandateSchema);
 }
 
 export const mandate = createBuilder({
@@ -327,8 +320,8 @@ export const mandate = createBuilder({
   pause,
   cancel,
   reinstate,
-
   syncStatus,
   fetchByUserId,
   getActive,
+  list,
 });

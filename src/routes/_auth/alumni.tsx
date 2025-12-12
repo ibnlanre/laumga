@@ -1,6 +1,6 @@
 import { TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { SearchCheckIcon, MapPin, User } from "lucide-react";
 
@@ -329,13 +329,13 @@ function RouteComponent() {
 
         <footer className="mt-20 text-center">
           <p className="text-stone-600 dark:text-stone-400">
-            Looking for data prior to 2010?
-            <a
+            Looking for data prior to 2010?{" "}
+            <Link
               className="font-semibold text-vibrant-lime hover:underline"
-              href="#"
+              to="/contact-us"
             >
               Visit the Historical Archives.
-            </a>
+            </Link>
           </p>
         </footer>
       </div>

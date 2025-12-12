@@ -1,5 +1,5 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 
 import { auth } from "@/services/firebase";
 import { useCurrentUser } from "@/api/user/hooks";
@@ -13,20 +13,13 @@ interface AuthProviderProps extends PropsWithChildren {}
 export function AuthProvider({ children }: AuthProviderProps) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
-  const { data: user = null } = useCurrentUser(firebaseUser?.uid);
   const { data: permissions = [] } = useGetUserPermissions(firebaseUser?.uid);
+  const { data: user = null, isLoading } = useCurrentUser(firebaseUser?.uid);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, setFirebaseUser);
-    return unsubscribe;
-  }, []);
-
-  const logout = async () => {
-    await signOut(auth);
-  };
+  useEffect(() => onAuthStateChanged(auth, setFirebaseUser), []);
 
   return (
-    <AuthContext.Provider value={{ user, logout, permissions }}>
+    <AuthContext.Provider value={{ user, permissions, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 import { Group, Stack, Text, Anchor, TextInput, Button } from "@mantine/core";
 import { Link } from "@tanstack/react-router";
 import { Facebook, Twitter, Instagram } from "lucide-react";
+import { Section } from "@/components/section";
 
 interface FooterProps {
   variant: "full" | "minimal";
@@ -12,18 +13,18 @@ export function Footer({ variant }: FooterProps) {
   if (variant === "minimal") {
     return (
       <footer className="bg-institutional-green py-6 mt-auto">
-        <div className="container mx-auto px-4">
+        <Section>
           <Text size="sm" className="text-white/70 text-center">
             © {currentYear} LAUMGA. All rights reserved.
           </Text>
-        </div>
+        </Section>
       </footer>
     );
   }
 
   return (
     <footer className="bg-institutional-green text-white mt-auto">
-      <div className="container mx-auto px-4 py-12">
+      <Section py="lg">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* About Column */}
           <Stack gap="md">
@@ -156,7 +157,7 @@ export function Footer({ variant }: FooterProps) {
             © {currentYear} LAUMGA. All rights reserved.
           </Text>
         </div>
-      </div>
+      </Section>
     </footer>
   );
 }

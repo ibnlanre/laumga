@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { Alert, Button, Loader } from "@mantine/core";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import { Download, ExternalLink, Lock } from "lucide-react";
 
-import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { useGetMandateCertificate } from "@/api/mandate-certificate/hooks";
+import { useAuth } from "@/contexts/use-auth";
 
 const nairaFormatter = new Intl.NumberFormat("en-NG", {
   style: "currency",
@@ -14,7 +14,7 @@ const nairaFormatter = new Intl.NumberFormat("en-NG", {
 });
 
 export function MandateCertificateView() {
-  const { user } = useAuth();
+  const {user} = useAuth()
   const { data, isLoading, isError } = useGetMandateCertificate(user?.id);
 
   const formattedAmount = useMemo(() => {
@@ -22,10 +22,10 @@ export function MandateCertificateView() {
     return nairaFormatter.format(data.amount / 100);
   }, [data?.amount]);
 
-  const formattedStartDate = useMemo(() => {
-    if (!data?.startDate) return "";
-    return formatDate(data.startDate, "MMMM d, yyyy");
-  }, [data?.startDate]);
+  const formattedIssuedDate = useMemo(() => {
+    if (!data?.created?.at) return "";
+    return formatDate(data.created.at, "MMMM d, yyyy");
+  }, [data?.created?.at]);
 
   if (isLoading) {
     return (
@@ -62,14 +62,6 @@ export function MandateCertificateView() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex w-full items-center justify-center py-20">
-        <Loader color="green" size="lg" />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <Alert
@@ -82,8 +74,6 @@ export function MandateCertificateView() {
       </Alert>
     );
   }
-
-  console.log("Mandate certificate data:", data);
 
   if (!data) {
     return (
@@ -108,7 +98,7 @@ export function MandateCertificateView() {
     );
   }
 
-  const frequencyLabel = data.frequency?.replace("-", " ");
+  const frequencyLabel = data.frequency?.replace("-", " ") ?? "recurring";
 
   const handleDownload = () => {
     if (typeof window !== "undefined") {
@@ -121,7 +111,7 @@ export function MandateCertificateView() {
       <div className="rounded-4xl border-4 border-institutional-green/30 bg-white p-10 shadow-[0_50px_140px_rgba(0,35,19,0.12)]">
         <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/50">
           <span>Certificate</span>
-          {/* <span className="text-deep-forest/70">{data.frequency}</span> */}
+          <span className="text-deep-forest/70">{data.frequency}</span>
         </div>
         <div className="mt-6 flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-deep-forest text-2xl font-bold text-vibrant-lime">
@@ -155,8 +145,8 @@ export function MandateCertificateView() {
         <div className="my-8 border-t border-dashed border-sage-green/60" />
         <div className="flex flex-col gap-6 text-sm text-deep-forest/70 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-semibold text-deep-forest">Started</p>
-            <p>{formattedStartDate || "Pending activation"}</p>
+            <p className="font-semibold text-deep-forest">Issued</p>
+            <p>{formattedIssuedDate || "Pending activation"}</p>
           </div>
           <div className="text-center">
             {data.signatureUrl ? (

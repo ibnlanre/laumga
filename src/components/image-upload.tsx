@@ -66,7 +66,7 @@ export function ImageUpload({
             <Avatar src={preview} size={80} radius="xl" />
           ) : (
             <Dropzone.Idle>
-              <Upload className="h-12 w-12 text-gray-400" />
+              <Upload size={48} className="text-gray-400" />
             </Dropzone.Idle>
           )}
 
@@ -80,11 +80,11 @@ export function ImageUpload({
           </div>
 
           <Dropzone.Accept>
-            <Check className="h-12 w-12 text-green-500" />
+            <Check size={48} className="text-green-500" />
           </Dropzone.Accept>
 
           <Dropzone.Reject>
-            <X className="h-12 w-12 text-red-500" />
+            <X size={48} className="text-red-500" />
           </Dropzone.Reject>
         </Group>
       </Dropzone>

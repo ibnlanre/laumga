@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { dateSchema, fieldValueSchema } from "@/schema/date";
 
-const transactionBaseSchema = z.object({
+const transactionFormSchema = z.object({
   mandateId: z.string(),
   userId: z.string(),
   amount: z.number(),
@@ -12,11 +12,11 @@ const transactionBaseSchema = z.object({
   paidAt: z.string(),
 });
 
-export const mandateTransactionDataSchema = transactionBaseSchema.extend({
+export const mandateTransactionDataSchema = transactionFormSchema.extend({
   created: dateSchema,
 });
 
-export const createMandateTransactionSchema = transactionBaseSchema.extend({
+export const createMandateTransactionSchema = transactionFormSchema.extend({
   created: fieldValueSchema,
 });
 
@@ -24,4 +24,4 @@ export const mandateTransactionSchema = mandateTransactionDataSchema.extend({
   id: z.string(),
 });
 
-export const MANDATE_TRANSACTIONS_COLLECTION = "mandate-transactions";
+export const MANDATE_TRANSACTIONS_COLLECTION = "mandateTransactions";
