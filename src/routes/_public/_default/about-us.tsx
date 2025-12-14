@@ -22,8 +22,7 @@ function RouteComponent() {
           className="absolute inset-0 bg-cover bg-center opacity-20"
           data-alt="Black and white architectural photo of a university campus building."
           style={{
-            backgroundImage:
-              "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCVTHR8-yq_8s7-rEB6E6pObws6LZIn3KK3FlXNoyhuBu36032eFeXl-NumLp87zBPk4NZ7NVXpbFDKR9Nf4VvrKCsLSn058NoEMN16Y1NLs8R5Ur-kGUYSgcpqGEDiAquPOfhJaZUtVZXk-SzrhKc6hbPYrEcr12rA_soTKlOquM0x-Qn1y_EtRs4Q3C92lPY87nh154XRMZBZuo4DVVhWFhg6LE-KvcTVHkrX6ZFwvXG55_NFDq40Y82kW8JkoMWXyPNVWyYoPfE')",
+            backgroundImage: "url('/images/inside-lautech-central-mosque.jpg')",
           }}
         />
         <div className="relative mx-auto flex max-w-7xl flex-col items-center justify-center px-4 py-20 text-center sm:py-32">
@@ -60,7 +59,7 @@ function RouteComponent() {
             </div>
           </div>
 
-          <div className="relative pr-8 pb-10 p-1 bg-sage-green rounded-2xl overflow-hidden">
+          <div className="relative p-1 bg-institutional-green rounded-2xl overflow-hidden">
             <div
               className="relative rounded-xl overflow-hidden shadow-inner"
               style={{
@@ -77,8 +76,8 @@ function RouteComponent() {
                   {/* The image */}
                   <img
                     alt="Modern university senate building with glass facade."
-                    className="relative z-10 aspect-video w-full rounded-xl object-cover"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxMLpFH-rcZDz8StKQJhAIYJXymMItgvwpmlPga-h61hPS5FTVjsl8J4aV21dh5HbtxFmQfy91auTyWOUAV2z8a_5MAbYIH0ARoMgseiPr6j3PUCBvP5BzJ4GNqhbRLgLeqsuXPGZDraMQ8uz7850Z8znO6OGC2w4QkwYiLbg_ytdBDqxl6cF5vX5gkoPPYO9ytBeQOy0lYi7NVXXLI_0isTkyVAxF5KGovL6voiDcyFrxHN0BK8prGwLDHgeh52gtixpbG67JgrU"
+                    className="relative z-10 aspect-video w-full rounded-xl object-cover object-[center_-120px]"
+                    src="/images/lautech-central-mosque.jpeg"
                     style={{ transform: "translateZ(32px)" }}
                   />
                 </div>
@@ -198,7 +197,10 @@ function RouteComponent() {
             from Ladoke Akintola University of Technology (LAUTECH), Ogbomoso,
             with degrees including B.Tech, M.Tech, MBA, and PhD.
           </p>
-          <Link to="/membership" className="mt-8 self-start rounded-full border-2 border-deep-forest px-8 py-3 text-sm font-bold text-deep-forest transition-colors hover:bg-deep-forest hover:text-white">
+          <Link
+            to="/membership"
+            className="mt-8 self-start rounded-full border-2 border-deep-forest px-8 py-3 text-sm font-bold text-deep-forest transition-colors hover:bg-deep-forest hover:text-white"
+          >
             Check Eligibility
           </Link>
         </div>
@@ -215,7 +217,7 @@ function RouteComponent() {
               <img
                 className="h-40 w-full rounded-lg object-cover"
                 data-alt="Large audience at an annual convention."
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFiqbfz51hXtZhr6xul2ZU8WVcy2ssbzcN30TUTqefM49V4Vr5cEY5S-BHh3StN94FCeCFpf1oGKWCDG8cyGKJPXOukPFis1H7-jJ6HvtfUmB5ohOYbtUeQh9sp2ZFKEE3mGqAVF_uXKYOBNVPaZnD91EgYSSg6_D_fQo5iFb4ySCER-NqkXdjhVAC932kPXLuNbTWQn5gFVXv3XgP7VXLsm4MVgnPQovhHiZskLpYP-ZlNCw0QxLKlpBUuyc0GriKPD4ICZNDIuA"
+                src="/images/meedahevents-oyo-seminar.jpeg"
               />
               <h3 className="mt-3 font-bold text-deep-forest">
                 Annual Convention
@@ -227,21 +229,19 @@ function RouteComponent() {
             <div className="flex w-64 shrink-0 flex-col">
               <img
                 className="h-40 w-full rounded-lg object-cover"
-                data-alt="People networking at a career seminar."
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiiVjKHlQmGl6qWpxlLnCLzaV2kwmJuUcDmwRuq_kK5QuSiTprX6iPnRa6OcsPo1xZBR3ZOf5qQ09eCVqkE69LrO23xc2WcN6vYoegEIlFPSsjOQDRDkiC4yYxN4v-T5SUcg5vU45y0wFxPFBwNYehbR4wkBRux-hllF19ZdUh-ipxfBlOK2DlivD04nZY5U-NL4aD6ye7wYMC0B_tTrB5TecEpZ9slfcj-OvH-Lpi5BtpadCGCXqG357Ka3QQzaMabFI717f5ptE"
+                data-alt="A health professional conducting a medical check-up during a community health event."
+                src="/images/health-event.jpg"
               />
-              <h3 className="mt-3 font-bold text-deep-forest">
-                Career Seminars
-              </h3>
+              <h3 className="mt-3 font-bold text-deep-forest">Health Check</h3>
               <p className="text-sm text-gray-600">
-                Empowering members with skills for professional excellence.
+                Promoting wellness through free medical screenings.
               </p>
             </div>
             <div className="flex w-64 shrink-0 flex-col">
               <img
                 className="h-40 w-full rounded-lg object-cover"
                 data-alt="A person reading the Quran during a Da'wah activity."
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDv6blOAxDnHKeNXTV5j_9VPdtxzn11ZRma0Vqgg_PNOEmBuZwds-KdSomAK2nNF1obx3vNw_ZJjPIoIdaOUmUNGtQSbze_IrCWhoX_IYM6Yw9LPKVQOMddxCYWDQN_uk_cfTaDmXt_j1-tiBHFWtMX2ID4y06jjMCSEABYbWgxE-XnHa9DibNuI_8CN9PaYFv13haCtbymtoO-aR_XWLRvmw9_3PywOs0l9pY49NwHAZBZXwV1iPguZ6t2V8UwIlaa1swpP9Rl57w"
+                src="/images/dawah-activity.jpg"
               />
               <h3 className="mt-3 font-bold text-deep-forest">
                 Da'wah Activities

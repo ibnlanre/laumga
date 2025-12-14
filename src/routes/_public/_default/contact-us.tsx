@@ -21,7 +21,6 @@ import { zod4Resolver } from "mantine-form-zod-resolver";
 import {
   Clock,
   Facebook,
-  Instagram,
   Mail,
   MapPin,
   Phone,
@@ -81,7 +80,6 @@ const socialLinks = [
     icon: Facebook,
   },
   { href: "https://x.com/LaumgaF", label: "Twitter", icon: Twitter },
-  { href: "https://instagram.com/laumga", label: "Instagram", icon: Instagram },
 ];
 
 const faqItems = [

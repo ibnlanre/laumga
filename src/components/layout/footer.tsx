@@ -1,7 +1,15 @@
-import { Group, Stack, Text, Anchor, TextInput, Button } from "@mantine/core";
+import {
+  Accordion,
+  Group,
+  Stack,
+  Text,
+  Anchor,
+  TextInput,
+  Button,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Link } from "@tanstack/react-router";
-import { Facebook, Twitter, Instagram } from "lucide-react";
+import { Facebook, Twitter } from "lucide-react";
 import { Section } from "@/components/section";
 import { useAuth } from "@/contexts/use-auth";
 import { useSubscribe } from "@/api/newsletter-subscription/hooks";
@@ -54,8 +62,8 @@ export function Footer({ variant }: FooterProps) {
 
   return (
     <footer className="bg-institutional-green text-white mt-auto">
-      <Section py="lg">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+      <section className="space-y-8 py-6 xl:container w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="hidden md:grid md:grid-cols-4 gap-8 pt-4">
           {/* About Column */}
           <Stack gap="md">
             <div className="flex items-center gap-2 mb-2">
@@ -86,13 +94,6 @@ export function Footer({ variant }: FooterProps) {
                 className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
               >
                 <Twitter size={20} />
-              </Anchor>
-              <Anchor
-                href="https://instagram.com/laumga"
-                target="_blank"
-                className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
-              >
-                <Instagram size={20} />
               </Anchor>
             </Group>
           </Stack>
@@ -183,13 +184,138 @@ export function Footer({ variant }: FooterProps) {
           </Stack>
         </div>
 
+        <div className="md:hidden">
+          <Accordion
+            multiple
+            variant="separated"
+            chevronPosition="right"
+            classNames={{
+              item: "bg-transparent border-none",
+              control: "text-white font-semibold",
+              panel: "text-white/80",
+            }}
+          >
+            <Accordion.Item value="about">
+              <Accordion.Control>About LAUMGA</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  <Text size="sm">
+                    Uniting alumni of LAUTECH in brotherhood, service, and
+                    excellence since 1997.
+                  </Text>
+                  <Group gap="md">
+                    <Anchor
+                      href="https://web.facebook.com/groups/109196249108535"
+                      target="_blank"
+                      className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
+                    >
+                      <Facebook size={20} />
+                    </Anchor>
+                    <Anchor
+                      href="https://x.com/LaumgaF"
+                      target="_blank"
+                      className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
+                    >
+                      <Twitter size={20} />
+                    </Anchor>
+                  </Group>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+
+            <Accordion.Item value="quick-links">
+              <Accordion.Control>Quick Links</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="sm">
+                  {quickLinks.map((link) => (
+                    <Anchor
+                      key={link.href}
+                      component={Link}
+                      to={link.href}
+                      size="sm"
+                      underline="never"
+                      className="text-white/80"
+                    >
+                      {link.label}
+                    </Anchor>
+                  ))}
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+
+            <Accordion.Item value="contact">
+              <Accordion.Control>Contact Info</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="md">
+                  <div>
+                    <Text size="sm" className="text-white/70">
+                      Email
+                    </Text>
+                    <Anchor
+                      href="mailto:laumgafoundation@gmail.com"
+                      size="sm"
+                      className="text-vibrant-lime-400 hover:text-vibrant-lime-300"
+                    >
+                      laumgafoundation@gmail.com
+                    </Anchor>
+                  </div>
+                  <div>
+                    <Text size="sm" className="text-white/70">
+                      Phone
+                    </Text>
+                    <Anchor
+                      href="tel:+2348025300029"
+                      size="sm"
+                      className="text-vibrant-lime-400 hover:text-vibrant-lime-300"
+                    >
+                      +234 802 530 0029
+                    </Anchor>
+                  </div>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+
+            <Accordion.Item value="newsletter">
+              <Accordion.Control>Newsletter</Accordion.Control>
+              <Accordion.Panel>
+                <Stack gap="sm">
+                  <Text size="sm">Stay up to date with us.</Text>
+                  <form onSubmit={form.onSubmit(handleSubmitWithoutLogin)}>
+                    <Stack gap="sm">
+                      <TextInput
+                        withAsterisk
+                        placeholder="Your email"
+                        {...form.getInputProps("email")}
+                        errorProps={{ c: "vibrant-lime" }}
+                        type="email"
+                        classNames={{
+                          input:
+                            "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-vibrant-lime-400",
+                        }}
+                      />
+
+                      <Button
+                        fullWidth
+                        type="submit"
+                        className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
+                      >
+                        Subscribe
+                      </Button>
+                    </Stack>
+                  </form>
+                </Stack>
+              </Accordion.Panel>
+            </Accordion.Item>
+          </Accordion>
+        </div>
+
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-6">
           <Text size="sm" className="text-white/50 text-center">
             © {currentYear} LAUMGA. All rights reserved.
           </Text>
         </div>
-      </Section>
+      </section>
     </footer>
   );
 }

@@ -83,7 +83,7 @@ export function NotFound() {
             >
               0
               <div
-                className="absolute inset-0 bg-[url('/arabesque-tile.png')] bg-center bg-repeat opacity-10"
+                className="absolute inset-0 bg-[url('/backgrounds/arabesque-tile.png')] bg-center bg-repeat opacity-10"
                 style={{
                   maskImage:
                     "radial-gradient(circle, white 60%, transparent 100%)",
