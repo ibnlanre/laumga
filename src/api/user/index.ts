@@ -10,7 +10,16 @@ import {
   signOut,
   type AuthProvider,
 } from "firebase/auth";
-import { collection, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "@/services/firebase";
 
 import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
@@ -32,9 +41,12 @@ import type {
   LoginVariables,
   ResetPasswordVariables,
   UpdateUserVariables,
+  UpstreamUserCollection,
   UpstreamUserDocument,
 } from "./types";
 import { record } from "@/utils/record";
+import { getFirebaseAuthErrorMessage } from "@/utils/firebase-auth-errors";
+import { tryCatch } from "@/utils/try-catch";
 
 async function list(variables?: ListUserVariables) {
   const usersRef = collection(db, USERS_COLLECTION) as DownstreamUserCollection;
@@ -56,30 +68,53 @@ async function create(variables: CreateUserVariables) {
   const validated = createUserSchema.parse(data);
   const { password, ...profile } = validated;
 
-  await setPersistence(auth, browserLocalPersistence);
-  const credential = await createUserWithEmailAndPassword(
-    auth,
-    validated.email,
-    password
-  );
+  const result = await tryCatch(async () => {
+    const usersRef = collection(db, USERS_COLLECTION) as UpstreamUserCollection;
+    const duplicateQuery = query(
+      usersRef,
+      where("email", "==", validated.email)
+    );
+    const duplicateSnapshot = await getDocs(duplicateQuery);
 
-  const userId = credential.user.uid;
-  const userRef = doc(db, USERS_COLLECTION, userId) as UpstreamUserDocument;
-  const userData = await getDoc(userRef);
+    if (!duplicateSnapshot.empty) {
+      throw new Error(
+        "That email is already registered. Please sign in instead."
+      );
+    }
 
-  if (userData.exists()) {
-    throw new Error("User already exists");
-  }
+    await setPersistence(auth, browserLocalPersistence);
+    const credential = await createUserWithEmailAndPassword(
+      auth,
+      validated.email,
+      password
+    );
 
-  const user = { id: userRef.id, ...profile };
+    const userId = credential.user.uid;
+    const userRef = doc(db, USERS_COLLECTION, userId) as UpstreamUserDocument;
+    const userData = await getDoc(userRef);
 
-  const payload: CreateUserData = createUserRecordSchema.parse({
-    ...profile,
-    created: record(user),
-    updated: record(user),
+    if (userData.exists()) {
+      throw new Error("User already exists");
+    }
+
+    const user = { id: userRef.id, ...profile };
+
+    const payload: CreateUserData = createUserRecordSchema.parse({
+      ...profile,
+      created: record(user),
+      updated: record(user),
+    });
+
+    await setDoc(userRef, payload);
   });
 
-  await setDoc(userRef, payload);
+  if (!result.success) {
+    const friendlyMessage = getFirebaseAuthErrorMessage(
+      result.error,
+      "Couldn't create your account. Please try again."
+    );
+    throw new Error(friendlyMessage);
+  }
 }
 
 async function update(variables: UpdateUserVariables) {
@@ -99,26 +134,71 @@ async function update(variables: UpdateUserVariables) {
 async function login(variables: LoginVariables) {
   const { email, password, rememberMe } = variables;
 
-  if (rememberMe) await setPersistence(auth, browserLocalPersistence);
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const result = await tryCatch(async () => {
+    if (rememberMe) await setPersistence(auth, browserLocalPersistence);
+    const credential = await signInWithEmailAndPassword(auth, email, password);
 
-  return credential.user;
+    return credential.user;
+  });
+
+  if (!result.success) {
+    const friendlyMessage = getFirebaseAuthErrorMessage(
+      result.error,
+      "Couldn't sign you in. Please try again."
+    );
+
+    throw new Error(friendlyMessage);
+  }
+
+  return result.data;
 }
 
 async function loginWithProvider(provider: AuthProvider) {
-  await setPersistence(auth, browserLocalPersistence);
-  const credential = await signInWithPopup(auth, provider);
-  return credential.user;
+  const result = await tryCatch(async () => {
+    await setPersistence(auth, browserLocalPersistence);
+    const credential = await signInWithPopup(auth, provider);
+    return credential.user;
+  });
+
+  if (!result.success) {
+    const friendlyMessage = getFirebaseAuthErrorMessage(
+      result.error,
+      "Couldn't sign you in with the provider. Please try again."
+    );
+    throw new Error(friendlyMessage);
+  }
+
+  return result.data;
 }
 
 async function resetPassword(variables: ResetPasswordVariables) {
   const { email } = variables;
-  await sendPasswordResetEmail(auth, email);
+  const result = await tryCatch(async () => {
+    await sendPasswordResetEmail(auth, email);
+  });
+
+  if (!result.success) {
+    const friendlyMessage = getFirebaseAuthErrorMessage(
+      result.error,
+      "Couldn't send password reset email. Please try again."
+    );
+    throw new Error(friendlyMessage);
+  }
 }
 
 async function applyPasswordReset(variables: ConfirmPasswordResetVariables) {
   const { token, newPassword } = variables;
-  await confirmPasswordReset(auth, token, newPassword);
+  const result = await tryCatch(async () => {
+    await confirmPasswordReset(auth, token, newPassword);
+  });
+
+  if (!result.success) {
+    const friendlyMessage = getFirebaseAuthErrorMessage(
+      result.error,
+      "Couldn't reset your password. Please try again."
+    );
+    throw new Error(friendlyMessage);
+  }
 }
 
 async function logout() {

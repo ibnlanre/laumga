@@ -132,32 +132,31 @@ function isValidDepartmentForFaculty(
   return departments ? departments.includes(department ?? "") : false;
 }
 
-export const personalDetailsSchema = z
-  .object({
-    title: z.string().optional(),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    middleName: z.string().optional().default(""),
-    maidenName: z.string().optional().default(""),
-    nickname: z.string().optional().default(""),
-    gender: z.enum(["male", "female"], { message: "Gender is required" }),
-    photoUrl: z.string().nullable().default(null),
-    dateOfBirth: z.string().nullable().default(null),
-    phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
-    faculty: z.string().refine((val) => faculties.includes(val), {
-      message: "Invalid faculty selected",
+export const personalDetailsSchema = z.object({
+  title: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  middleName: z.string().optional().default(""),
+  maidenName: z.string().optional().default(""),
+  nickname: z.string().optional().default(""),
+  gender: z.enum(["male", "female"], { message: "Gender is required" }),
+  photoUrl: z.string().nullable().default(null),
+  dateOfBirth: z.string().nullable().default(null),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  faculty: z.string().refine((val) => faculties.includes(val), {
+    message: "Invalid faculty selected",
+  }),
+  department: z.string().min(1, "Department is required").nullable(),
+  classSet: z
+    .string()
+    .min(4, "Class set is required")
+    .nullable()
+    .default(null)
+    .transform((value) => {
+      if (!value) return null;
+      return formatDate(value, "yyyy");
     }),
-    department: z.string().min(1, "Department is required").nullable(),
-    classSet: z
-      .string()
-      .min(4, "Class set is required")
-      .nullable()
-      .default(null)
-      .transform((value) => {
-        if (!value) return null;
-        return formatDate(value, "yyyy");
-      }),
-  })
+});
 
 export const locationDetailsSchema = z.object({
   countryOfOrigin: z.string().min(1, "Country of origin is required"),
@@ -168,7 +167,11 @@ export const locationDetailsSchema = z.object({
 });
 
 export const accountCredentialsSchema = z.object({
-  email: z.email("Invalid email address").min(1, "Email is required"),
+  email: z
+    .email("Invalid email address")
+    .min(1, "Email is required")
+    .trim()
+    .toLowerCase(),
   password: passwordSchema,
 });
 
