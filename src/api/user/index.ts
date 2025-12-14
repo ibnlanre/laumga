@@ -19,6 +19,7 @@ import {
   USERS_COLLECTION,
   userSchema,
   createUserSchema,
+  createUserRecordSchema,
   updateUserSchema,
 } from "./schema";
 import type {
@@ -53,12 +54,13 @@ async function create(variables: CreateUserVariables) {
   const { data } = variables;
 
   const validated = createUserSchema.parse(data);
+  const { password, ...profile } = validated;
 
   await setPersistence(auth, browserLocalPersistence);
   const credential = await createUserWithEmailAndPassword(
     auth,
     validated.email,
-    validated.password
+    password
   );
 
   const userId = credential.user.uid;
@@ -69,10 +71,10 @@ async function create(variables: CreateUserVariables) {
     throw new Error("User already exists");
   }
 
-  const user = { id: userRef.id, ...validated };
+  const user = { id: userRef.id, ...profile };
 
-  const payload: CreateUserData = createUserSchema.parse({
-    ...validated,
+  const payload: CreateUserData = createUserRecordSchema.parse({
+    ...profile,
     created: record(user),
     updated: record(user),
   });

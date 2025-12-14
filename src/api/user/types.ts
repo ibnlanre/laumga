@@ -9,7 +9,7 @@ import type { Variables } from "@/client/core-query";
 
 import type {
   approvalStatusSchema,
-  createUserSchema,
+  createUserRecordSchema,
   genderSchema,
   updateUserSchema,
   userDataSchema,
@@ -26,7 +26,7 @@ export type UserProfile = z.infer<typeof userDataSchema>;
 export type UserProfileInput = z.input<typeof userDataSchema>;
 export type UserData = z.infer<typeof userDataSchema>;
 export type User = z.infer<typeof userSchema>;
-export type CreateUserData = z.infer<typeof createUserSchema>;
+export type CreateUserData = z.infer<typeof createUserRecordSchema>;
 export type UpdateUserData = z.infer<typeof updateUserSchema>;
 
 export type UpstreamUserCollection = CollectionReference<CreateUserData>;

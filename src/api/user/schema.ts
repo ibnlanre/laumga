@@ -54,7 +54,12 @@ const createUserBaseSchema = userBaseSchema.extend({
 
 export const createUserSchema = createUserBaseSchema.transform(createFullName);
 
+export const createUserRecordSchema = createUserBaseSchema
+  .omit({ password: true })
+  .transform(createFullName);
+
 export const updateUserSchema = createUserBaseSchema
+  .omit({ password: true })
   .partial()
   .transform(createFullName);
 
