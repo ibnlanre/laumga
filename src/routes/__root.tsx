@@ -48,7 +48,12 @@ export const Route = createRootRoute({
       permissionQueryOptions(user.uid)
     );
 
-    return { isAuthenticated: !!currentUser, currentUser, permissions };
+    return {
+      isAuthenticated: !!currentUser,
+      currentUser,
+      permissions,
+      isOwner: false,
+    };
   },
   head: () => ({
     meta: [

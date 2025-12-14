@@ -9,14 +9,14 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { isAuthenticated } = Route.useRouteContext();
+  const { isOwner } = Route.useRouteContext();
 
   return (
     <div className="flex flex-col min-h-screen bg-mist-green-50">
-      <Header variant="admin" />
+      <Header variant={isOwner ? "admin" : "public"} />
 
       <main className="flex-1 flex flex-col">
-        {isAuthenticated ? <Outlet /> : <AdminLoginPage />}
+        {isOwner ? <Outlet /> : <AdminLoginPage />}
       </main>
     </div>
   );

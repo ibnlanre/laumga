@@ -47,8 +47,6 @@ export function AdminLoginForm() {
   //   };
   // };
 
-  const isLoading = isPending;
-
   return (
     <div className="p-6 sm:p-8 lg:p-12 w-full flex-1 place-content-center">
       <div className="w-full max-w-md space-y-8 place-self-center">
@@ -71,7 +69,7 @@ export function AdminLoginForm() {
                   size="lg"
                   variant="outline"
                   // onClick={() => handleSocialLogin("google")}
-                  disabled={isLoading}
+                  disabled={isPending}
                   leftSection={
                     <svg className="h-5 w-5" viewBox="0 0 24 24">
                       <path
@@ -105,7 +103,7 @@ export function AdminLoginForm() {
                   size="lg"
                   variant="outline"
                   // onClick={() => handleSocialLogin("facebook")}
-                  disabled={isLoading}
+                  disabled={isPending}
                   leftSection={
                     <svg className="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
                       <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
@@ -124,7 +122,7 @@ export function AdminLoginForm() {
                   size="lg"
                   variant="outline"
                   // onClick={() => handleSocialLogin("microsoft")}
-                  disabled={isLoading}
+                  disabled={isPending}
                   leftSection={
                     <svg className="h-5 w-5" fill="#0078D4" viewBox="0 0 24 24">
                       <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
@@ -165,7 +163,7 @@ export function AdminLoginForm() {
                 required
                 radius="xl"
                 size="lg"
-                disabled={isLoading}
+                disabled={isPending}
                 labelProps={{
                   lh: 2,
                   fz: "sm",
@@ -185,7 +183,7 @@ export function AdminLoginForm() {
                   lh: 2,
                   fz: "sm",
                 }}
-                disabled={isLoading}
+                disabled={isPending}
                 leftSection={<Lock className="h-4 w-4 text-gray-500" />}
               />
 
@@ -195,7 +193,7 @@ export function AdminLoginForm() {
                   {...form.getInputProps("rememberMe", {
                     type: "checkbox",
                   })}
-                  disabled={isLoading}
+                  disabled={isPending}
                   classNames={{
                     label: "text-sm text-gray-700",
                   }}
@@ -213,7 +211,7 @@ export function AdminLoginForm() {
               <Button
                 type="submit"
                 loading={isPending}
-                disabled={isLoading}
+                disabled={isPending}
                 fullWidth
                 radius="xl"
                 size="lg"

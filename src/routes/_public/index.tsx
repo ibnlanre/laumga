@@ -1,4 +1,3 @@
-import { Button } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   GraduationCap,
@@ -90,13 +89,13 @@ function RouteComponent() {
                   Prof. Taofik A. Adedosu
                 </p>
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                  President
+                  Fmr. President
                 </p>
               </div>
             </div>
             <div className="flex justify-center items-center">
               <img
-                alt="Prof. Taofik A. Adedosu, President of LAUMGA"
+                alt="Prof. Taofik A. Adedosu, Fmr. President of LAUMGA"
                 className="rounded-lg w-full max-w-sm object-cover shadow-2xl"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBy5AkZtRXuXVoKbWPr_Sd9_K4UvDSzLQipxGQAxOBtBjHRg-CbPgVy2owe7TnJMLi_VV2FCeQs27IrKDi_PVa4mWomg2_ukrimbefuq13eQhsjfit-49TLRTS5KoOM07jtMwNAv1tpo4I8r8Y-gVX9MhU1NNenslxIO64zPZ_Gq2t8zGmWtUtJC90Mpj2M-Rj1T_LoJBL8Uz6HRdKbgbLpSFAOJAHPl_bUmkptyNLxb9qHiDD-6392JkmRNuTUmTwqxUUMFTOdsM"
               />
