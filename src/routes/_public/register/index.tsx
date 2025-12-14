@@ -50,6 +50,7 @@ import {
   personalDetailsSchema,
 } from "@/api/registration/schema";
 import { useChapterByState } from "@/api/chapter/handlers";
+import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/register/")({
   component: RouteComponent,
@@ -244,7 +245,7 @@ function PersonalDetailsStep() {
             <DateInput
               label="Date of Birth"
               placeholder="Select date"
-              maxDate={new Date()}
+              maxDate={dayjs().subtract(18, "years").toDate()}
               valueFormat="YYYY-MM-DD"
               {...form.getInputProps("dateOfBirth")}
               autoComplete="section-personal bday"

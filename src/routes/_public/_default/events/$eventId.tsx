@@ -20,6 +20,11 @@ import {
 } from "@/api/event-registration/hooks";
 import { useGetEvent } from "@/api/event/hooks";
 import { Section } from "@/components/section";
+import {
+  showErrorNotification,
+  showInfoNotification,
+  showSuccessNotification,
+} from "@/components/notifications";
 
 export const Route = createFileRoute("/_public/_default/events/$eventId")({
   component: EventDetailPage,
@@ -70,11 +75,11 @@ function EventDetailPage() {
 
   const handleRegister = async () => {
     if (!user) {
-      notifications.show({
+      showInfoNotification({
         title: "Login Required",
         message: "Please login to register for this event",
-        color: "red",
-      });
+      })
+
       navigate({ to: "/login" });
       return;
     }
@@ -102,14 +107,16 @@ function EventDetailPage() {
           url: window.location.href,
         });
       } catch (err) {
-        console.log("Error sharing:", err);
+        showErrorNotification({
+          title: "Share Failed",
+          message: "Unable to share the event at this time.",
+        });
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
-      notifications.show({
+      showSuccessNotification({
         title: "Link Copied",
         message: "Event link copied to clipboard",
-        color: "green",
       });
     }
   };

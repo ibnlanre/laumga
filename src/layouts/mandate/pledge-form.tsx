@@ -43,6 +43,7 @@ import { monoCustomerFormSchema } from "@/api/mono-customer/schema";
 import type { MonoCustomerForm } from "@/api/mono-customer/types";
 import { useGetUserMandate } from "@/api/mandate/handlers";
 import { Section } from "@/components/section";
+import { formatCurrency } from "@/utils/currency";
 
 const TIER_AMOUNTS = {
   supporter: 5000,
@@ -141,7 +142,7 @@ const benefits = [
 
 const inputClassNames = {
   label: "text-sm font-semibold text-deep-forest",
-  description: "text-deep-forest/60",
+  description: "text-deep-forest/60 text-sm tracking-wide",
   input:
     "h-14 rounded-2xl border-2 border-sage-green/60 bg-white text-base text-deep-forest placeholder:text-deep-forest/40 focus:border-deep-forest focus:ring-0",
 };
@@ -153,6 +154,8 @@ const tierIconWrapperClasses = {
     "flex h-10 w-10 items-center justify-center rounded-2xl border border-deep-forest/20 bg-mist-green/60 text-deep-forest",
 };
 
+const MIN_CUSTOM_MANDATE_AMOUNT = 1_000;
+
 interface MandatePledgeFormProps {
   tier?: "supporter" | "builder" | "guardian" | "custom";
   amount?: number;
@@ -160,8 +163,8 @@ interface MandatePledgeFormProps {
 
 export function MandatePledgeForm({
   tier,
-  amount,
-}: MandatePledgeFormProps = {}) {
+  amount = 1000,
+}: MandatePledgeFormProps) {
   const { user } = useAuth();
 
   const navigate = useNavigate();
@@ -221,8 +224,6 @@ export function MandatePledgeForm({
   });
 
   useEffect(() => {
-    if (amount) pledgeForm.setFieldValue("amount", amount);
-
     switch (tier) {
       case "supporter":
         pledgeForm.setFieldValue("amount", TIER_AMOUNTS.supporter);
@@ -234,7 +235,7 @@ export function MandatePledgeForm({
         pledgeForm.setFieldValue("amount", TIER_AMOUNTS.guardian);
         break;
       default:
-        pledgeForm.setFieldValue("amount", TIER_AMOUNTS.supporter);
+        pledgeForm.setFieldValue("amount", amount);
     }
   }, [amount, tier]);
 
@@ -414,21 +415,23 @@ export function MandatePledgeForm({
               </p>
               <NumberInput
                 aria-label="Custom mandate amount"
-                placeholder="enter amount"
-                min={1_000}
-                max={1_000_000}
+                placeholder="Enter amount"
+                min={MIN_CUSTOM_MANDATE_AMOUNT}
                 step={1_000}
                 thousandSeparator=","
-                clampBehavior="strict"
                 allowNegative={false}
                 hideControls
                 classNames={{
-                  input: `${inputClassNames.input} pl-6 mt-4 border-deep-forest/40 text-lg font-semibold`,
+                  input: `${inputClassNames.input} pl-6 mt-4 border-deep-forest/40 text-lg font-semibold border-dashed focus:border-deep-forest`,
                 }}
                 leftSection="₦"
                 leftSectionProps={{ className: "text-deep-forest" }}
                 {...pledgeForm.getInputProps("amount")}
               />
+
+              <p className="text-xs mt-3 font-semibold uppercase tracking-wider text-deep-forest/70">
+                Minimum Amount: {formatCurrency(MIN_CUSTOM_MANDATE_AMOUNT)}
+              </p>
             </div>
           </div>
 
@@ -591,6 +594,7 @@ export function MandatePledgeForm({
                 classNames={{
                   label: inputClassNames.label,
                   input: inputClassNames.input,
+                  description: inputClassNames.description,
                 }}
                 size="lg"
               />

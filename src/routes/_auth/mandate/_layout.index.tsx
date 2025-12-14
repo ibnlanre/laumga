@@ -7,7 +7,6 @@ import {
   Flower2,
   HardHat,
   Shield,
-  Edit,
   ArrowRight,
   BadgeCheck,
   BarChart3,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { Section } from "@/components/section";
+import clsx from "clsx";
 
 export const Route = createFileRoute("/_auth/mandate/_layout/")({
   component: RouteComponent,
@@ -263,7 +263,7 @@ function RouteComponent() {
                         </h3>
                       </div>
                       <div className="rounded-2xl bg-deep-forest/10 p-4 text-deep-forest">
-                        <Icon className="h-6 w-6" />
+                        <Icon size={24} />
                       </div>
                     </div>
                     <p className="mt-2 text-sm text-gray-600">{tier.caption}</p>
@@ -278,7 +278,7 @@ function RouteComponent() {
                     <ul className="mt-6 flex flex-col gap-3 text-sm text-gray-700">
                       {tier.perks.map((perk) => (
                         <li key={perk} className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-institutional-green" />
+                          <CheckCircle size={16} className="text-institutional-green" />
                           <span>{perk}</span>
                         </li>
                       ))}
@@ -286,56 +286,22 @@ function RouteComponent() {
                     <Link
                       to="/mandate/pledge"
                       search={tier.search}
-                      className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-deep-forest px-5 py-3 text-sm font-semibold text-white transition hover:bg-institutional-green"
+                      className={clsx(
+                        "mt-8 inline-flex w-full items-center justify-center px-5 py-3 text-sm font-semibold gap-2 rounded-full group",
+                        {
+                          "bg-deep-forest text-white transition hover:bg-institutional-green":
+                            tier.name === "Builder",
+                          "border border-deep-forest text-deep-forest transition hover:bg-deep-forest hover:text-white":
+                            tier.name !== "Builder",
+                        }
+                      )}
                     >
                       Commit now
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </div>
                 );
               })}
-
-              <div className="relative flex h-full flex-col rounded-4xl border border-deep-forest/20 bg-white/90 p-8 shadow-xl">
-                <div
-                  className="pointer-events-none absolute inset-x-8 top-4 h-24 rounded-3xl bg-linear-to-r from-sage-green/50 via-mist-green/40 to-transparent opacity-70 blur-2xl"
-                  aria-hidden="true"
-                />
-                <div className="relative flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/60">
-                      Flexible
-                    </p>
-                    <h3 className="mt-3 text-2xl font-bold text-deep-forest">
-                      Custom Pledge
-                    </h3>
-                  </div>
-                  <div className="rounded-2xl bg-deep-forest/10 p-4 text-deep-forest">
-                    <Edit className="h-6 w-6" />
-                  </div>
-                </div>
-                <p className="mt-2 text-sm text-gray-600">
-                  Set the rhythm that matches your cash flow.
-                </p>
-                <p className="text-sm text-gray-600">
-                  Define an amount, set an automation, and grow generosity at
-                  your pace.
-                </p>
-                <div className="mt-8 rounded-2xl border border-dashed border-deep-forest/30 bg-mist-green/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/70">
-                    Minimum Amount
-                  </p>
-                  <p className="mt-2 text-3xl font-black text-deep-forest">
-                    ₦1000
-                  </p>
-                </div>
-                <Link
-                  to="/mandate/pledge"
-                  search={{ tier: "custom" }}
-                  className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-deep-forest px-5 py-3 text-sm font-semibold text-deep-forest transition hover:bg-deep-forest hover:text-white"
-                >
-                  Design your flow
-                </Link>
-              </div>
             </div>
           </Section>
         </section>

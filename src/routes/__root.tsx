@@ -184,14 +184,7 @@ const theme = createTheme({
 function RootDocument({ children }: PropsWithChildren) {
   const loaderData = Route.useLoaderData();
   const { currentUser, permissions } = { ...loaderData };
-  const { isAuthenticated } = Route.useRouteContext();
-
-  console.log("Current User in RootDocument:", {
-    currentUser,
-    isAuthenticated,
-    permissions,
-  });
-
+  
   return (
     <html lang="en" {...mantineHtmlProps} className="overscroll-none">
       <head>

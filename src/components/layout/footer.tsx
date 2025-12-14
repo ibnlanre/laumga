@@ -42,7 +42,7 @@ export function Footer({ variant }: FooterProps) {
 
   if (variant === "minimal") {
     return (
-      <footer className="bg-institutional-green py-6 mt-auto">
+      <footer className="bg-deep-forest py-6 mt-auto">
         <Section>
           <Text size="sm" className="text-white/70 font-medium text-center">
             © {currentYear} LAUMGA Foundation. All rights reserved.
@@ -74,14 +74,14 @@ export function Footer({ variant }: FooterProps) {
             </Text>
             <Group gap="md">
               <Anchor
-                href="https://facebook.com/laumga"
+                href="https://web.facebook.com/groups/109196249108535"
                 target="_blank"
                 className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
               >
                 <Facebook size={20} />
               </Anchor>
               <Anchor
-                href="https://twitter.com/laumga"
+                href="https://x.com/LaumgaF"
                 target="_blank"
                 className="text-white/70 hover:text-vibrant-lime-400 transition-colors"
               >
@@ -127,11 +127,11 @@ export function Footer({ variant }: FooterProps) {
                 Email
               </Text>
               <Anchor
-                href="mailto:info@laumga.org"
+                href="mailto:laumgafoundation@gmail.com"
                 size="sm"
                 className="text-vibrant-lime-400 hover:text-vibrant-lime-300"
               >
-                info@laumgafoundation.org
+                laumgafoundation@gmail.com
               </Anchor>
             </div>
             <div>
@@ -139,11 +139,11 @@ export function Footer({ variant }: FooterProps) {
                 Phone
               </Text>
               <Anchor
-                href="tel:+2348031234567"
+                href="tel:+2348025300029"
                 size="sm"
                 className="text-vibrant-lime-400 hover:text-vibrant-lime-300"
               >
-                +234 803 123 4567
+                +234 802 530 0029
               </Anchor>
             </div>
           </Stack>

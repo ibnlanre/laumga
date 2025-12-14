@@ -7,7 +7,6 @@ import {
   Badge,
   Button,
   Checkbox,
-  CopyButton,
   Group,
   Paper,
   SimpleGrid,
@@ -51,22 +50,22 @@ const contactChannels = [
   {
     icon: Phone,
     label: "Phone Number",
-    detail: "+234 (0) 123 456 78",
-    href: "tel:+234012345678",
+    detail: "+234 (0) 802 530 0029",
+    href: "tel:+2348025300029",
     action: "Call now",
   },
   {
     icon: Mail,
     label: "Email Address",
-    detail: "info@mga.edu",
-    href: "mailto:info@mga.edu",
+    detail: "laumgafoundation@gmail.com",
+    href: "mailto:laumgafoundation@gmail.com",
     action: "Send an email",
   },
   {
     icon: User,
     label: "Account Details",
-    detail: "0123 4567 890",
-    action: "First Bank PLC",
+    detail: "9981529858",
+    action: "Providus Bank",
   },
   {
     icon: Clock,
@@ -76,8 +75,12 @@ const contactChannels = [
 ];
 
 const socialLinks = [
-  { href: "https://facebook.com/laumga", label: "Facebook", icon: Facebook },
-  { href: "https://twitter.com/laumga", label: "Twitter", icon: Twitter },
+  {
+    href: "https://web.facebook.com/groups/109196249108535",
+    label: "Facebook",
+    icon: Facebook,
+  },
+  { href: "https://x.com/LaumgaF", label: "Twitter", icon: Twitter },
   { href: "https://instagram.com/laumga", label: "Instagram", icon: Instagram },
 ];
 
@@ -267,7 +270,7 @@ function ContactForm() {
   const form = useForm<NotificationForm>({
     initialValues: {
       fullName: "",
-      email:  "",
+      email: "",
       subject: "",
       message: "",
       newsletterOptIn: false,
@@ -277,7 +280,7 @@ function ContactForm() {
 
   useEffect(() => {
     if (!user) return;
-    
+
     form.setValues({
       fullName: user.fullName,
       email: user.email,
@@ -300,7 +303,9 @@ function ContactForm() {
       <TextInput
         withAsterisk
         label="Full Name"
-        placeholder="Ada Lovelace"
+        placeholder="Quadri Irekeola"
+        type="text"
+        autoComplete="name"
         radius="lg"
         size="md"
         {...form.getInputProps("fullName")}
@@ -309,6 +314,7 @@ function ContactForm() {
         withAsterisk
         label="Email Address"
         placeholder="you@example.com"
+        autoComplete="email"
         type="email"
         radius="lg"
         size="md"

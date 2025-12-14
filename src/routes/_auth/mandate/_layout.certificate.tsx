@@ -20,10 +20,12 @@ function RouteComponent() {
         }}
       />
 
-      <Section className="relative flex flex-col gap-10">
+      <div className="relative flex flex-col gap-10">
         <MandateHeader />
-        <MandateCertificateView />
-      </Section>
+        <Section>
+          <MandateCertificateView />
+        </Section>
+      </div>
     </div>
   );
 }

@@ -6,10 +6,11 @@ import { MandatePledgeForm } from "@/layouts/mandate/pledge-form";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { Stack } from "@mantine/core";
 
-const pledgeSearchSchema = z.object({
-  tier: z.enum(["supporter", "builder", "guardian", "custom"]).optional(),
-  amount: z.number().optional(),
-});
+const pledgeSearchSchema = z
+  .object({
+    tier: z.enum(["supporter", "builder", "guardian", "custom"]),
+    amount: z.number(),
+  }).partial();
 
 export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
   validateSearch: zodValidator(pledgeSearchSchema),
