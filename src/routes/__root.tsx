@@ -10,7 +10,6 @@ import {
   mantineHtmlProps,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
-import {} from "firebase/auth";
 
 import styles from "../styles.css?url";
 import { NotFound } from "@/components/not-found";
@@ -30,24 +29,26 @@ export const Route = createRootRoute({
   ssr: false,
   beforeLoad: async () => {
     await auth.authStateReady();
-    const currentUser = await auth.currentUser;
+    const user = await auth.currentUser;
 
-    return { isAuthenticated: !!currentUser, uid: currentUser?.uid };
-  },
-  loader: async ({ context }) => {
-    if (!context.uid) {
-      return { currentUser: null, permissions: [] };
+    if (!user) {
+      return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
     const currentUser = await queryClient.ensureQueryData(
-      userQueryOptions(context.uid)
+      userQueryOptions(user.uid)
     );
+
+    if (!currentUser) {
+      await auth.signOut();
+      return { currentUser: null, permissions: [], isAuthenticated: false };
+    }
 
     const permissions = await queryClient.ensureQueryData(
-      permissionQueryOptions(context.uid)
+      permissionQueryOptions(user.uid)
     );
 
-    return { currentUser, permissions };
+    return { isAuthenticated: !!currentUser, currentUser, permissions };
   },
   head: () => ({
     meta: [
@@ -182,9 +183,8 @@ const theme = createTheme({
 });
 
 function RootDocument({ children }: PropsWithChildren) {
-  const loaderData = Route.useLoaderData();
-  const { currentUser, permissions } = { ...loaderData };
-  
+  const { currentUser, permissions } = Route.useRouteContext();
+
   return (
     <html lang="en" {...mantineHtmlProps} className="overscroll-none">
       <head>

@@ -4,14 +4,9 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
 export const Route = createFileRoute("/_public")({
-  beforeLoad: async ({ location, context }) => {
+  beforeLoad: async ({ context }) => {
     if (context.isAuthenticated) {
-      throw redirect({
-        to: "/mandate",
-        search: {
-          redirect: location.href,
-        },
-      });
+      throw redirect({ to: "/mandate" });
     }
   },
   component: Layout,

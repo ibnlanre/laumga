@@ -78,8 +78,8 @@ function RouteComponent() {
     const term = form.values.search.trim().toLowerCase();
 
     const filtered = term
-      ? base.filter((executive) =>
-          [
+      ? base.filter((executive) => {
+          return [
             executive.displayName,
             executive.role,
             executive.portfolio ?? "",
@@ -88,8 +88,8 @@ function RouteComponent() {
           ]
             .join(" ")
             .toLowerCase()
-            .includes(term)
-        )
+            .includes(term);
+        })
       : base;
 
     const buckets: Record<ExecutiveTierSlug, Executive[]> = {
@@ -330,7 +330,7 @@ interface ExecutiveCardProps {
 
 function FeaturedExecutiveCard({ executive }: ExecutiveCardProps) {
   return (
-    <div className="flex flex-col gap-8 rounded-3xl border border-deep-forest/10 bg-gradient-to-r from-deep-forest to-emerald-950 p-6 text-white md:flex-row md:items-center md:p-10">
+    <div className="flex flex-col gap-8 rounded-3xl border border-deep-forest/10 bg-linear-to-r from-deep-forest to-emerald-950 p-6 text-white md:flex-row md:items-center md:p-10">
       <div className="h-48 w-48 shrink-0 overflow-hidden rounded-full border-4 border-vibrant-lime/70">
         <img
           className="h-full w-full object-cover"

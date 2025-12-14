@@ -1,9 +1,8 @@
-import { useRouteContext, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, FileText, Award } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Section } from "@/components/section";
 import clsx from "clsx";
-import { useGetActiveMandate } from "@/api/mandate/handlers";
 
 interface MandateHeaderProps {
   isLanding?: boolean;
