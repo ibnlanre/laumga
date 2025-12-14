@@ -1,25 +1,22 @@
-import { useEffect, useState, type PropsWithChildren } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import type { PropsWithChildren } from "react";
 
-import { auth } from "@/services/firebase";
-import { useCurrentUser } from "@/api/user/hooks";
-import { useGetUserPermissions } from "@/api/user-roles/handlers";
 import { AuthContext } from "./auth-context";
 
-import type { User } from "firebase/auth";
+import type { User } from "@/api/user/types";
+import type { Permissions } from "@/schema/permissions";
 
-interface AuthProviderProps extends PropsWithChildren {}
+interface AuthProviderProps extends PropsWithChildren {
+  user: User | null;
+  permissions: Permissions;
+}
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-
-  const { data: permissions = [] } = useGetUserPermissions(firebaseUser?.uid);
-  const { data: user = null, isLoading } = useCurrentUser(firebaseUser?.uid);
-
-  useEffect(() => onAuthStateChanged(auth, setFirebaseUser), []);
-
+export function AuthProvider({
+  children,
+  user,
+  permissions,
+}: AuthProviderProps) {
   return (
-    <AuthContext.Provider value={{ user, permissions, isLoading }}>
+    <AuthContext.Provider value={{ user, permissions }}>
       {children}
     </AuthContext.Provider>
   );

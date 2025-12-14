@@ -52,7 +52,7 @@ async function getActive(userId: string) {
     where("status", "==", "active")
   );
 
-  return await getQueryDoc(activeQuery, mandateSchema);
+  return await getQueryDoc(activeQuery, mandateSchema)
 }
 
 function mandateRef(mandateId: string) {

@@ -219,15 +219,12 @@ function RouteComponent() {
                 </li>
               </ul>
 
-              <Button
-                autoContrast
-                variant="filled"
-                className="mt-8"
-                component={Link}
-                to="/join"
+              <Link
+                className="mt-8 self-start max-w-fit block rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-deep-forest"
+                to="/register"
               >
                 Join LAUMGA Today
-              </Button>
+              </Link>
             </div>
             <div className="flex justify-center items-center">
               <img

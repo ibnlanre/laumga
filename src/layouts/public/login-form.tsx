@@ -170,7 +170,7 @@ export function LoginForm() {
                   lh: 2,
                   fz: "sm",
                 }}
-                leftSection={<Mail className="h-4 w-4 text-gray-500" />}
+                leftSection={<Mail size={16} className="text-gray-500" />}
               />
 
               <PasswordInput
@@ -186,7 +186,7 @@ export function LoginForm() {
                   fz: "sm",
                 }}
                 disabled={isLoading}
-                leftSection={<Lock className="h-4 w-4 text-gray-500" />}
+                leftSection={<Lock size={16} className="text-gray-500" />}
               />
 
               <Group justify="space-between">

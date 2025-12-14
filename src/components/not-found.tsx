@@ -3,8 +3,9 @@ import { ArrowUpRight } from "lucide-react";
 export function NotFound() {
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-deep-forest font-display">
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/subtle-grain.png')] opacity-[0.02]"></div>
-      <div className="absolute -top-1/4 -left-1/4 h-1/2 w-1/2 rounded-full bg-white/5 blur-[100px]"></div>
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/subtle-grain.png')] opacity-[0.02]" />
+      <div className="absolute -top-1/4 -left-1/4 size-1/2 rounded-full bg-white/5 blur-[100px]" />
+
       <div className="flex h-full grow flex-col">
         <div className="flex flex-1 items-start justify-center px-4 py-10 sm:px-8 md:px-20 lg:px-40">
           <div className="flex w-full max-w-7xl flex-1 flex-col">
@@ -82,14 +83,14 @@ export function NotFound() {
             >
               0
               <div
-                className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-center bg-repeat opacity-10"
+                className="absolute inset-0 bg-[url('/arabesque-tile.png')] bg-center bg-repeat opacity-10"
                 style={{
                   maskImage:
                     "radial-gradient(circle, white 60%, transparent 100%)",
                   WebkitMaskImage:
                     "radial-gradient(circle, white 60%, transparent 100%)",
                 }}
-              ></div>
+              />
             </div>
           </div>
 

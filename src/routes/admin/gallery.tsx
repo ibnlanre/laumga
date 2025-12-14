@@ -24,25 +24,28 @@ import { formatDate } from "@/utils/date";
 import { PageLoader } from "@/components/page-loader";
 import { useAuth } from "@/contexts/use-auth";
 import type { Media } from "@/api/media/types";
+import { MEDIA_CATEGORIES } from "@/api/media/schema";
 import {
   useListMedia,
   useRemoveMedia,
   useUpdateMedia,
 } from "@/api/media/hooks";
 
-const statusOptions = [
+const STATUS_OPTIONS = [
   { value: "all", label: "All Media" },
   { value: "featured", label: "Featured" },
   { value: "standard", label: "Not Featured" },
 ] as const;
 
-type StatusFilter = (typeof statusOptions)[number]["value"];
+const CATEGORY_OPTIONS = MEDIA_CATEGORIES.map((category) => ({
+  value: category,
+  label: category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+}));
 
-const getFeatureBadgeColor = (isFeatured: boolean) =>
-  isFeatured ? "green" : "gray";
+type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
 
 const isValidStatusFilter = (value: unknown): value is StatusFilter =>
-  statusOptions.some((option) => option.value === value);
+  STATUS_OPTIONS.some((option) => option.value === value);
 
 export const Route = createFileRoute("/admin/gallery")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -59,6 +62,7 @@ function GalleryAdmin() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
   const [selectedItem, setSelectedItem] = useState<Media | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const { user } = useAuth();
   const actor = user;
@@ -97,13 +101,12 @@ function GalleryAdmin() {
 
   const viewItemDetails = (item: Media) => {
     setSelectedItem(item);
+    setSelectedCategory(item.category ?? null);
     setDetailsOpened(true);
   };
 
-  const handleStatusChange = async (itemId: string, makeFeatured: boolean) => {
-    if (!actor) {
-      return;
-    }
+  const handleStatusToggle = async (itemId: string, makeFeatured: boolean) => {
+    if (!actor) return;
 
     await updateMedia({
       id: itemId,
@@ -114,17 +117,25 @@ function GalleryAdmin() {
     setDetailsOpened(false);
   };
 
-  const handleDelete = async (itemId: string) => {
-    if (!confirm("Are you sure you want to delete this photo?")) return;
-    if (!actor) return;
+  const handleCategoryChange = async (category: string | null) => {
+    if (!actor || !selectedItem) return;
 
-    await removeMedia(itemId);
+    await updateMedia({
+      id: selectedItem.id,
+      data: { category: category as (typeof MEDIA_CATEGORIES)[number] },
+      user: actor,
+    });
 
-    setDetailsOpened(false);
+    setSelectedCategory(category);
   };
 
-  const toggleStatusLabel = (isFeatured: boolean) =>
-    isFeatured ? "Remove featured" : "Mark featured";
+  const handleDelete = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this photo?") || !actor)
+      return;
+
+    await removeMedia(itemId);
+    setDetailsOpened(false);
+  };
 
   if (isLoading) {
     return <PageLoader message="Loading gallery..." />;
@@ -168,7 +179,7 @@ function GalleryAdmin() {
             onChange={(value) =>
               setStatusFilter((value as StatusFilter) || "all")
             }
-            data={statusOptions}
+            data={STATUS_OPTIONS}
             style={{ width: 200 }}
           />
         </Group>
@@ -197,15 +208,14 @@ function GalleryAdmin() {
                       fit="cover"
                       className="w-full h-full"
                     />
-                    <div className="absolute top-2 right-2">
-                      <Badge
-                        size="sm"
-                        color={getFeatureBadgeColor(item.isFeatured)}
-                        variant="filled"
-                      >
-                        {item.isFeatured ? "Featured" : "Not Featured"}
-                      </Badge>
-                    </div>
+                    <Badge
+                      className="absolute top-2 right-2"
+                      size="sm"
+                      color={item.isFeatured ? "green" : "gray"}
+                      variant="filled"
+                    >
+                      {item.isFeatured ? "Featured" : "Standard"}
+                    </Badge>
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <Tooltip label="View details">
                         <ActionIcon
@@ -217,14 +227,18 @@ function GalleryAdmin() {
                           <Eye className="size-4" />
                         </ActionIcon>
                       </Tooltip>
-                      <Tooltip label={toggleStatusLabel(item.isFeatured)}>
+                      <Tooltip
+                        label={
+                          item.isFeatured ? "Remove featured" : "Mark featured"
+                        }
+                      >
                         <ActionIcon
                           variant="filled"
                           color={item.isFeatured ? "orange" : "green"}
                           size="lg"
                           disabled={!actor || isUpdatingMedia}
                           onClick={() =>
-                            handleStatusChange(item.id, !item.isFeatured)
+                            handleStatusToggle(item.id, !item.isFeatured)
                           }
                         >
                           {item.isFeatured ? (
@@ -277,15 +291,15 @@ function GalleryAdmin() {
           <Stack gap="md">
             <div>
               <Group justify="space-between" mb="md">
-                <Title order={3}>
+                <Title order={3} lineClamp={2}>
                   {selectedItem.caption || selectedItem.fileName}
                 </Title>
                 <Badge
                   size="lg"
-                  color={getFeatureBadgeColor(selectedItem.isFeatured)}
+                  color={selectedItem.isFeatured ? "green" : "gray"}
                   variant="light"
                 >
-                  {selectedItem.isFeatured ? "Featured" : "Not Featured"}
+                  {selectedItem.isFeatured ? "Featured" : "Standard"}
                 </Badge>
               </Group>
             </div>
@@ -302,6 +316,20 @@ function GalleryAdmin() {
             </Card>
 
             <Grid>
+              <Grid.Col span={12}>
+                <Text size="sm" fw={500} c="dimmed" mb={4}>
+                  Category
+                </Text>
+                <Select
+                  clearable
+                  searchable
+                  placeholder="Select category"
+                  value={selectedCategory}
+                  onChange={handleCategoryChange}
+                  data={CATEGORY_OPTIONS}
+                  disabled={!actor || isUpdatingMedia}
+                />
+              </Grid.Col>
               <Grid.Col span={6}>
                 <Text size="sm" fw={500} c="dimmed">
                   Library Reference
@@ -356,7 +384,7 @@ function GalleryAdmin() {
                   color={selectedItem.isFeatured ? "orange" : "green"}
                   variant={selectedItem.isFeatured ? "outline" : "filled"}
                   onClick={() =>
-                    handleStatusChange(
+                    handleStatusToggle(
                       selectedItem.id,
                       !selectedItem.isFeatured
                     )

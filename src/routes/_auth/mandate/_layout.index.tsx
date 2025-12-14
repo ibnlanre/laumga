@@ -14,7 +14,6 @@ import {
   Vote,
   LayoutDashboard,
 } from "lucide-react";
-import { Footer } from "@/components/layout/footer";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { Section } from "@/components/section";
 
@@ -495,8 +494,6 @@ function RouteComponent() {
           </Section>
         </section>
       </main>
-
-      <Footer variant="minimal" />
     </div>
   );
 }

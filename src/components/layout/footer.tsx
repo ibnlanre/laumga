@@ -1,21 +1,51 @@
 import { Group, Stack, Text, Anchor, TextInput, Button } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { Link } from "@tanstack/react-router";
 import { Facebook, Twitter, Instagram } from "lucide-react";
 import { Section } from "@/components/section";
+import { useAuth } from "@/contexts/use-auth";
+import { useSubscribe } from "@/api/newsletter-subscription/hooks";
+import { useEffect } from "react";
+import type { SubscriptionForm } from "@/api/newsletter-subscription/types";
+import { modals } from "@mantine/modals";
+import { subscriptionFormSchema } from "@/api/newsletter-subscription/schema";
+import { zod4Resolver } from "mantine-form-zod-resolver";
 
 interface FooterProps {
   variant: "full" | "minimal";
 }
 
+const quickLinks = [
+  { label: "About Us", href: "/about-us" },
+  { label: "Membership", href: "/membership" },
+  { label: "Events", href: "/events" },
+  { label: "Contact", href: "/contact-us" },
+];
+
 export function Footer({ variant }: FooterProps) {
   const currentYear = new Date().getFullYear();
+  const form = useForm<SubscriptionForm>({
+    initialValues: { email: "" },
+    validate: zod4Resolver(subscriptionFormSchema),
+  });
+
+  function handleSubmitWithoutLogin() {
+    modals.open({
+      radius: "xl",
+      padding: "xl",
+      title: "Subscribe to our Newsletter",
+      classNames: { title: "font-bold text-lg" },
+      children: <NewsletterSubscriptionForm initialValues={form.values} />,
+      centered: true,
+    });
+  }
 
   if (variant === "minimal") {
     return (
       <footer className="bg-institutional-green py-6 mt-auto">
         <Section>
-          <Text size="sm" className="text-white/70 text-center">
-            © {currentYear} LAUMGA. All rights reserved.
+          <Text size="sm" className="text-white/70 font-medium text-center">
+            © {currentYear} LAUMGA Foundation. All rights reserved.
           </Text>
         </Section>
       </footer>
@@ -72,12 +102,8 @@ export function Footer({ variant }: FooterProps) {
             <Text size="sm" fw={600} className="text-white mb-2">
               Quick Links
             </Text>
-            {[
-              { label: "About Us", href: "/about-us" },
-              { label: "Membership", href: "/membership" },
-              { label: "Events", href: "/events" },
-              { label: "Contact", href: "/contact" },
-            ].map((link) => (
+
+            {quickLinks.map((link) => (
               <Anchor
                 key={link.href}
                 component={Link}
@@ -105,7 +131,7 @@ export function Footer({ variant }: FooterProps) {
                 size="sm"
                 className="text-vibrant-lime-400 hover:text-vibrant-lime-300"
               >
-                info@laumga.org
+                info@laumgafoundation.org
               </Anchor>
             </div>
             <div>
@@ -128,20 +154,26 @@ export function Footer({ variant }: FooterProps) {
               Newsletter
             </Text>
             <Text size="sm" className="text-white/70">
-              Stay updated on our latest news and events.
+              Stay up to date with us.
             </Text>
-            <form onSubmit={(e) => e.preventDefault()}>
+
+            <form onSubmit={form.onSubmit(handleSubmitWithoutLogin)}>
               <Stack gap="sm">
                 <TextInput
+                  withAsterisk
                   placeholder="Your email"
+                  {...form.getInputProps("email")}
+                  errorProps={{ c: "vibrant-lime" }}
+                  type="email"
                   classNames={{
                     input:
                       "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-vibrant-lime-400",
                   }}
                 />
+
                 <Button
-                  type="submit"
                   fullWidth
+                  type="submit"
                   className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
                 >
                   Subscribe
@@ -159,5 +191,81 @@ export function Footer({ variant }: FooterProps) {
         </div>
       </Section>
     </footer>
+  );
+}
+
+interface NewsletterSubscriptionFormProps {
+  initialValues: SubscriptionForm;
+}
+
+function NewsletterSubscriptionForm({
+  initialValues,
+}: NewsletterSubscriptionFormProps) {
+  const { user } = useAuth();
+
+  const subscribe = useSubscribe();
+  const form = useForm<SubscriptionForm>({
+    initialValues,
+    validate: zod4Resolver(subscriptionFormSchema),
+  });
+
+  useEffect(() => {
+    if (user) {
+      form.setValues({
+        email: user.email,
+        fullName: user.fullName,
+      });
+    }
+  }, [user]);
+
+  function handleSubmit(data: typeof form.values) {
+    subscribe.mutate(
+      { data },
+      {
+        onSuccess() {
+          modals.closeAll();
+        },
+      }
+    );
+  }
+
+  return (
+    <form onSubmit={form.onSubmit(handleSubmit)}>
+      <Stack gap="xl">
+        <Stack gap="md">
+          <Text>
+            Almost! We just need a few details to complete your subscription.
+          </Text>
+
+          <TextInput
+            withAsterisk
+            label="Full Name"
+            placeholder="Enter your full name"
+            {...form.getInputProps("fullName")}
+            type="text"
+            autoComplete="name"
+            required
+            radius="xl"
+            size="lg"
+            labelProps={{
+              lh: 2,
+              fz: "sm",
+            }}
+          />
+        </Stack>
+
+        <Button
+          fullWidth
+          type="submit"
+          radius="xl"
+          disabled={subscribe.isPending}
+          loading={subscribe.isPending}
+          className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
+          size="lg"
+        >
+          Submit
+        </Button>
+      </Stack>
+    </form>
   );
 }

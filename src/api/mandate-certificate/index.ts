@@ -40,7 +40,7 @@ async function create(variables: CreateMandateCertificateVariables) {
   const ref = doc(
     db,
     MANDATE_CERTIFICATES_COLLECTION,
-    mandate.id
+    user.id
   ) as MandateCertificateDocument;
 
   await setDoc(ref, certificateData);

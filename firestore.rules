@@ -20,9 +20,8 @@ service cloud.firestore {
     // USERS COLLECTION
     // =====================
     match /users/{userId} {
-      allow read: if isAdmin(request.auth.uid) || isOwner(request.auth.uid, userId);
-      allow write: if isAdmin(request.auth.uid);
-      allow update: if isOwner(request.auth.uid, userId);
+      allow read, create, update: if isOwner(request.auth.uid, userId);
+      allow read, write: if isAdmin(request.auth.uid);
     }
 
     // =====================
@@ -113,9 +112,16 @@ service cloud.firestore {
     // NEWSLETTER_SUBSCRIPTIONS COLLECTION
     // =====================
     match /newsletterSubscriptions/{subscriptionId} {
-      allow read: if isOwner(request.auth.uid, resource.data.userId);
-      allow write: if isOwner(request.auth.uid, request.resource.data.userId);
-      allow read, update: if isAdmin(request.auth.uid);
+      allow create, read: if true;
+      allow read, write: if isAdmin(request.auth.uid);   
+    }
+
+    // =====================
+    // NOTIFICATIONS COLLECTION
+    // =====================
+    match /notifications/{notificationId} {
+      allow create: if true;
+      allow read, write: if isAdmin(request.auth.uid);
     }
 
     // =====================

@@ -3,6 +3,12 @@ import type { Options } from "@/client/options";
 import { queryOptions, useQuery, useMutation } from "@tanstack/react-query";
 import type { ListUserVariables } from "./types";
 
+export const userQueryOptions = (id?: string | null) => queryOptions({
+  queryKey: user.get.$get(id),
+  queryFn: () => user.$use.get(id!),
+  enabled: !!id,
+});
+
 export function useListUsers(
   variables?: ListUserVariables,
   options: Options<typeof query> = {},
@@ -37,11 +43,7 @@ export function useCreateUser() {
 }
 
 export function useCurrentUser(id?: string) {
-  return useQuery({
-    queryKey: user.get.$get(id),
-    queryFn: () => user.$use.get(id!),
-    enabled: !!id,
-  });
+  return useQuery(userQueryOptions(id));
 }
 
 export function useLogin() {

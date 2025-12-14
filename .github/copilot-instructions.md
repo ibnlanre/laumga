@@ -77,7 +77,7 @@ Utilize the `@ibnlanre/builder` library for all API interactions to maintain con
 
 ## Components & Styling
 
-- **Mantine:** For interactive UI elements (forms, buttons, modals).
+- **Mantine:** For interactive UI elements (forms, buttons). Only use `@mantine/modals` for modals.
 - **Tailwind CSS:** For layout, spacing, and utility classes.
 - Shared components: Place in `src/components/`.
 - Route-specific components: Place in subfolders under `src/routes/`.
@@ -100,6 +100,7 @@ Utilize the `@ibnlanre/builder` library for all API interactions to maintain con
 - **Types:** Use interfaces for props; import strict types from `src/services/types.ts`. Avoid `any` or `unknown`.
 - **Timestamps:** Store as numbers; use `date-fns` for date manipulations.
 - **Imports:** Import directly from source files; avoid barrel exports. Remove unused code and mocks.
+- **Refactors**: Kindly stop changing perfectly good code. Only suggest refactors that improve performance, fix bugs, or enhance readability in a meaningful way.
 
 ## Common Pitfalls
 

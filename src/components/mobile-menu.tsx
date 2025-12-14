@@ -81,7 +81,7 @@ export function MobileMenu({ opened, onClose }: MobileMenuProps) {
         </Anchor>
         <Anchor
           component={Link}
-          to="/contact"
+          to="/contact-us"
           className="text-deep-forest hover:text-vibrant-lime text-lg font-medium py-3 px-4 rounded-lg hover:bg-sage-green/20 transition-all"
           onClick={onClose}
           underline="never"

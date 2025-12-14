@@ -15,12 +15,20 @@ export const queryClient = new QueryClient({
     },
   },
   mutationCache: new MutationCache({
-    onError: (_error, _variables, _context, mutation) => {
-      if (mutation.meta?.errorMessage) {
-        showErrorNotification({
-          message: mutation.meta.errorMessage,
-        });
-      }
+    onError: (error, _variables, _context, mutation) => {
+      if (!mutation.meta?.errorMessage) return;
+
+      const actualError =
+        error instanceof Error ? error.message : String(error);
+      
+      const displayError =
+        actualError !== mutation.meta.errorMessage
+          ? actualError
+          : mutation.meta.errorMessage;
+
+      showErrorNotification({
+        message: displayError,
+      });
     },
     onSettled: (_data, _error, _variables, _context, mutation) => {
       if (mutation.meta?.infoMessage) {

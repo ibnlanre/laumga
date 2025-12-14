@@ -7,6 +7,7 @@ import type z from "zod";
 import type {
   createMediaSchema,
   mediaDataSchema,
+  mediaFormSchema,
   mediaSchema,
   updateMediaSchema,
 } from "./schema";
@@ -17,6 +18,7 @@ export type Media = z.infer<typeof mediaSchema>;
 export type MediaData = z.infer<typeof mediaDataSchema>;
 export type CreateMediaData = z.infer<typeof createMediaSchema>;
 export type UpdateMediaData = z.infer<typeof updateMediaSchema>;
+export type MediaFormData = z.infer<typeof mediaFormSchema>;
 
 export type UpstreamMediaCollection = CollectionReference<CreateMediaData>;
 export type UpstreamMediaDocument = DocumentReference<CreateMediaData>;

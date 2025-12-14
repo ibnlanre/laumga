@@ -198,9 +198,9 @@ function RouteComponent() {
             from Ladoke Akintola University of Technology (LAUTECH), Ogbomoso,
             with degrees including B.Tech, M.Tech, MBA, and PhD.
           </p>
-          <button className="mt-8 self-start rounded-full border-2 border-deep-forest px-8 py-3 text-sm font-bold text-deep-forest transition-colors hover:bg-deep-forest hover:text-white">
+          <Link to="/membership" className="mt-8 self-start rounded-full border-2 border-deep-forest px-8 py-3 text-sm font-bold text-deep-forest transition-colors hover:bg-deep-forest hover:text-white">
             Check Eligibility
-          </button>
+          </Link>
         </div>
         <div className="bg-white p-8 sm:p-16 lg:p-24">
           <h2 className="font-serif text-4xl font-bold text-deep-forest sm:text-5xl">
@@ -274,7 +274,7 @@ function RouteComponent() {
               fz="md"
               radius="xl"
               component={Link}
-              to="/join"
+              to="/register"
             >
               Become a Member
             </Button>

@@ -1,4 +1,5 @@
 import { tryCatch } from "@/utils/try-catch";
+import type { Paths } from "@/types/paths";
 import type {
   CollectionReference,
   DocumentData,
@@ -35,10 +36,10 @@ export const FilterOperator = Object.freeze({
  * Query filters for building Firestore queries
  */
 export type FilterBy<
-  DocumentType,
+  DocumentType extends DocumentData,
   Operator extends WhereFilterOp = WhereFilterOp,
 > = Array<{
-  field: Extract<keyof DocumentType, string>;
+  field: Paths<DocumentType>;
   operator: Operator;
   value: any;
 }>;
@@ -46,8 +47,8 @@ export type FilterBy<
 /**
  * Sorting order interface for Firestore queries
  */
-export type SortBy<DocumentType> = Array<{
-  field: Extract<keyof DocumentType, string>;
+export type SortBy<DocumentType extends DocumentData> = Array<{
+  field: Paths<DocumentType>;
   value: OrderByDirection;
 }>;
 

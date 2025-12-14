@@ -8,21 +8,24 @@ const preferencesSchema = z.object({
   bulletins: z.boolean().default(true),
 });
 
-const subscriptionBaseSchema = z.object({
-  email: z.email("Valid email is required"),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  subscribedAt: timestampCodec,
-  preferences: preferencesSchema.default({
-    events: true,
-    news: true,
-    bulletins: true,
-  }),
+export const subscriptionFormSchema = z.object({
+  email: z
+    .email("Valid email is required"),
+  fullName: z.string().optional(),
+  preferences: preferencesSchema
+    .default({
+      events: true,
+      news: true,
+      bulletins: true,
+    })
+    .optional(),
 });
 
-export const subscriptionDataSchema = subscriptionBaseSchema;
+export const subscriptionDataSchema = subscriptionFormSchema.extend({
+  subscribedAt: timestampCodec,
+});
 
-export const createSubscriptionSchema = subscriptionBaseSchema.extend({
+export const createSubscriptionSchema = subscriptionFormSchema.extend({
   subscribedAt: fieldValueCodec,
 });
 

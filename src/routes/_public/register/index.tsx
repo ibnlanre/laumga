@@ -40,7 +40,7 @@ import {
 } from "@/contexts/registration-context";
 import { useCountryOptions, useStateOptions } from "@/services/location";
 import { formatDate } from "@/utils/date";
-import { useImageUpload } from "@/api/upload/hooks";
+import { useUserImageUpload } from "@/api/upload/hooks";
 import { useCreateUser } from "@/api/user/hooks";
 import {
   accountCredentialsSchema,
@@ -95,7 +95,7 @@ function PersonalDetailsStep() {
   const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
     useState(false);
 
-  const imageQuery = useImageUpload();
+  const imageQuery = useUserImageUpload();
 
   const handlePhotoChange = async (file: File | null) => {
     form.clearFieldError("photoUrl");
@@ -639,7 +639,7 @@ function ReviewPanel() {
   } = useRegistration();
 
   const { data: chapter } = useChapterByState(locationDetails.stateOfResidence);
-  const { mutateAsync, isPending } = useCreateUser();
+  const { mutate, isPending } = useCreateUser();
   const navigate = useNavigate();
 
   const handleEdit = (step: 1 | 2 | 3) => {
@@ -647,47 +647,80 @@ function ReviewPanel() {
     goToStep(step);
   };
 
-  const handleSubmit = async (values: typeof form.values) => {
-    await mutateAsync({ data: values });
+  const handleSubmit = async (data: typeof form.values) => {
+    mutate(
+      { data },
+      {
+        onSuccess() {
+          modals.open({
+            title: (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-6 w-6 text-vibrant-lime" />
+                <Text size="xl" fw={700} className="text-deep-forest">
+                  Welcome Home,{" "}
+                  {data.title || data.gender === "male" ? "Bro. " : "Sis. "}
+                  {data.firstName}!
+                </Text>
+              </div>
+            ),
+            children: (
+              <div className="text-center py-4">
+                <Text size="md" c="dimmed" mb="xl">
+                  Your application is under review. Check your email for the
+                  verification link.
+                </Text>
+                <Button
+                  fullWidth
+                  autoContrast
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    modals.closeAll();
+                    reset();
+                    closeReviewPanel();
+                    navigate({ to: "/login" });
+                  }}
+                >
+                  Go to Login
+                </Button>
+              </div>
+            ),
+            centered: true,
+            withCloseButton: false,
+            closeOnClickOutside: false,
+            closeOnEscape: false,
+          });
+        },
+        onError(error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Registration failed. Please try again.";
 
-    modals.open({
-      title: (
-        <div className="flex items-center gap-2">
-          <CheckCircle className="h-6 w-6 text-vibrant-lime" />
-          <Text size="xl" fw={700} className="text-deep-forest">
-            Welcome Home,{" "}
-            {values.title || values.gender === "male" ? "Bro. " : "Sis. "}
-            {values.firstName}!
-          </Text>
-        </div>
-      ),
-      children: (
-        <div className="text-center py-4">
-          <Text size="md" c="dimmed" mb="xl">
-            Your application is under review. Check your email for the
-            verification link.
-          </Text>
-          <Button
-            fullWidth
-            autoContrast
-            variant="outline"
-            size="lg"
-            onClick={() => {
-              modals.closeAll();
-              reset();
-              closeReviewPanel();
-              navigate({ to: "/login" });
-            }}
-          >
-            Go to Login
-          </Button>
-        </div>
-      ),
-      centered: true,
-      withCloseButton: false,
-      closeOnClickOutside: false,
-      closeOnEscape: false,
-    });
+          modals.open({
+            title: "Registration Error",
+            children: (
+              <div className="text-center py-4">
+                <Text size="md" c="red" mb="xl">
+                  {errorMessage}
+                </Text>
+                <Button
+                  fullWidth
+                  autoContrast
+                  variant="outline"
+                  size="lg"
+                  onClick={() => modals.closeAll()}
+                >
+                  Try Again
+                </Button>
+              </div>
+            ),
+            centered: true,
+            withCloseButton: true,
+          });
+        },
+      }
+    );
   };
 
   return (

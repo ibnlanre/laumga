@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isFileSizeValid(maxSize) {
+      return request.resource.size < maxSize;
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isPdf() {
+      return request.resource.contentType.matches('application/pdf');
+    }
+    
+    function isDocument() {
+      return isPdf() ||
+             request.resource.contentType.matches('application/.*word.*') ||
+             request.resource.contentType.matches('application/.*excel.*');
+    }
+    
+    function isValidImageUpload() {
+      return isImage() &&
+             isFileSizeValid(5 * 1024 * 1024);
+    }
+    
+    function isValidDocumentUpload() {
+      return isAuthenticated() &&
+             isDocument() &&
+             isFileSizeValid(10 * 1024 * 1024);
+    }
+
+    match /{allPaths=**} {
+      allow read: if isAuthenticated();
+    }
+
+    match /passports/{allPaths=**} {
+      allow write: if isValidImageUpload();
+      allow delete: if isAuthenticated();
+    }
+
+    match /gallery/{allPaths=**} {
+      allow write: if isValidImageUpload();
+      allow delete: if isAuthenticated();
+    }
+
+    match /documents/{allPaths=**} {
+      allow write: if isValidDocumentUpload();
+      allow delete: if isAuthenticated();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

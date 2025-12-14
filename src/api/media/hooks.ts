@@ -4,6 +4,28 @@ import type { Options } from "@/client/options";
 import { media } from ".";
 import type { ListMediaVariables } from "./types";
 
+export function useGetMedia(
+  id?: string,
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: media.get.$get(id),
+    queryFn: () => media.$use.get(id!),
+    enabled: !!id,
+  })
+) {
+  return useQuery({ ...query, ...options });
+}
+
+export function useGetFeaturedMedia(
+  options: Options<typeof query> = {},
+  query = queryOptions({
+    queryKey: media.getFeaturedMedia.$get(),
+    queryFn: () => media.$use.getFeaturedMedia(),
+  })
+) {
+  return useQuery({ ...query, ...options });
+}
+
 export function useListMedia(
   variables?: ListMediaVariables,
   options: Options<typeof query> = {},

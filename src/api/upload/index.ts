@@ -32,9 +32,14 @@ async function uploadFile(file: File, path: string) {
   return await uploadIfNeeded(folder, file);
 }
 
-async function image(file: File) {
+async function userImage(file: File) {
   const validFile = imageFileSchema.parse(file);
-  return await uploadFile(validFile, "images");
+  return await uploadFile(validFile, "passports");
+}
+
+async function galleryImage(file: File) {
+  const validFile = imageFileSchema.parse(file);
+  return await uploadFile(validFile, "gallery");
 }
 
 async function document(file: File) {
@@ -43,6 +48,7 @@ async function document(file: File) {
 }
 
 export const upload = createBuilder({
-  image,
+  userImage,
+  galleryImage,
   document,
 });

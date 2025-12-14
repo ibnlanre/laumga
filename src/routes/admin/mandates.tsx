@@ -275,7 +275,7 @@ function MandatesAdmin() {
     },
   ];
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading) return <PageLoader message="Loading mandates..." />;
 
   return (
     <Section>

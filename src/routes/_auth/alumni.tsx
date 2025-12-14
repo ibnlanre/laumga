@@ -1,12 +1,30 @@
-import { TextInput } from "@mantine/core";
+import { Badge, Loader, ScrollArea, Skeleton, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 
-import { SearchCheckIcon, MapPin, User } from "lucide-react";
+import { useListExecutives } from "@/api/executive/hooks";
+import type { Executive, ExecutiveTier } from "@/api/executive/types";
+import { useListExecutiveTenures } from "@/api/executive-tenure/hooks";
+import { SearchCheckIcon, MapPin, Sparkles, User } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/alumni")({
   component: RouteComponent,
 });
+
+type ExecutiveTierSlug = "presidential" | "council" | "directorate";
+
+const EXECUTIVE_TIER_BUCKET: Record<ExecutiveTier, ExecutiveTierSlug> = {
+  "0": "presidential",
+  "1": "council",
+  "2": "directorate",
+};
+
+const EXECUTIVE_TIER_LABEL: Record<ExecutiveTierSlug, string> = {
+  presidential: "Presidential",
+  council: "Council",
+  directorate: "Directorate",
+};
 
 function RouteComponent() {
   const form = useForm({
@@ -14,6 +32,86 @@ function RouteComponent() {
       search: "",
     },
   });
+
+  const [activeTenureId, setActiveTenureId] = useState<string | null>(null);
+
+  const { data: tenures = [], isLoading: isTenuresLoading } =
+    useListExecutiveTenures({
+      sortBy: [{ field: "year", value: "desc" }],
+    });
+
+  useEffect(() => {
+    if (!tenures.length) return;
+
+    setActiveTenureId((current) => {
+      if (current && tenures.some((tenure) => tenure.id === current)) {
+        return current;
+      }
+
+      const active = tenures.find((tenure) => tenure.isActive);
+      return (active ?? tenures[0]).id;
+    });
+  }, [tenures]);
+
+  const selectedTenure = useMemo(() => {
+    return tenures.find((tenure) => tenure.id === activeTenureId) ?? null;
+  }, [tenures, activeTenureId]);
+
+  const { data: executives = [], isLoading: isExecutivesLoading } =
+    useListExecutives(
+      {
+        filterBy: [
+          { field: "tenureId", operator: "==", value: activeTenureId },
+        ],
+        sortBy: [
+          { field: "tier", value: "asc" },
+          { field: "role", value: "asc" },
+        ],
+      },
+      {
+        enabled: !!activeTenureId,
+      }
+    );
+
+  const groupedExecutives = useMemo(() => {
+    const base = executives ?? [];
+    const term = form.values.search.trim().toLowerCase();
+
+    const filtered = term
+      ? base.filter((executive) =>
+          [
+            executive.displayName,
+            executive.role,
+            executive.portfolio ?? "",
+            executive.quote ?? "",
+            executive.email ?? "",
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(term)
+        )
+      : base;
+
+    const buckets: Record<ExecutiveTierSlug, Executive[]> = {
+      presidential: [],
+      council: [],
+      directorate: [],
+    };
+
+    filtered.forEach((executive) => {
+      const bucket = EXECUTIVE_TIER_BUCKET[executive.tier];
+      buckets[bucket].push(executive);
+    });
+
+    return {
+      ...buckets,
+      total: filtered.length,
+    };
+  }, [executives, form.values.search]);
+
+  const featuredLeader = groupedExecutives.presidential[0];
+  const isSearching = form.values.search.trim().length > 0;
+  const executivesLoading = isExecutivesLoading && !!activeTenureId;
 
   return (
     <main className="flex-1">
@@ -33,6 +131,26 @@ function RouteComponent() {
             Meet the dedicated men and women serving the association, past and
             present.
           </h2>
+          {selectedTenure ? (
+            <div className="flex flex-wrap items-center justify-center gap-3 text-white/80">
+              <Badge
+                color="lime"
+                radius="sm"
+                className="uppercase tracking-wide"
+              >
+                {selectedTenure.label} • {selectedTenure.year}
+              </Badge>
+              {selectedTenure.theme && (
+                <Badge color="dark" radius="sm" className="bg-black/30">
+                  {selectedTenure.theme}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-white/70">
+              Choose a tenure to explore the leadership directory.
+            </p>
+          )}
         </div>
 
         <TextInput
@@ -47,284 +165,147 @@ function RouteComponent() {
           size="xl"
           rightSection={<SearchCheckIcon className="text-white/70" />}
         />
+
+        <div className="relative z-10 flex flex-wrap gap-6 text-white/80">
+          <div>
+            <p className="text-4xl font-bold text-white">
+              {groupedExecutives.total}
+            </p>
+            <p className="text-sm uppercase tracking-wide">
+              Leaders catalogued
+            </p>
+          </div>
+          <div>
+            <p className="text-4xl font-bold text-white">
+              {groupedExecutives.presidential.length}
+            </p>
+            <p className="text-sm uppercase tracking-wide">Presidential team</p>
+          </div>
+          <div>
+            <p className="text-4xl font-bold text-white">
+              {groupedExecutives.council.length}
+            </p>
+            <p className="text-sm uppercase tracking-wide">Council members</p>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-stone-900/80 backdrop-blur-sm shadow-md">
         <div className="mx-auto max-w-7xl">
-          <div className="flex gap-2 sm:gap-4 p-3 overflow-x-auto whitespace-nowrap justify-center">
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2018
-              </p>
+          <ScrollArea type="never" className="w-full">
+            <div className="flex gap-2 sm:gap-3 p-3 min-w-full">
+              {isTenuresLoading &&
+                Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton
+                    key={`tenure-skeleton-${index}`}
+                    height={40}
+                    width={110}
+                    radius="lg"
+                    className="shrink-0"
+                  />
+                ))}
+              {!isTenuresLoading && tenures.length === 0 && (
+                <p className="px-4 text-sm text-stone-500">
+                  No executive tenures have been recorded yet.
+                </p>
+              )}
+              {!isTenuresLoading &&
+                tenures.map((tenure) => {
+                  const isActive = tenure.id === activeTenureId;
+                  return (
+                    <button
+                      key={tenure.id}
+                      type="button"
+                      onClick={() => setActiveTenureId(tenure.id)}
+                      className={`flex h-10 shrink-0 items-center justify-center rounded-full border px-4 text-sm font-semibold transition-colors ${
+                        isActive
+                          ? "border-vibrant-lime bg-vibrant-lime/20 text-deep-forest"
+                          : "border-stone-200 bg-white text-stone-600 hover:border-deep-forest/40"
+                      }`}
+                    >
+                      {tenure.year}
+                    </button>
+                  );
+                })}
             </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2019
-              </p>
-            </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2020
-              </p>
-            </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2021
-              </p>
-            </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg bg-vibrant-lime/20 border-b-2 border-vibrant-lime px-4 transition-colors">
-              <p className="text-lg font-bold leading-normal text-deep-forest dark:text-vibrant-lime">
-                2022
-              </p>
-            </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2023
-              </p>
-            </div>
-            <div className="flex h-10 cursor-pointer shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors">
-              <p className="text-sm font-medium leading-normal text-stone-600 dark:text-stone-400">
-                2024
-              </p>
-            </div>
-          </div>
+          </ScrollArea>
         </div>
       </div>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <section>
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 rounded-xl bg-white dark:bg-deep-forest p-6 sm:p-8 border-l-8 border-deep-forest dark:border-l-vibrant-lime shadow-lg">
-            <div className="w-48 h-48 md:w-56 md:h-56 shrink-0">
-              <img
-                className="w-full h-full object-cover rounded-full"
-                data-alt="Portrait of Prof. Taofiq Adedosu"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-MPLc6vThaxQeaD8qXI1UJ3bW9wWSLEm-clMt3ojav3r-Dd5RF-AMMpQZMUETEVR31qlYhW4qVou5Tcm8u1h4iuvhtYTpOIf9GZcF_93HcI-QBBBhczmOqoxMMcYJBHx_atNghF3immMqGwvqE-gOZ6tSTm23BxrO7dgq2sC8LCaXfnFZ7joXhaP9vx4nZ4xlwHsiNzKIY4oKGM7xFcBHCnGVDcHT7wAEefBSSgV_sDonZqEQM8Vi5eeGUR4Se-SKjIzdb7zH9oE"
-              />
+          {executivesLoading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader color="green" size="lg" />
             </div>
-            <div className="flex flex-col gap-3 text-center md:text-left">
-              <p className="text-vibrant-lime text-sm font-bold uppercase tracking-wider">
-                PRESIDENT (AMIR)
+          )}
+          {!executivesLoading && groupedExecutives.total === 0 && (
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-stone-300 bg-white p-10 text-center dark:border-stone-800 dark:bg-stone-900/60">
+              <Sparkles className="h-10 w-10 text-vibrant-lime" />
+              <p className="text-lg font-semibold text-deep-forest dark:text-white">
+                {isSearching
+                  ? "No leaders match your search."
+                  : "No executives recorded for this tenure yet."}
               </p>
-              <h2 className="font-display text-4xl font-bold text-deep-forest dark:text-white">
-                Prof. Taofiq Adedosu
-              </h2>
-              <div className="flex items-center justify-center md:justify-start gap-2 text-stone-500 dark:text-stone-400">
-                <MapPin className="h-5 w-5" />
-                <p className="text-base">Lagos Chapter</p>
-              </div>
-              <p className="text-stone-600 dark:text-stone-300 italic text-lg mt-2 font-display">
-                "A small quote about leadership, service, and community impact
-                goes here."
+              <p className="max-w-2xl text-sm text-stone-500 dark:text-stone-400">
+                Try another tenure, clear your filters, or contact the
+                secretariat if you believe records are missing.
               </p>
             </div>
-          </div>
-        </section>
+          )}
 
-        <section className="mt-16">
-          <h3 className="font-display text-3xl font-bold text-deep-forest dark:text-white pb-6 px-4">
-            The Executive Council
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center text-center bg-white dark:bg-stone-900 rounded-xl shadow-md overflow-hidden border-t-8 border-institutional-green hover:shadow-xl transition-shadow">
-              <div className="w-32 h-32 mt-8">
-                <img
-                  className="w-full h-full object-cover rounded-full ring-4 ring-sage-green dark:ring-vibrant-lime/50"
-                  data-alt="Portrait of an executive council member"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF0myDF5nSHi9zZFs1xeqbhSeAfUdW8oyy6ekfLgXZ7rptBWM2wfTwBxc59Sru3gTOYFEizak1amDQq-EYw5Ppfh3Np2Io65_r03eTeU1NGrdYJHiZkFTX42lqPTK5eQ7uaTF2qfeqr9e_5wQ7jOCjnTCdwAFi5lnyRoyzLHXHjFHtuhpZkYjJ2u7-Kqxf9Pd_Kg0uCYShe920X443NiQhfD_sglZ7UMdMjHOMGBhnC9mNuAtIX9hf_BlXWgy94GaOT6MqAvPer9I"
-                />
-              </div>
-              <div className="p-6">
-                <p className="text-xl font-bold text-deep-forest dark:text-white">
-                  Dr. Adam Bello
-                </p>
-                <p className="text-institutional-green dark:text-sage-green font-semibold mt-1">
-                  Vice President (North)
-                </p>
-                <p className="text-stone-500 dark:text-stone-400 text-sm mt-3">
-                  Abuja Branch
-                </p>
-              </div>
-            </div>
+          {!executivesLoading && groupedExecutives.total > 0 && (
+            <div className="space-y-16">
+              {featuredLeader && (
+                <FeaturedExecutiveCard executive={featuredLeader} />
+              )}
 
-            <div className="flex flex-col items-center text-center bg-white dark:bg-stone-900 rounded-xl shadow-md overflow-hidden border-t-8 border-institutional-green hover:shadow-xl transition-shadow">
-              <div className="w-32 h-32 mt-8 flex items-center justify-center bg-sage-green dark:bg-vibrant-lime/30 rounded-full ring-4 ring-sage-green dark:ring-vibrant-lime/50">
-                <span className="text-4xl font-bold text-institutional-green dark:text-vibrant-lime">
-                  FA
-                </span>
-              </div>
-              <div className="p-6">
-                <p className="text-xl font-bold text-deep-forest dark:text-white">
-                  Fatima Aliyu
-                </p>
-                <p className="text-institutional-green dark:text-sage-green font-semibold mt-1">
-                  General Secretary
-                </p>
-                <p className="text-stone-500 dark:text-stone-400 text-sm mt-3">
-                  Kano Branch
-                </p>
-              </div>
-            </div>
+              {groupedExecutives.council.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between px-1 pb-6">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-institutional-green">
+                        Executive Council
+                      </p>
+                      <h3 className="font-display text-3xl font-bold text-deep-forest dark:text-white">
+                        Strategic leadership team
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupedExecutives.council.map((executive) => (
+                      <CouncilExecutiveCard
+                        key={executive.id}
+                        executive={executive}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-            <div className="flex flex-col items-center text-center bg-white dark:bg-stone-900 rounded-xl shadow-md overflow-hidden border-t-8 border-institutional-green hover:shadow-xl transition-shadow">
-              <div className="w-32 h-32 mt-8">
-                <img
-                  className="w-full h-full object-cover rounded-full ring-4 ring-sage-green dark:ring-vibrant-lime/50"
-                  data-alt="Portrait of an executive council member"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZNJt5UOXr57_CIA4ygU0m8j_Vmv1KUVy-kSdSuYjJKdk0goPAK2vAbu6dTyAeGGSgv64dq-NW_C3qV1mtl12EwvZEC3O3Vd37mmCbqho5fWsOVcDsId-75HMJsTK7XtAsHjAJ3qXpyf2lvCTCOA9fclatgUjrWJNWnfep_GI5-uTfrBSJWXbBoHjpgCv82PyFHPht3his1R7PA4efDgiCzORlIl04iKy8Vuf0si9i6n1ZOIm9EeQUHy1GDQXsIfVUmE9gs6fvWRk"
-                />
-              </div>
-              <div className="p-6">
-                <p className="text-xl font-bold text-deep-forest dark:text-white">
-                  Aisha Sanusi
-                </p>
-                <p className="text-institutional-green dark:text-sage-green font-semibold mt-1">
-                  Financial Secretary
-                </p>
-                <p className="text-stone-500 dark:text-stone-400 text-sm mt-3">
-                  Lagos Branch
-                </p>
-              </div>
+              {groupedExecutives.directorate.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between px-1 pb-6">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-institutional-green">
+                        Directorate
+                      </p>
+                      <h3 className="font-display text-3xl font-bold text-deep-forest dark:text-white">
+                        Operational leadership nodes
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupedExecutives.directorate.map((executive) => (
+                      <DirectorateExecutiveRow
+                        key={executive.id}
+                        executive={executive}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
-          </div>
-        </section>
-
-        <section className="mt-16">
-          <h3 className="font-display text-3xl font-bold text-deep-forest dark:text-white pb-6 px-4">
-            The Directorate
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Ibrahim Musa
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Welfare II
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Lagos
-                </p>
-              </div>
-            </div>
-
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Zainab Haruna
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Education Director
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Abuja
-                </p>
-              </div>
-            </div>
-
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Yusuf Aminu
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  PRO
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Kaduna
-                </p>
-              </div>
-            </div>
-
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Maryam Bakare
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Sisters' Coordinator
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Lagos
-                </p>
-              </div>
-            </div>
-
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Aliyu Sani
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Membership Sec.
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Kano
-                </p>
-              </div>
-            </div>
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Khadija Bello
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Asst. Gen. Sec.
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Abuja
-                </p>
-              </div>
-            </div>
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Umar Farouk
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Welfare I
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Lagos
-                </p>
-              </div>
-            </div>
-            <div className="group flex items-center gap-4 rounded-lg bg-white dark:bg-stone-900 p-4 border border-transparent hover:border-vibrant-lime transition-colors shadow-sm hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage-green dark:bg-vibrant-lime/30 text-institutional-green dark:text-vibrant-lime">
-                <User className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-deep-forest dark:text-white">
-                  Nafisa Idris
-                </p>
-                <p className="text-sm text-stone-600 dark:text-stone-300">
-                  Treasurer
-                </p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">
-                  Ibadan
-                </p>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         <footer className="mt-20 text-center">
@@ -340,5 +321,102 @@ function RouteComponent() {
         </footer>
       </div>
     </main>
+  );
+}
+
+interface ExecutiveCardProps {
+  executive: Executive;
+}
+
+function FeaturedExecutiveCard({ executive }: ExecutiveCardProps) {
+  return (
+    <div className="flex flex-col gap-8 rounded-3xl border border-deep-forest/10 bg-gradient-to-r from-deep-forest to-emerald-950 p-6 text-white md:flex-row md:items-center md:p-10">
+      <div className="h-48 w-48 shrink-0 overflow-hidden rounded-full border-4 border-vibrant-lime/70">
+        <img
+          className="h-full w-full object-cover"
+          alt={executive.displayName}
+          src={executive.photoUrl}
+        />
+      </div>
+      <div className="flex flex-1 flex-col gap-3 text-center md:text-left">
+        <p className="text-xs font-semibold uppercase tracking-[0.4em] text-vibrant-lime">
+          {executive.role}
+        </p>
+        <h2 className="font-display text-4xl font-bold">
+          {executive.displayName}
+        </h2>
+        {executive.portfolio && (
+          <div className="flex items-center justify-center gap-2 text-sage-green md:justify-start">
+            <MapPin className="h-4 w-4" />
+            <span className="text-sm">{executive.portfolio}</span>
+          </div>
+        )}
+        {executive.quote && (
+          <p className="mt-2 text-lg italic text-white/80">
+            “{executive.quote}”
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CouncilExecutiveCard({ executive }: ExecutiveCardProps) {
+  return (
+    <div className="flex flex-col items-center rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-stone-800 dark:bg-stone-900">
+      <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-sage-green">
+        <img
+          className="h-full w-full object-cover"
+          alt={executive.displayName}
+          src={executive.photoUrl}
+        />
+        <Badge
+          className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+          color="green"
+          radius="md"
+        >
+          {EXECUTIVE_TIER_LABEL.council}
+        </Badge>
+      </div>
+      <div className="mt-6 space-y-2">
+        <p className="text-xl font-bold text-deep-forest dark:text-white">
+          {executive.displayName}
+        </p>
+        <p className="text-sm font-semibold text-institutional-green dark:text-sage-green">
+          {executive.role}
+        </p>
+        {executive.portfolio && (
+          <p className="text-sm text-stone-500 dark:text-stone-400">
+            {executive.portfolio}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DirectorateExecutiveRow({ executive }: ExecutiveCardProps) {
+  return (
+    <div className="group flex items-center gap-4 rounded-2xl border border-stone-100 bg-white p-4 shadow-sm transition hover:border-vibrant-lime hover:shadow-md dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sage-green text-institutional-green dark:bg-vibrant-lime/30 dark:text-vibrant-lime">
+        <User className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold text-deep-forest dark:text-white">
+          {executive.displayName}
+        </p>
+        <p className="text-sm text-stone-500 dark:text-stone-300">
+          {executive.role}
+        </p>
+        {executive.portfolio && (
+          <p className="text-xs text-stone-400 dark:text-stone-500">
+            {executive.portfolio}
+          </p>
+        )}
+      </div>
+      <Badge variant="light" color="lime" radius="sm">
+        {EXECUTIVE_TIER_LABEL.directorate}
+      </Badge>
+    </div>
   );
 }

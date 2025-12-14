@@ -10,7 +10,6 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   const { isAuthenticated } = Route.useRouteContext();
-  console.log("AdminLayout - authenticated:", isAuthenticated);
 
   return (
     <div className="flex flex-col min-h-screen bg-mist-green-50">

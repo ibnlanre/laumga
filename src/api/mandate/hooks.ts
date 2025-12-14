@@ -4,7 +4,7 @@ import type { ListMandateVariables } from "./types";
 
 export function useListMandates(variables?: ListMandateVariables) {
   return useQuery({
-    queryKey: mandate.list.$get(),
+    queryKey: mandate.list.$get(variables),
     queryFn: () => mandate.$use.list(variables),
   });
 }

@@ -45,6 +45,21 @@ async function get(id: string) {
   return await getQueryDoc(mediaRef, mediaSchema);
 }
 
+export function getFeaturedMedia() {
+  const mediaRef = collection(
+    db,
+    MEDIA_COLLECTION
+  ) as DownstreamMediaCollection;
+
+  const variables: ListMediaVariables = {
+    filterBy: [{ field: "isFeatured", operator: "==", value: true }],
+    sortBy: [{ field: "uploaded", value: "desc" }],
+  };
+
+  const mediaQuery = buildQuery(mediaRef, variables);
+  return getQueryDocs(mediaQuery, mediaSchema);
+}
+
 async function create(variables: CreateMediaVariables) {
   const { user, data } = variables;
 
@@ -98,4 +113,5 @@ export const media = createBuilder({
   list,
   get,
   remove,
+  getFeaturedMedia,
 });

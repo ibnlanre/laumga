@@ -18,7 +18,10 @@ import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
 import { auth } from "@/services/firebase";
-import { user } from "@/api/user";
+import { PageLoader } from "@/components/page-loader";
+import { userQueryOptions } from "@/api/user/hooks";
+import { permissionQueryOptions } from "@/api/user-roles/options";
+
 // import { TanStackDevtools } from "@tanstack/react-devtools";
 // import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 // import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
@@ -29,11 +32,22 @@ export const Route = createRootRoute({
     await auth.authStateReady();
     const currentUser = await auth.currentUser;
 
-    if (!currentUser) {
-      return { isAuthenticated: false, client: null };
+    return { isAuthenticated: !!currentUser, uid: currentUser?.uid };
+  },
+  loader: async ({ context }) => {
+    if (!context.uid) {
+      return { currentUser: null, permissions: [] };
     }
 
-    return { isAuthenticated: !!currentUser };
+    const currentUser = await queryClient.ensureQueryData(
+      userQueryOptions(context.uid)
+    );
+
+    const permissions = await queryClient.ensureQueryData(
+      permissionQueryOptions(context.uid)
+    );
+
+    return { currentUser, permissions };
   },
   head: () => ({
     meta: [
@@ -90,13 +104,8 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   notFoundComponent: NotFound,
+  pendingComponent: PageLoader,
 });
-
-//  --deep-forest: #002313;
-//         --institutional-green: #006838;
-//         --vibrant-lime: #8dc63f;
-//         --sage-green: #cbe5a7;
-//         --mist-green: #f4f9ec;
 
 const deepForest: MantineColorsTuple = [
   "#ebfff6",
@@ -173,6 +182,16 @@ const theme = createTheme({
 });
 
 function RootDocument({ children }: PropsWithChildren) {
+  const loaderData = Route.useLoaderData();
+  const { currentUser, permissions } = { ...loaderData };
+  const { isAuthenticated } = Route.useRouteContext();
+
+  console.log("Current User in RootDocument:", {
+    currentUser,
+    isAuthenticated,
+    permissions,
+  });
+
   return (
     <html lang="en" {...mantineHtmlProps} className="overscroll-none">
       <head>
@@ -181,7 +200,7 @@ function RootDocument({ children }: PropsWithChildren) {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
+          <AuthProvider user={currentUser} permissions={permissions}>
             <MantineProvider theme={theme}>
               <Notifications />
               <ModalsProvider>{children}</ModalsProvider>

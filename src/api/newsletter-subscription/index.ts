@@ -25,7 +25,7 @@ import type {
 import { getQueryDocs } from "@/client/core-query";
 
 async function subscribe(variables: CreateSubscriptionVariables) {
-  const { data, user } = variables;
+  const { data } = variables;
 
   const validated = createSubscriptionSchema.parse(data);
   const subscriptionsRef = collection(
@@ -43,8 +43,6 @@ async function subscribe(variables: CreateSubscriptionVariables) {
   const subscriptionData: CreateSubscriptionData = {
     ...validated,
     subscribedAt: serverTimestamp(),
-    firstName: user.firstName,
-    lastName: user.lastName,
   };
 
   await addDoc(subscriptionsRef, subscriptionData);
