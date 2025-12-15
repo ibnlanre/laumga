@@ -587,6 +587,20 @@ function CredentialsStep() {
               size="lg"
             />
 
+            <PasswordInput
+              label="Confirm Password"
+              placeholder="••••••••••••"
+              withAsterisk
+              visible={isPasswordVisible}
+              onVisibilityChange={setPasswordVisible}
+              leftSection={<Shield size={16} />}
+              {...form.getInputProps("confirmPassword")}
+              autoComplete="section-credentials new-password"
+              labelProps={{ lh: 2, fz: "sm" }}
+              radius="lg"
+              size="lg"
+            />
+
             <PasswordStrengthCheck password={password} />
           </div>
         </Stack>

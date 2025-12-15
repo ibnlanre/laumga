@@ -45,7 +45,10 @@ export const userProfileSchema = registrationSchema.extend({
   updated: dateSchema,
 });
 
-export const userDataSchema = userProfileSchema.omit({ password: true });
+export const userDataSchema = userProfileSchema.omit({
+  password: true,
+  confirmPassword: true,
+});
 
 const createUserBaseSchema = userDataSchema.extend({
   created: fieldValueSchema,

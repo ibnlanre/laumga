@@ -66,6 +66,7 @@ const initialFormValues: RegistrationFormValues = {
   address: "",
   email: "",
   password: "",
+  confirmPassword: "",
 };
 
 export function RegistrationProvider({ children }: PropsWithChildren) {
@@ -202,8 +203,12 @@ function selectLocationDetails(
 function selectCredentials(
   values: RegistrationFormValues
 ): AccountCredentialsFormValues {
-  const { email, password } = values;
-  return { email, password } satisfies AccountCredentialsFormValues;
+  const { email, password, confirmPassword } = values;
+  return {
+    email,
+    password,
+    confirmPassword,
+  } satisfies AccountCredentialsFormValues;
 }
 
 export function useRegistration() {

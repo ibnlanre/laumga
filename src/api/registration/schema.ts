@@ -166,14 +166,20 @@ export const locationDetailsSchema = z.object({
   address: z.string().min(10, "Address must be at least 10 characters"),
 });
 
-export const accountCredentialsSchema = z.object({
-  email: z
-    .email("Invalid email address")
-    .min(1, "Email is required")
-    .trim()
-    .toLowerCase(),
-  password: passwordSchema,
-});
+export const accountCredentialsSchema = z
+  .object({
+    email: z
+      .email("Invalid email address")
+      .min(1, "Email is required")
+      .trim()
+      .toLowerCase(),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export const registrationSchema = personalDetailsSchema
   .extend(locationDetailsSchema.shape)

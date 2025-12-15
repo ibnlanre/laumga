@@ -93,7 +93,7 @@ const get = async (userId: string | null) => {
 async function create(variables: CreateUserVariables) {
   const { data } = variables;
 
-  const { password, ...profile } = data;
+  const { password, confirmPassword: _, ...profile } = data;
 
   const result = await tryCatch(async () => {
     const usersRef = collection(db, USERS_COLLECTION) as UpstreamUserCollection;
@@ -101,9 +101,7 @@ async function create(variables: CreateUserVariables) {
     const duplicateSnapshot = await getDocs(duplicateQuery);
 
     if (!duplicateSnapshot.empty) {
-      throw new Error(
-        "Email is already registered. Please sign in instead."
-      );
+      throw new Error("Email is already registered. Please sign in instead.");
     }
 
     await setPersistence(auth, browserLocalPersistence);
