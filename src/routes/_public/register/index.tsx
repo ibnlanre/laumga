@@ -666,7 +666,7 @@ function ReviewPanel() {
                   variant="outline"
                   size="lg"
                   onClick={() => {
-                    closeReviewPanel();
+                    modals.closeAll();
                     navigate({ to: "/mandate" });
                   }}
                 >
