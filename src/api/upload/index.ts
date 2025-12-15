@@ -1,17 +1,37 @@
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { createBuilder } from "@ibnlanre/builder";
 
 import { storage } from "@/services/firebase";
+import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
+import { tryCatch } from "@/utils/try-catch";
 import { slugCodec, imageFileSchema, documentFileSchema } from "./schema";
-import { createBuilder } from "@ibnlanre/builder";
 
 async function uploadIfNeeded(folder: string, file: File) {
   const storageRef = ref(storage, folder);
-  try {
-    return await getDownloadURL(storageRef);
-  } catch {
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+  const existing = await tryCatch(() => getDownloadURL(storageRef));
+  if (existing.success) return existing.data;
+
+  const uploadResult = await tryCatch(() => uploadBytes(storageRef, file));
+  if (!uploadResult.success) {
+    throw new Error(
+      getFirebaseErrorMessage(
+        uploadResult.error,
+        "Couldn't upload the file. Please try again."
+      )
+    );
   }
+
+  const downloadResult = await tryCatch(() => getDownloadURL(storageRef));
+  if (!downloadResult.success) {
+    throw new Error(
+      getFirebaseErrorMessage(
+        downloadResult.error,
+        "Couldn't retrieve the uploaded file. Please try again."
+      )
+    );
+  }
+
+  return downloadResult.data;
 }
 
 async function hashFile(file: File) {

@@ -22,7 +22,10 @@ import { Route as AdminPaymentPartnersRouteImport } from './routes/admin/payment
 import { Route as AdminMandatesRouteImport } from './routes/admin/mandates'
 import { Route as AdminGalleryRouteImport } from './routes/admin/gallery'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
+import { Route as AdminAuditLogsRouteImport } from './routes/admin/audit-logs'
 import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
+import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
+import { Route as AdminAlertsRouteImport } from './routes/admin/alerts'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
@@ -104,9 +107,24 @@ const AdminEventsRoute = AdminEventsRouteImport.update({
   path: '/events',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminArticlesRoute = AdminArticlesRouteImport.update({
   id: '/articles',
   path: '/articles',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAlertsRoute = AdminAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
   getParentRoute: () => AdminRoute,
 } as any)
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
@@ -222,7 +240,10 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/admin/alerts': typeof AdminAlertsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/articles': typeof AdminArticlesRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
@@ -253,7 +274,10 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/admin/alerts': typeof AdminAlertsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/articles': typeof AdminArticlesRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
@@ -287,7 +311,10 @@ export interface FileRoutesById {
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
+  '/admin/alerts': typeof AdminAlertsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/articles': typeof AdminArticlesRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
@@ -322,7 +349,10 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/admin/alerts'
+    | '/admin/approvals'
     | '/admin/articles'
+    | '/admin/audit-logs'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
@@ -353,7 +383,10 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/admin/alerts'
+    | '/admin/approvals'
     | '/admin/articles'
+    | '/admin/audit-logs'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
@@ -386,7 +419,10 @@ export interface FileRouteTypes {
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/reset-password'
+    | '/admin/alerts'
+    | '/admin/approvals'
     | '/admin/articles'
+    | '/admin/audit-logs'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
@@ -505,11 +541,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEventsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/audit-logs': {
+      id: '/admin/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AdminAuditLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/articles': {
       id: '/admin/articles'
       path: '/articles'
       fullPath: '/admin/articles'
       preLoaderRoute: typeof AdminArticlesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/alerts': {
+      id: '/admin/alerts'
+      path: '/alerts'
+      fullPath: '/admin/alerts'
+      preLoaderRoute: typeof AdminAlertsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_public/reset-password': {
@@ -745,7 +802,10 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAlertsRoute: typeof AdminAlertsRoute
+  AdminApprovalsRoute: typeof AdminApprovalsRoute
   AdminArticlesRoute: typeof AdminArticlesRoute
+  AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminEventsRoute: typeof AdminEventsRoute
   AdminGalleryRoute: typeof AdminGalleryRoute
   AdminMandatesRoute: typeof AdminMandatesRoute
@@ -756,7 +816,10 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAlertsRoute: AdminAlertsRoute,
+  AdminApprovalsRoute: AdminApprovalsRoute,
   AdminArticlesRoute: AdminArticlesRoute,
+  AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminEventsRoute: AdminEventsRoute,
   AdminGalleryRoute: AdminGalleryRoute,
   AdminMandatesRoute: AdminMandatesRoute,

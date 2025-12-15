@@ -10,4 +10,4 @@ export const passwordSchema = z
   .regex(
     /[!@#$%^&*(),.?":{}|<>]/,
     "Password must contain at least one special character"
-  );
+  )

@@ -54,7 +54,7 @@ const initialFormValues: RegistrationFormValues = {
   nickname: "",
   gender: "male",
   photoUrl: "",
-  dateOfBirth: "",
+  dateOfBirth: null,
   phoneNumber: "",
   classSet: null,
   faculty: "",

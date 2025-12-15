@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
 import {
   Card,
@@ -14,10 +14,10 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { Eye, Pause, Play, X, CreditCard, DollarSign } from "lucide-react";
+import { useMemo } from "react";
 
 import { DataTable } from "@/components/data-table";
 import { PageLoader } from "@/components/page-loader";
-import { Section } from "@/components/section";
 import type { Mandate, MandateStatus } from "@/api/mandate/types";
 import {
   useListMandates,
@@ -26,8 +26,9 @@ import {
   useCancelMandate,
 } from "@/api/mandate/hooks";
 import { useAuth } from "@/contexts/use-auth";
-import clsx from "clsx";
 import { formatCurrency } from "@/utils/currency";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { AdminStatCard } from "@/components/admin/stat-card";
 
 export const Route = createFileRoute("/admin/mandates")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -242,77 +243,95 @@ function MandatesAdmin() {
     },
   ];
 
-  // Stats
-  const stats = [
-    {
-      label: "Total Mandates",
-      value: mandates.length,
-      icon: CreditCard,
-      background: "bg-blue-50",
-      color: "text-blue-700",
-    },
-    {
-      label: "Active",
-      value: mandates.filter(({ status }) => status === "active").length,
-      icon: Play,
-      background: "bg-green-50",
-      color: "text-green-700",
-    },
-    {
-      label: "Paused",
-      value: mandates.filter(({ status }) => status === "paused").length,
-      icon: Pause,
-      background: "bg-orange-50",
-      color: "text-orange-700",
-    },
-    {
-      label: "Total Pledged",
-      value: mandates.reduce((acc, { amount = 0 }) => acc + amount, 0),
-      icon: DollarSign,
-      background: "bg-vibrant-lime-50",
-      color: "text-vibrant-lime-700",
-      format: (v: number) => formatCurrency(v),
-    },
-  ];
+  const stats = useMemo(() => {
+    const active = mandates.filter(({ status }) => status === "active").length;
+    const paused = mandates.filter(({ status }) => status === "paused").length;
+    const totalPledged = mandates.reduce(
+      (acc, { amount = 0 }) => acc + amount,
+      0
+    );
+
+    return [
+      {
+        label: "Total mandates",
+        value: mandates.length,
+        description: "Recurring pledges",
+        icon: CreditCard,
+        tone: "forest" as const,
+      },
+      {
+        label: "Active",
+        value: active,
+        description: "Currently debiting",
+        icon: Play,
+        tone: "sage" as const,
+      },
+      {
+        label: "Paused",
+        value: paused,
+        description: "Need attention",
+        icon: Pause,
+        tone: "coral" as const,
+      },
+      {
+        label: "Total pledged",
+        value: totalPledged,
+        description: "Aggregate commitment",
+        icon: DollarSign,
+        tone: "gold" as const,
+        formatValue: formatCurrency,
+      },
+    ];
+  }, [mandates]);
 
   if (isLoading) return <PageLoader message="Loading mandates..." />;
 
   return (
-    <Section>
-      <Stack gap="xl">
-        {/* Header */}
-        <div>
-          <Title order={1} className="text-deep-forest mb-2">
-            Mandate Management
+    <Stack gap="xl">
+      <AdminPageHeader
+        eyebrow="Finance"
+        title="Mandate management"
+        description="Monitor recurring pledges, pause or resume debit flows, and keep contributions on track."
+        actions={
+          <Button
+            component={Link}
+            to="/admin/payment-partners"
+            variant="light"
+            color="deep-forest"
+            size="sm"
+          >
+            Configure split accounts
+          </Button>
+        }
+      />
+
+      <Grid gutter="lg">
+        {stats.map((stat) => (
+          <Grid.Col key={stat.label} span={{ base: 12, sm: 6, lg: 3 }}>
+            <AdminStatCard
+              label={stat.label}
+              value={
+                stat.formatValue ? stat.formatValue(stat.value) : stat.value
+              }
+              description={stat.description}
+              icon={stat.icon}
+              tone={stat.tone}
+              isLoading={isLoading}
+            />
+          </Grid.Col>
+        ))}
+      </Grid>
+
+      <Card withBorder shadow="md" radius="xl" padding="0">
+        <div className="border-b border-sage-green/20 px-6 py-4">
+          <Title order={3} size="h4" className="text-deep-forest">
+            Mandate registry
           </Title>
-          <Text c="dimmed">
-            Manage member financial commitments and pledges
+          <Text size="sm" c="dimmed">
+            Search, filter, and triage every standing instruction.
           </Text>
         </div>
-
-        {/* Statistics */}
-        <Grid>
-          {stats.map((stat) => (
-            <Grid.Col key={stat.label} span={{ base: 12, sm: 6, lg: 3 }}>
-              <Card shadow="md" padding="lg" radius="lg" withBorder>
-                <Group justify="space-between" mb="md">
-                  <div className={clsx("p-3 rounded-lg", stat.background)}>
-                    <stat.icon className={clsx("size-6", stat.color)} />
-                  </div>
-                </Group>
-                <Text size="sm" c="dimmed" mb="xs">
-                  {stat.label}
-                </Text>
-                <Text size="xl" fw={700} className="text-deep-forest">
-                  {stat.format ? stat.format(stat.value) : stat.value}
-                </Text>
-              </Card>
-            </Grid.Col>
-          ))}
-        </Grid>
-
-        {/* Mandates Table */}
-        <Card shadow="md" padding="lg" radius="lg" withBorder>
+        <div className="p-0">
           <DataTable
             columns={columns}
             data={mandates}
@@ -361,9 +380,9 @@ function MandatesAdmin() {
             pageSize={10}
             loading={isLoading}
           />
-        </Card>
-      </Stack>
-    </Section>
+        </div>
+      </Card>
+    </Stack>
   );
 }
 

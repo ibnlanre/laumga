@@ -2,23 +2,23 @@ import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { AdminLoginForm } from "@/layouts/auth/admin-login-form";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
-import { Header } from "@/components/layout/header";
+import { AdminAppShell } from "@/layouts/admin/layout";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
 function AdminLayout() {
-  const { isOwner } = Route.useRouteContext();
+  const { isOwner, currentUser } = Route.useRouteContext();
+
+  if (!isOwner) {
+    return <AdminLoginPage />;
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-mist-green-50">
-      <Header variant={isOwner ? "admin" : "public"} />
-
-      <main className="flex-1 flex flex-col">
-        {isOwner ? <Outlet /> : <AdminLoginPage />}
-      </main>
-    </div>
+    <AdminAppShell currentUser={currentUser}>
+      <Outlet />
+    </AdminAppShell>
   );
 }
 

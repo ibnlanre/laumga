@@ -36,7 +36,7 @@ const createFullName = <T extends NameFields>(data: T) => {
   };
 };
 
-const userBaseSchema = registrationSchema.extend({
+export const userProfileSchema = registrationSchema.extend({
   fullName: z.string().default(""),
   chapterId: z.string().nullable().default(null),
   status: approvalStatusSchema.default("pending"),
@@ -45,21 +45,16 @@ const userBaseSchema = registrationSchema.extend({
   updated: dateSchema,
 });
 
-export const userDataSchema = userBaseSchema.omit({ password: true });
+export const userDataSchema = userProfileSchema.omit({ password: true });
 
-const createUserBaseSchema = userBaseSchema.extend({
+const createUserBaseSchema = userDataSchema.extend({
   created: fieldValueSchema,
   updated: fieldValueSchema,
 });
 
 export const createUserSchema = createUserBaseSchema.transform(createFullName);
 
-export const createUserRecordSchema = createUserBaseSchema
-  .omit({ password: true })
-  .transform(createFullName);
-
 export const updateUserSchema = createUserBaseSchema
-  .omit({ password: true })
   .partial()
   .transform(createFullName);
 

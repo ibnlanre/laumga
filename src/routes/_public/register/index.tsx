@@ -93,8 +93,6 @@ function StepsPanel() {
 function PersonalDetailsStep() {
   const form = useRegistrationForm();
   const { nextStep, markStepComplete } = useRegistration();
-  const [isUploadingProfilePicture, setIsUploadingProfilePicture] =
-    useState(false);
 
   const imageQuery = useUserImageUpload();
 
@@ -106,19 +104,11 @@ function PersonalDetailsStep() {
       return;
     }
 
-    try {
-      setIsUploadingProfilePicture(true);
-      const uploadedUrl = await imageQuery.mutateAsync(file);
-      form.setFieldValue("photoUrl", uploadedUrl);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unable to upload profile picture";
-      form.setFieldError("photoUrl", message);
-    } finally {
-      setIsUploadingProfilePicture(false);
-    }
+    imageQuery.mutate(file, {
+      onSuccess(uploadedUrl) {
+        form.setFieldValue("photoUrl", uploadedUrl);
+      },
+    });
   };
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (evt) => {
@@ -269,12 +259,13 @@ function PersonalDetailsStep() {
               label="Profile Picture"
               placeholder="Upload photo"
               accept="image/*"
+              clearable
               leftSection={<Upload className="size-4" />}
               onChange={handlePhotoChange}
-              disabled={isUploadingProfilePicture}
+              disabled={imageQuery.isPending}
               leftSectionPointerEvents="none"
               rightSection={
-                isUploadingProfilePicture ? <Loader size="sm" /> : undefined
+                imageQuery.isPending ? <Loader size="sm" /> : undefined
               }
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
@@ -504,7 +495,6 @@ function LocationDetailsStep() {
         <Textarea
           label="Residential Address"
           placeholder="Your full address"
-          minRows={3}
           autosize
           withAsterisk
           leftSection={<Home size={16} />}

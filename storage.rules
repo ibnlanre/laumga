@@ -2,58 +2,81 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    
+    // =====================
+    // UTILITY FUNCTIONS
+    // =====================
+    
+    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    // Check if file size is within limit (in bytes)
     function isFileSizeValid(maxSize) {
       return request.resource.size < maxSize;
     }
     
+    // Check if file is an image
     function isImage() {
       return request.resource.contentType.matches('image/.*');
     }
     
+    // Check if file is a PDF
     function isPdf() {
       return request.resource.contentType.matches('application/pdf');
     }
     
+    // Check if file is a document (Word, Excel, PDF)
     function isDocument() {
       return isPdf() ||
              request.resource.contentType.matches('application/.*word.*') ||
              request.resource.contentType.matches('application/.*excel.*');
     }
     
+    // Image upload validation
     function isValidImageUpload() {
       return isImage() &&
-             isFileSizeValid(5 * 1024 * 1024);
+             isFileSizeValid(5 * 1024 * 1024);  // 5MB max
     }
     
+    // Document upload validation
     function isValidDocumentUpload() {
       return isAuthenticated() &&
              isDocument() &&
-             isFileSizeValid(10 * 1024 * 1024);
+             isFileSizeValid(10 * 1024 * 1024);  // 10MB max
     }
 
-    match /{allPaths=**} {
-      allow read: if isAuthenticated();
-    }
-
-    match /passports/{allPaths=**} {
+    // =====================
+    // WRITE RULES - IMAGES
+    // =====================
+    
+ 		match /passports/{allPaths=**} {
+      allow read: if true;
       allow write: if isValidImageUpload();
       allow delete: if isAuthenticated();
     }
 
     match /gallery/{allPaths=**} {
+      allow read: if isAuthenticated();
       allow write: if isValidImageUpload();
       allow delete: if isAuthenticated();
     }
 
+    // =====================
+    // WRITE RULES - DOCUMENTS
+    // =====================
+    
     match /documents/{allPaths=**} {
+      allow read: if isAuthenticated();
       allow write: if isValidDocumentUpload();
       allow delete: if isAuthenticated();
     }
 
+    // =====================
+    // DEFAULT DENY
+    // =====================
+    
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -2,25 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+  	function isAuthenticated() {
+    	return request.auth != null;
+    }
+  
     function inUserRoles(userId) {
       return exists(/databases/$(database)/documents/userRoles/$(userId));
     }
     
     // Helper function to check if user has any role (is admin)
     function isAdmin(userId) {
-      return request.auth != null && inUserRoles(userId)
+      return isAuthenticated() && inUserRoles(userId);
     }
 
     // Helper function to check if user is the document owner
     function isOwner(id, resourceId) {
-      return request.auth != null && id == resourceId;
+      return isAuthenticated() && id == resourceId;
     }
 
     // =====================
     // USERS COLLECTION
     // =====================
     match /users/{userId} {
-      allow read, create, update: if isOwner(request.auth.uid, userId);
+    	allow read: if true;
+      allow create, update: if isOwner(request.auth.uid, userId);
       allow read, write: if isAdmin(request.auth.uid);
     }
 
@@ -45,7 +50,6 @@ service cloud.firestore {
     // =====================
     // MANDATE CERTIFICATES COLLECTION
     // =====================
-
     // Structure: mandateCertificates/{mandateId} -> { userId, mandateId, ... }
     match /mandateCertificates/{certificateId} {
       allow read: if isOwner(certificateId, resource.data.userId);
@@ -56,7 +60,8 @@ service cloud.firestore {
     // ARTICLES COLLECTION
     // =====================
     match /articles/{articleId} {
-      allow read: if request.auth != null;
+      // Articles are public; reads must be open for slug existence checks and public listings
+      allow read: if true;
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -64,7 +69,8 @@ service cloud.firestore {
     // EVENTS COLLECTION
     // =====================
     match /events/{eventId} {
-      allow read: if request.auth != null;
+      // Event cards show up on public routes and we probe for duplicates client-side
+      allow read: if true;
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -72,7 +78,8 @@ service cloud.firestore {
     // CHAPTERS COLLECTION
     // =====================
     match /chapters/{chapterId} {
-      allow read: if request.auth != null;
+      // Registration forms resolve chapters before auth, so reads must be public
+      allow read: if true;
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -80,7 +87,7 @@ service cloud.firestore {
     // MEDIA COLLECTION
     // =====================
     match /media/{mediaId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -88,7 +95,7 @@ service cloud.firestore {
     // MANDATES COLLECTION
     // =====================
     match /mandates/{mandateId} {
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -96,7 +103,7 @@ service cloud.firestore {
     // EVENT_REGISTRATIONS COLLECTION
     // =====================
     match /eventRegistrations/{registrationId} {
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -104,7 +111,7 @@ service cloud.firestore {
     // NEWSLETTER COLLECTION
     // =====================
     match /newsletters/{newsletterId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -115,7 +122,7 @@ service cloud.firestore {
       allow create, read: if true;
       allow read, write: if isAdmin(request.auth.uid);   
     }
-
+    
     // =====================
     // NOTIFICATIONS COLLECTION
     // =====================
@@ -128,7 +135,7 @@ service cloud.firestore {
     // UPLOADS COLLECTION
     // =====================
     match /uploads/{uploadId} {
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
       allow write: if isAdmin(request.auth.uid);
     }
 
@@ -136,7 +143,7 @@ service cloud.firestore {
     // MANDATE_CERTIFICATE_SETTINGS COLLECTION
     // =====================
     match /mandateCertificates/settings {
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
       allow write: if isAdmin(request.auth.uid);
       allow delete: if false;
     }

@@ -2,7 +2,7 @@ import { FirebaseError } from "firebase/app";
 
 const DEFAULT_MESSAGE = "Authentication failed. Please try again.";
 
-const firebaseErrorMessages: Record<string, string> = {
+const firebaseAuthErrorMessages: Record<string, string> = {
   "auth/claims-too-large": "Account data is too large.",
   "auth/email-already-exists": "This email is already registered.",
   "auth/id-token-expired": "Your session expired. Please sign in again.",
@@ -63,7 +63,32 @@ const firebaseErrorMessages: Record<string, string> = {
   "auth/wrong-password": "Incorrect email or password.",
 };
 
-export function getFirebaseAuthErrorMessage<Error = unknown>(
+const firebaseStorageErrorMessages: Record<string, string> = {
+  "storage/unknown": "An unknown error occurred.",
+  "storage/object-not-found": "File not found.",
+  "storage/bucket-not-found": "Storage bucket not found.",
+  "storage/project-not-found": "Storage project not found.",
+  "storage/quota-exceeded": "Storage quota exceeded. Please try again later.",
+  "storage/unauthenticated": "You are not authenticated. Please sign in.",
+  "storage/unauthorized": "You don't have permission to access this file.",
+  "storage/retry-limit-exceeded": "Operation took too long. Please try again.",
+  "storage/invalid-checksum": "File corrupted during upload. Please try again.",
+  "storage/canceled": "Operation canceled.",
+  "storage/invalid-event-name": "Invalid event name provided.",
+  "storage/invalid-url": "Invalid file URL.",
+  "storage/invalid-argument": "Invalid argument provided.",
+  "storage/no-default-bucket": "No default storage bucket configured.",
+  "storage/cannot-slice-blob": "File changed during upload. Please try again.",
+  "storage/server-file-wrong-size":
+    "File size mismatch after upload. Please try again.",
+};
+
+const firebaseErrorMessages: Record<string, string> = {
+  ...firebaseAuthErrorMessages,
+  ...firebaseStorageErrorMessages,
+};
+
+export function getFirebaseErrorMessage<Error = unknown>(
   error: Error,
   fallbackMessage = DEFAULT_MESSAGE
 ): string {
