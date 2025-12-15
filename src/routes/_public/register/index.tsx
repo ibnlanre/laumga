@@ -657,8 +657,8 @@ function ReviewPanel() {
             children: (
               <div className="text-center py-4">
                 <Text size="md" c="dimmed" mb="xl">
-                  Your application is under review. Check your email for the
-                  verification link.
+                  You're good to go. Head to the mandate console to activate
+                  your pledge and explore the dashboard.
                 </Text>
                 <Button
                   fullWidth
@@ -666,13 +666,11 @@ function ReviewPanel() {
                   variant="outline"
                   size="lg"
                   onClick={() => {
-                    modals.closeAll();
-                    reset();
                     closeReviewPanel();
-                    navigate({ to: "/login" });
+                    navigate({ to: "/mandate" });
                   }}
                 >
-                  Go to Login
+                  Go to Mandate
                 </Button>
               </div>
             ),
@@ -680,34 +678,6 @@ function ReviewPanel() {
             withCloseButton: false,
             closeOnClickOutside: false,
             closeOnEscape: false,
-          });
-        },
-        onError(error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "Registration failed. Please try again.";
-
-          modals.open({
-            title: "Registration Error",
-            children: (
-              <div className="text-center py-4">
-                <Text size="md" c="red" mb="xl">
-                  {errorMessage}
-                </Text>
-                <Button
-                  fullWidth
-                  autoContrast
-                  variant="outline"
-                  size="lg"
-                  onClick={() => modals.closeAll()}
-                >
-                  Try Again
-                </Button>
-              </div>
-            ),
-            centered: true,
-            withCloseButton: true,
           });
         },
       }
