@@ -1,6 +1,9 @@
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { Timestamp } from "firebase/firestore";
 
+export const ISO_DATE_FORMAT = "yyyy-MM-dd";
+export const ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+
 export type DateInput = Date | number | string | Timestamp | null | undefined;
 
 /**
@@ -10,26 +13,26 @@ export function toDate(date: DateInput): Date | null {
   if (!date) return null;
 
   if (date instanceof Date) return date;
+  if (date instanceof Timestamp) return date.toDate();
 
   if (typeof date === "number") return new Date(date);
-
   if (typeof date === "string") {
-    // Try parsing ISO string first
-    const parsed = parseISO(date);
-    if (parsed.toString() !== "Invalid Date") return parsed;
-    // Fallback to new Date() for other formats
+    const parsedDate = parseISO(date);
+
+    if (parsedDate.toString() !== "Invalid Date") {
+      return parsedDate;
+    }
+
     return new Date(date);
   }
 
-  if (date instanceof Timestamp) return date.toDate();
-
-  // Handle object with seconds/nanoseconds (Firestore Timestamp-like)
-  if (typeof date === "object" && "seconds" in date && "nanoseconds" in date) {
-    // @ts-ignore - checking for duck typing
-    return new Timestamp(date.seconds, date.nanoseconds).toDate();
-  }
-
   return null;
+}
+
+export function formatDateString(date: Date): string | null {
+  const d = toDate(date);
+  if (!d || d.toString() === "Invalid Date") return null;
+  return format(d, ISO_DATE_TIME_FORMAT);
 }
 
 /**

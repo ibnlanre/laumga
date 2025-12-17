@@ -31,16 +31,6 @@ export function useSyncMandateStatus() {
   });
 }
 
-export function useDebitMandate() {
-  return useMutation({
-    mutationKey: mandate.debit.$get(),
-    mutationFn: mandate.$use.debit,
-    meta: {
-      errorMessage: "Failed to process payment.",
-      successMessage: "Payment processed successfully.",
-    },
-  });
-}
 
 export function useGetMandate(mandateId: string) {
   return useQuery({

@@ -11,11 +11,10 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/services/firebase";
-import { mono } from "@/api/mono";
 
 import {
   PAYMENT_PARTNERS_COLLECTION,
-  createPaymentPartnerSchema,
+  paymentPartnerFormSchema,
   paymentPartnerSchema,
   updatePaymentPartnerSchema,
 } from "./schema";
@@ -33,12 +32,7 @@ import { getQueryDocs } from "@/client/core-query";
 
 async function create(variables: CreatePaymentPartnerVariables) {
   const { data, user } = variables;
-  const validated = createPaymentPartnerSchema.parse(data);
-
-  const subAccountResponse = await mono.$use.subAccount.create(
-    validated.nipCode,
-    validated.accountNumber
-  );
+  const validated = paymentPartnerFormSchema.parse(data);
 
   const partnerRef = doc(
     collection(db, PAYMENT_PARTNERS_COLLECTION)
@@ -46,10 +40,8 @@ async function create(variables: CreatePaymentPartnerVariables) {
 
   const payload: CreatePaymentPartnerData = {
     ...validated,
-    bankCode: subAccountResponse.data.bank_code,
-    monoSubAccountId: subAccountResponse.data.id,
-    bankName: subAccountResponse.data.name,
     created: record(user),
+    updated: record(user),
   };
 
   await setDoc(partnerRef, payload);

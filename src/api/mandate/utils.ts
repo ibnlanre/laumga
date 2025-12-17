@@ -1,5 +1,5 @@
 import type { PaymentPartner } from "@/api/payment-partner/types";
-import type { MonoSplitConfiguration } from "@/api/mono/types";
+import type { FlutterwaveSplitCharge } from "@/api/flutterwave/types";
 import type { MandateStatus, MandateTier } from "./types";
 
 export function determineTier(amount: number): MandateTier {
@@ -7,10 +7,6 @@ export function determineTier(amount: number): MandateTier {
   if (amount === 1_000_000) return "builder";
   if (amount === 2_500_000) return "guardian";
   return "custom";
-}
-
-export function generateMandateReference(userId: string): string {
-  return `LAUMGA-${userId.slice(0, 8)}-${Date.now()}`;
 }
 
 export function generateDebitReference(mandateId: string): string {
@@ -25,76 +21,64 @@ export function ensureActivePartners(
   }
 }
 
-export function buildSplitConfiguration(
-  partners: PaymentPartner[],
-  totalAmount: number
-): MonoSplitConfiguration {
+function ensureFlutterwaveSubAccounts(
+  partners: PaymentPartner[]
+): asserts partners is [PaymentPartner, ...PaymentPartner[]] {
   ensureActivePartners(partners);
 
-  const hasFixedAllocation = partners.some(
-    (partner) => partner.allocationType === "fixed"
-  );
-
-  const splitType: MonoSplitConfiguration["type"] = hasFixedAllocation
-    ? "fixed"
-    : "percentage";
-
-  const uniqueFeeBearers = new Set(
-    partners.map((partner) => partner.feeBearer)
-  );
-  const feeBearer =
-    uniqueFeeBearers.size === 1
-      ? partners[0].feeBearer
-      : ("business" as MonoSplitConfiguration["fee_bearer"]);
-
-  const subAccounts = partners.map((partner) => {
-    const baseAllocation =
-      partner.allocationType === "percentage"
-        ? Math.round((partner.allocationValue / 100) * totalAmount)
-        : partner.allocationValue;
-
-    const cappedAllocation =
-      partner.allocationMax !== null
-        ? Math.min(baseAllocation, partner.allocationMax)
-        : baseAllocation;
-
-    return {
-      sub_account: partner.monoSubAccountId,
-      value:
-        splitType === "percentage" ? partner.allocationValue : cappedAllocation,
-      ...(partner.allocationMax ? { max: partner.allocationMax } : undefined),
-    };
-  });
-
-  if (splitType === "fixed") {
-    const totalFixed = subAccounts.reduce((sum, { value }) => sum + value, 0);
-    if (totalFixed > totalAmount) {
+  partners.forEach((partner) => {
+    if (!partner.flutterwaveSubAccountId) {
       throw new Error(
-        `Allocated fixed totals (${totalFixed}) exceed the contribution value (${totalAmount}). Adjust partner splits.`
+        `${partner.name} is missing a Flutterwave sub-account configuration.`
       );
     }
-  }
-
-  return {
-    type: splitType,
-    fee_bearer: feeBearer,
-    sub_accounts: subAccounts,
-  };
+  });
 }
 
-export function mapMonoStatus(status: string): MandateStatus {
-  switch (status) {
-    case "approved":
+export function buildFlutterwaveSplitConfiguration(
+  partners: PaymentPartner[],
+  totalAmount: number
+): FlutterwaveSplitCharge[] {
+  ensureFlutterwaveSubAccounts(partners);
+
+  return partners.map((partner) => {
+    if (partner.allocationType === "fixed") {
+      const baseAllocation = partner.allocationValue;
+      const cappedAllocation =
+        partner.allocationMax !== null
+          ? Math.min(baseAllocation, partner.allocationMax)
+          : baseAllocation;
+
+      if (cappedAllocation > totalAmount) {
+        throw new Error(
+          `Allocated fixed total (${cappedAllocation}) exceeds the contribution value (${totalAmount}). Adjust ${partner.name}'s split.`
+        );
+      }
+
+      return {
+        id: partner.flutterwaveSubAccountId!,
+        transaction_charge_type: "flat_subaccount" as const,
+        transaction_charge: cappedAllocation,
+      } satisfies FlutterwaveSplitCharge;
+    }
+
+    return {
+      id: partner.flutterwaveSubAccountId!,
+      transaction_split_ratio: partner.allocationValue,
+    } satisfies FlutterwaveSplitCharge;
+  });
+}
+
+export function mapFlutterwaveStatus(status?: string | null): MandateStatus {
+  switch (status?.toUpperCase()) {
+    case "ACTIVE":
       return "active";
-    case "rejected":
-    case "cancelled":
-      return "cancelled";
-    case "active":
-      return "active";
-    case "completed":
-      return "completed";
-    case "paused":
+    case "SUSPENDED":
       return "paused";
+    case "DELETED":
+      return "cancelled";
+    case "APPROVED":
+      return "initiated";
     default:
       return "initiated";
   }

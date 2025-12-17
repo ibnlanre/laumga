@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { formatDate } from "@/utils/date";
 import { passwordSchema } from "@/schema/password";
+import { isoDateTimeString } from "@/schema/date";
 
 export const faculties = [
   "Agricultural Sciences",
@@ -141,7 +142,7 @@ export const personalDetailsSchema = z.object({
   nickname: z.string().optional().default(""),
   gender: z.enum(["male", "female"], { message: "Gender is required" }),
   photoUrl: z.string().nullable().default(null),
-  dateOfBirth: z.string().nullable().default(null),
+  dateOfBirth: isoDateTimeString.nullable().default(null),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   faculty: z.string().refine((val) => faculties.includes(val), {
     message: "Invalid faculty selected",

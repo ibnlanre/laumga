@@ -6,7 +6,7 @@ export const notificationStatusSchema = z.enum(["new", "reviewed", "resolved"]);
 
 export const notificationFormSchema = z.object({
   fullName: z.string().min(3, "Kindly provide your full name"),
-  email: z.string().email("Valid email address is required"),
+  email: z.email("Valid email address is required"),
   subject: z
     .string()
     .min(3, "Add a short subject so we can route your message"),

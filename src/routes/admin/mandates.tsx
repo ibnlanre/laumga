@@ -180,11 +180,11 @@ function MandatesAdmin() {
       ),
     },
     {
-      accessorKey: "monoReference",
+      accessorKey: "flutterwaveReference",
       header: "Reference",
       cell: ({ row }) => (
         <Text size="sm" ff="monospace">
-          {row.original.monoReference}
+          {row.original.flutterwaveReference}
         </Text>
       ),
     },
@@ -446,7 +446,7 @@ function MandateDetailsContent({ mandate }: { mandate: Mandate }) {
               Reference
             </Text>
             <Text fw={600} ff="monospace">
-              {mandate.monoReference}
+              {mandate.flutterwaveReference}
             </Text>
           </div>
         </Grid.Col>
@@ -456,20 +456,20 @@ function MandateDetailsContent({ mandate }: { mandate: Mandate }) {
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <div>
             <Text size="sm" c="dimmed" mb="xs">
-              Mono Mandate ID
+              Flutterwave Account ID
             </Text>
             <Text fw={600} ff="monospace">
-              {mandate.monoMandateId}
+              {mandate.flutterwaveAccountId}
             </Text>
           </div>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <div>
             <Text size="sm" c="dimmed" mb="xs">
-              Mono Customer ID
+              Flutterwave Customer ID
             </Text>
             <Text fw={600} ff="monospace">
-              {mandate.monoCustomerId}
+              {mandate.flutterwaveCustomerId}
             </Text>
           </div>
         </Grid.Col>

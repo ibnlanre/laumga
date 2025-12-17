@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { dateSchema, fieldValueSchema } from "@/schema/date";
+import { dateSchema, fieldValueSchema, isoDateTimeString } from "@/schema/date";
 
 export const MANDATES_COLLECTION = "mandates";
 
@@ -27,37 +27,34 @@ export const mandateFrequencySchema = z.enum([
   "yearly",
 ]);
 
-export const mandateTypeSchema = z.enum(["emandate", "signed", "gsm"]);
-
-export const mandateDebitTypeSchema = z.enum(["variable", "fixed"]);
-
 const mandateAmountSchema = z
   .number()
-  .min(20_000, "Mandates must be at least ₦200 in value (20,000 kobo)")
-  .max(100_000_000, "Mandates cannot exceed ₦1,000,000 (in kobo)");
+  .positive("Amount must be greater than 0")
+  .min(1000, "Amount must be at least 1000");
 
 export const createMandateSchema = z.object({
   amount: mandateAmountSchema,
   frequency: mandateFrequencySchema.default("monthly"),
-  startDate: z.date().default(new Date()),
-  endDate: z.date().nullable().default(null),
+  startDate: isoDateTimeString.min(1, "Start date is required"),
+  endDate: isoDateTimeString.nullable().default(null),
+  bankCode: z.string().min(3, "Bank is required"),
+  accountNumber: z.string().length(10, "Account number must be 10 digits"),
 });
 
-const mandateFormSchema = z.object({
-  userId: z.string(),
-  amount: z.number(),
-  frequency: mandateFrequencySchema,
-  tier: mandateTierSchema,
-  status: mandateStatusSchema,
-  monoMandateId: z.string(),
-  monoCustomerId: z.string(),
-  monoReference: z.string(),
-  monoUrl: z.string().nullable().default(null),
-  mandateType: mandateTypeSchema,
-  debitType: mandateDebitTypeSchema,
-  startDate: z.date().default(new Date()),
-  endDate: z.date().nullable().default(null),
-});
+const mandateFormSchema = createMandateSchema
+  .omit({
+    bankCode: true,
+    accountNumber: true,
+  })
+  .extend({
+    userId: z.string(),
+    tier: mandateTierSchema,
+    status: mandateStatusSchema,
+    flutterwaveReference: z.string().nullable().default(null),
+    flutterwaveAccountId: z.union([z.number(), z.string()]),
+    flutterwaveCustomerId: z.union([z.number(), z.string()]),
+    flutterwaveStatus: z.string().nullable().default(null),
+  });
 
 export const mandateDataSchema = mandateFormSchema.extend({
   created: dateSchema,

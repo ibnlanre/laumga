@@ -43,29 +43,23 @@ import {
   useGetActivePaymentPartners,
   useUpdatePaymentPartner,
 } from "@/api/payment-partner/hooks";
-import { useFetchMonoBanks } from "@/api/mono/hooks";
+import { useFetchFlutterwaveBanks } from "@/api/flutterwave/hooks";
+import type { FlutterwaveBank } from "@/api/flutterwave/types";
 import type {
   PaymentPartner,
   PaymentPartnerAllocationType,
   PaymentPartnerFeeBearer,
   PaymentPartnerFormData,
 } from "@/api/payment-partner/types";
-import {
-  createPaymentPartnerSchema,
-  paymentPartnerFormSchema,
-} from "@/api/payment-partner/schema";
+import { paymentPartnerFormSchema } from "@/api/payment-partner/schema";
 import type { User } from "@/api/user/types";
-const currencyFormatter = new Intl.NumberFormat("en-NG", {
-  style: "currency",
-  currency: "NGN",
-  maximumFractionDigits: 0,
-});
+import { formatCurrency } from "@/utils/currency";
 
 const columnHelper = createColumnHelper<PaymentPartner>();
 const CREATE_PARTNER_MODAL_ID = "create-payment-partner-modal";
 const EDIT_PARTNER_MODAL_ID = "edit-payment-partner-modal";
 
-type BankOption = { label: string; value: string };
+type BankOption = FlutterwaveBank;
 
 export const Route = createFileRoute("/admin/payment-partners")({
   component: PaymentPartnerDashboard,
@@ -82,19 +76,12 @@ function PaymentPartnerDashboard() {
     data: banks = [],
     isFetching: isFetchingBanks,
     refetch: refetchBanks,
-  } = useFetchMonoBanks();
+  } = useFetchFlutterwaveBanks();
 
   const { mutateAsync: updatePartner, isPending: isUpdatingPartner } =
     useUpdatePaymentPartner();
 
-  const bankOptions = useMemo<BankOption[]>(
-    () =>
-      banks.map((bank) => ({
-        label: bank.label,
-        value: bank.value,
-      })),
-    [banks]
-  );
+  const bankOptions = banks;
 
   const activePartners = useMemo(
     () => partners.filter((partner) => partner.isActive),
@@ -141,7 +128,7 @@ function PaymentPartnerDashboard() {
       },
       {
         label: "Fixed pool",
-        value: currencyFormatter.format(fixedAllocationTotal),
+        value: formatCurrency(fixedAllocationTotal),
         description: "guaranteed per charge",
         icon: Wallet,
         accent: "text-sage-green",
@@ -232,7 +219,7 @@ function PaymentPartnerDashboard() {
             const valueLabel =
               partner.allocationType === "percentage"
                 ? `${partner.allocationValue}%`
-                : currencyFormatter.format(partner.allocationValue);
+                : formatCurrency(partner.allocationValue);
 
             return (
               <Stack gap={2}>
@@ -241,7 +228,7 @@ function PaymentPartnerDashboard() {
                 </Text>
                 {partner.allocationMax && (
                   <Text size="xs" c="dimmed">
-                    Cap: {currencyFormatter.format(partner.allocationMax)}
+                    Cap: {formatCurrency(partner.allocationMax)}
                   </Text>
                 )}
               </Stack>
@@ -341,9 +328,9 @@ function PaymentPartnerDashboard() {
                 Control how every debit lands
               </Title>
               <Text size="sm" c="white" mt="xs" className="max-w-2xl">
-                Declare every Mono sub-account that should share in recurring
-                mandates. Mix percentages with fixed transfers and pause
-                accounts whenever needed.
+                Declare every Flutterwave sub-account that should share in
+                recurring mandates. Mix percentages with fixed transfers and
+                pause accounts whenever needed.
               </Text>
             </div>
             <Group gap="sm">
@@ -406,8 +393,8 @@ function PaymentPartnerDashboard() {
           radius="lg"
           title="No active split accounts"
         >
-          Mono cannot distribute mandate debits until at least one account is
-          active. Enable an existing account or create a new one.
+          Debits cannot be distributed until at least one account is active.
+          Enable an existing account or create a new one.
         </Alert>
       )}
 
@@ -430,8 +417,8 @@ function PaymentPartnerDashboard() {
               Payment partners
             </Title>
             <Text size="sm" c="dimmed">
-              Manage Mono sub-accounts, allocation logic, and participation
-              states
+              Manage Flutterwave sub-accounts, allocation logic, and
+              participation states
             </Text>
           </div>
         </Group>
@@ -487,6 +474,8 @@ function CreatePaymentPartnerModal({
       name: "",
       accountNumber: "",
       nipCode: "",
+      bankName: "",
+      flutterwaveSubAccountId: "",
       allocationType: "fixed",
       allocationValue: 0,
       allocationMax: 0,
@@ -502,6 +491,12 @@ function CreatePaymentPartnerModal({
     await createPartner({ data, user });
     onClose();
   });
+
+  const handleBankChange = (value: string | null) => {
+    const selectedBank = bankOptions.find((bank) => bank.value === value);
+    form.setFieldValue("nipCode", value ?? "");
+    form.setFieldValue("bankName", selectedBank?.label ?? "");
+  };
 
   return (
     <form onSubmit={handleSubmit}>
@@ -535,10 +530,17 @@ function CreatePaymentPartnerModal({
                 nothingFoundMessage="No banks match your search"
                 withAsterisk
                 value={form.values.nipCode}
-                onChange={(value) => form.setFieldValue("nipCode", value ?? "")}
-                error={form.errors.nipCode}
+                onChange={handleBankChange}
+                error={form.errors.nipCode || form.errors.bankName}
               />
             </Group>
+            <TextInput
+              label="Flutterwave sub-account ID"
+              placeholder="RS_A8EB7D4D9C66C0B1C75014EE67D4D663"
+              description="Copy the ID from your Flutterwave dashboard"
+              withAsterisk
+              {...form.getInputProps("flutterwaveSubAccountId")}
+            />
           </Stack>
         </Card>
 
@@ -663,13 +665,15 @@ function EditPaymentPartnerModal({
       name: partner.name,
       accountNumber: partner.accountNumber,
       nipCode: partner.nipCode,
+      bankName: partner.bankName,
+      flutterwaveSubAccountId: partner.flutterwaveSubAccountId ?? "",
       allocationType: partner.allocationType,
       allocationValue: partner.allocationValue,
       allocationMax: partner.allocationMax,
       feeBearer: partner.feeBearer,
       isActive: partner.isActive,
     },
-    validate: zod4Resolver(createPaymentPartnerSchema),
+    validate: zod4Resolver(paymentPartnerFormSchema),
   });
 
   const { mutateAsync: updatePartner, isPending } = useUpdatePaymentPartner();
@@ -682,6 +686,12 @@ function EditPaymentPartnerModal({
     });
     onClose();
   });
+
+  const handleBankChange = (value: string | null) => {
+    const selectedBank = bankOptions.find((bank) => bank.value === value);
+    form.setFieldValue("nipCode", value ?? "");
+    form.setFieldValue("bankName", selectedBank?.label ?? "");
+  };
 
   return (
     <form onSubmit={handleSubmit}>
@@ -699,19 +709,23 @@ function EditPaymentPartnerModal({
                 </Text>
               </div>
               <Select
-                label="NIP code"
+                label="Bank"
                 placeholder={partner.bankName}
                 data={bankOptions}
                 clearable
                 searchable
                 nothingFoundMessage="No banks match your search"
                 value={form.values.nipCode}
-                onChange={(value) =>
-                  form.setFieldValue("nipCode", value ?? partner.nipCode)
-                }
-                error={form.errors.nipCode}
+                onChange={handleBankChange}
+                error={form.errors.nipCode || form.errors.bankName}
               />
             </Group>
+            <TextInput
+              label="Flutterwave sub-account ID"
+              placeholder="RS_A8EB7D4D9C66C0B1C75014EE67D4D663"
+              withAsterisk
+              {...form.getInputProps("flutterwaveSubAccountId")}
+            />
             <TextInput
               label="Display label"
               withAsterisk

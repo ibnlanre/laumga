@@ -5,10 +5,16 @@ export function formatCurrency(amount: number | null) {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount ?? 0);
 }
 
 export function formatCurrencyFromKobo(value?: number | null) {
-  if (value == null) return "₦0";
-  return formatCurrency(Math.round(value / 100));
+  return formatCurrency(Math.round((value ?? 0) / 100));
+}
+
+export function formatPercentage(value: number | null) {
+  return new Intl.NumberFormat("en-NG", {
+    style: "percent",
+    maximumFractionDigits: 2,
+  }).format((value ?? 0) / 100);
 }

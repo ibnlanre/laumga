@@ -37,3 +37,5 @@ export const fieldValueSchema = schema
   .default(null);
 
 export type LogEntryWithFieldValue = z.infer<typeof fieldValueSchema>;
+
+export const isoDateTimeString = z.string();

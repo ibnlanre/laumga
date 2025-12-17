@@ -14,7 +14,8 @@ const accountNumberSchema = z
 export const paymentPartnerBaseSchema = z.object({
   name: z.string().min(1, "Partner name is required"),
   accountNumber: accountNumberSchema,
-  nipCode: z.string().min(1, "NIP code is required"),
+  nipCode: z.string().min(1, "Bank selection is required"),
+  bankName: z.string().min(1, "Bank name is required"),
   allocationType: allocationTypeSchema,
   allocationValue: z.number().positive(),
   allocationMax: z.number().positive().nullable().default(null),
@@ -22,7 +23,14 @@ export const paymentPartnerBaseSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const flutterwaveSubAccountField = z
+  .string()
+  .min(1, "Flutterwave sub-account ID is required");
+
 export const paymentPartnerFormSchema = paymentPartnerBaseSchema
+  .extend({
+    flutterwaveSubAccountId: flutterwaveSubAccountField,
+  })
   .refine(
     (data) => {
       if (data.allocationType === "percentage") {
@@ -48,21 +56,22 @@ export const paymentPartnerFormSchema = paymentPartnerBaseSchema
     }
   );
 
-export const paymentPartnerDataSchema = paymentPartnerBaseSchema.extend({
-  bankName: z.string().min(1, "Bank name is required"),
-  monoSubAccountId: z.string().min(1, "Mono sub-account ID is required"),
-  bankCode: z.string().min(1, "Bank code is required"),
+const paymentPartnerDataBaseSchema = paymentPartnerBaseSchema.safeExtend({
+  flutterwaveSubAccountId: z.string().nullable().default(null),
+});
+
+export const paymentPartnerDataSchema = paymentPartnerDataBaseSchema.safeExtend({
   created: dateSchema,
   updated: dateSchema,
 });
 
-export const createPaymentPartnerSchema = paymentPartnerDataSchema.extend({
+export const createPaymentPartnerSchema = paymentPartnerFormSchema.safeExtend({
   created: fieldValueSchema,
   updated: fieldValueSchema,
 });
 
 export const updatePaymentPartnerSchema = createPaymentPartnerSchema.partial();
 
-export const paymentPartnerSchema = paymentPartnerDataSchema.extend({
+export const paymentPartnerSchema = paymentPartnerDataSchema.safeExtend({
   id: z.string(),
 });

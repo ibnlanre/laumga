@@ -40,7 +40,6 @@ export const userProfileSchema = registrationSchema.extend({
   fullName: z.string().default(""),
   chapterId: z.string().nullable().default(null),
   status: approvalStatusSchema.default("pending"),
-  monoCustomerId: z.string().nullable().default(null),
   created: dateSchema,
   updated: dateSchema,
 });
