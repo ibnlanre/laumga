@@ -15,6 +15,7 @@ import type {
 } from "./schema";
 import type { Variables } from "@/client/core-query";
 import type { User } from "../user/types";
+import type { FlutterwaveTokenizeResponse, FlutterwaveTokenStatusResponse } from "../flutterwave/types";
 
 export type Mandate = z.infer<typeof mandateSchema>;
 export type MandateData = z.infer<typeof mandateDataSchema>;
@@ -33,9 +34,11 @@ export type ListMandateVariables = Variables<CreateMandateData>;
 export interface CreateMandateVariables {
   user: User;
   data: CreateMandate;
+  tokenResponse: FlutterwaveTokenizeResponse
 }
 
 export interface UpdateMandateVariables {
   id: string;
   user: User;
+  tokenDetails?: FlutterwaveTokenStatusResponse
 }

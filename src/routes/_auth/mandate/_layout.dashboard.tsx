@@ -166,14 +166,14 @@ function RouteComponent() {
       title: "Resume Your Mandate",
       children: (
         <Text size="sm">
-          Resume your <span className="capitalize">{tier}</span> mandate?
-          Debits will resume on schedule.
+          Resume your <span className="capitalize">{tier}</span> mandate? Debits
+          will resume on schedule.
         </Text>
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
       onConfirm: async () => {
         if (!user || !activeMandate) return;
-        await reinstateMutation.mutateAsync({ id: id, user });
+        await reinstateMutation.mutateAsync({ id, user });
       },
     });
   };

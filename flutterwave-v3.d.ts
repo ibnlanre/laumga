@@ -1,5 +1,5 @@
 declare module "flutterwave-node-v3" {
-  export interface FlutterwaveResponse<T> {
+  export interface FlutterwaveResponse<T = any> {
     status: string;
     message: string;
     data: T;
@@ -21,7 +21,9 @@ declare module "flutterwave-node-v3" {
         account_expiration?: number;
         transfer_note?: string;
         transfer_amount?: string;
+        [key: string]: any;
       };
+      [key: string]: any;
     };
   }
 
@@ -50,26 +52,36 @@ declare module "flutterwave-node-v3" {
       fields?: string[];
     };
     payment_plan?: string;
+    subaccounts?: any[];
+    meta?: any;
   }
 
   export interface NGChargeRequest {
-    tx_ref: string;
-    amount: string;
-    currency: string;
+    account_bank: string;
+    account_number: string;
+    amount: string | number;
     email: string;
-    phone_number: string;
-    fullname: string;
+    tx_ref: string;
+    currency: string;
+    phone_number?: string;
+    fullname?: string;
+    passcode?: string;
+    bvn?: string;
   }
 
   export interface UKChargeRequest {
-    tx_ref: string;
-    amount: string;
-    currency: string;
+    account_bank: string;
+    account_number: string;
+    amount: string | number;
     email: string;
-    phone_number: string;
-    fullname: string;
-    redirect_url: string;
-    is_token_io: number;
+    tx_ref: string;
+    currency: string;
+    phone_number?: string;
+    fullname?: string;
+    passcode?: string;
+    bvn?: string;
+    is_token_io?: number;
+    redirect_url?: string;
   }
 
   export interface ACHChargeRequest {
@@ -79,11 +91,11 @@ declare module "flutterwave-node-v3" {
     currency: string;
     country: string;
     email: string;
-    phone_number: string;
-    fullname: string;
-    client_ip: string;
-    redirect_url: string;
-    device_fingerprint: string;
+    phone_number?: string;
+    fullname?: string;
+    client_ip?: string;
+    redirect_url?: string;
+    device_fingerprint?: string;
     meta?: any;
   }
 
@@ -107,12 +119,13 @@ declare module "flutterwave-node-v3" {
 
   export interface BankTransferChargeRequest {
     tx_ref: string;
-    amount: string;
+    amount: string | number;
     email: string;
+    fullname?: string;
     phone_number?: string;
     currency: string;
     is_permanent?: boolean;
-    expires?: number;
+    expires?: number; // duration in seconds
     client_ip?: string;
     device_fingerprint?: string;
     narration?: string;
@@ -121,10 +134,10 @@ declare module "flutterwave-node-v3" {
   export interface USSDChargeRequest {
     tx_ref: string;
     account_bank: string;
-    amount: string;
+    amount: string | number;
     currency: string;
     email: string;
-    phone_number: string;
+    phone_number?: string;
     fullname?: string;
   }
 
@@ -201,6 +214,22 @@ declare module "flutterwave-node-v3" {
     biller_name?: string;
   }
 
+  export interface BillPayload {
+    country: string;
+    customer: string;
+    amount: number;
+    recurrence: "ONCE" | "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+    type: string;
+    reference: string;
+    biller_name?: string;
+  }
+
+  export interface BulkBillPayload {
+    bulk_reference: string;
+    callback_url: string;
+    bulk_data: BillPayload[];
+  }
+
   export interface BillResponseData {
     phone_number: string;
     amount: number;
@@ -208,6 +237,7 @@ declare module "flutterwave-node-v3" {
     flw_ref: string;
     tx_ref: string;
     reference?: string;
+    [key: string]: any;
   }
 
   export interface Bank {
@@ -309,12 +339,12 @@ declare module "flutterwave-node-v3" {
   export interface TokenizedChargeRequest {
     token: string;
     currency: string;
-    country: string;
     amount: number;
     email: string;
     first_name?: string;
     last_name?: string;
     ip?: string;
+    country?: string;
     narration?: string;
     tx_ref: string;
   }
@@ -545,14 +575,14 @@ declare module "flutterwave-node-v3" {
   }
 
   export default class Flutterwave {
-    constructor(publicKey: string, secretKey: string);
+    constructor(publicKey: string, secretKey: string, productionFlag?: boolean);
     Charge: {
       card(
         data: CardChargeRequest
       ): Promise<FlutterwaveResponse<ChargeResponseData>>;
       mobileMoney(
         data: MobileMoneyChargeRequest
-      ): Promise<FlutterwaveResponse<ChargeResponseData>>; // Kept for backward compatibility if exists, but MobileMoney namespace is preferred
+      ): Promise<FlutterwaveResponse<ChargeResponseData>>;
       bankTransfer(
         data: BankTransferChargeRequest
       ): Promise<FlutterwaveResponse<ChargeResponseData>>;
@@ -571,6 +601,48 @@ declare module "flutterwave-node-v3" {
       validate(
         data: ValidateChargeRequest
       ): Promise<FlutterwaveResponse<ChargeResponseData>>;
+      voucher(data: {
+        amount: number;
+        currency: string;
+        email: string;
+        tx_ref: string;
+        pin: string;
+        fullname?: string;
+        phone_number?: string;
+      }): Promise<FlutterwaveResponse<ChargeResponseData>>;
+      applepay(data: {
+        amount: number;
+        currency: string;
+        email: string;
+        tx_ref: string;
+        fullname?: string;
+        phone_number?: string;
+      }): Promise<FlutterwaveResponse<ChargeResponseData>>;
+      googlepay(data: {
+        amount: number;
+        currency: string;
+        email: string;
+        tx_ref: string;
+        fullname?: string;
+        phone_number?: string;
+      }): Promise<FlutterwaveResponse<ChargeResponseData>>;
+      enaira(data: {
+        amount: number;
+        currency: string;
+        email: string;
+        tx_ref: string;
+        fullname?: string;
+        phone_number?: string;
+        is_token?: number;
+      }): Promise<FlutterwaveResponse<ChargeResponseData>>;
+      fawrypay(data: {
+        amount: number;
+        currency: string;
+        email: string;
+        tx_ref: string;
+        fullname?: string;
+        phone_number?: string;
+      }): Promise<FlutterwaveResponse<ChargeResponseData>>;
     };
     MobileMoney: {
       mpesa(
@@ -599,11 +671,42 @@ declare module "flutterwave-node-v3" {
       create_bill(
         data: CreateBillRequest
       ): Promise<FlutterwaveResponse<BillResponseData>>;
-      fetch_bills_Cat(): Promise<FlutterwaveResponse<BillCategory[]>>;
+      fetch_bills_Cat(data?: {
+        country: string;
+      }): Promise<FlutterwaveResponse<BillCategory[]>>;
       validate(data: {
         item_code: string;
         code: string;
         customer: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      amt_to_be_paid(data: {
+        country: string;
+        customer: string;
+        amount: number;
+        recurrence: string;
+        type: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      create_bulk(data: BulkBillPayload): Promise<FlutterwaveResponse<any>>;
+      create_ord_billing(data: {
+        customer_id: string;
+        product_id: string;
+        amount: number;
+        reference: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      fetch_bills(data: {
+        from: string;
+        to: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      fetch_bills_agencies(data: any): Promise<FlutterwaveResponse<any>>;
+      fetch_status(data: {
+        reference: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      products_under_agency(data: {
+        id: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      update_bills(data: {
+        order_id: string;
+        amount: number;
       }): Promise<FlutterwaveResponse<any>>;
     };
     Bank: {
@@ -613,11 +716,14 @@ declare module "flutterwave-node-v3" {
       }): Promise<FlutterwaveResponse<BankBranch[]>>;
     };
     Misc: {
-      bal(): Promise<FlutterwaveResponse<Balance[]>>;
+      bal(data?: any): Promise<FlutterwaveResponse<Balance[]>>;
       verify_Account(
         data: ResolveAccountRequest
       ): Promise<FlutterwaveResponse<ResolveAccountResponseData>>;
       bvn(data: {
+        bvn: string;
+      }): Promise<FlutterwaveResponse<ResolveBVNResponseData>>;
+      verifybvn(data: {
         bvn: string;
       }): Promise<FlutterwaveResponse<ResolveBVNResponseData>>;
       bal_currency(data: {
@@ -627,6 +733,9 @@ declare module "flutterwave-node-v3" {
     Settlement: {
       fetch_all(data?: {
         page?: string;
+        from?: string;
+        to?: string;
+        subaccount_id?: string;
       }): Promise<FlutterwaveResponse<Settlement[]>>;
       fetch(data: { id: string }): Promise<FlutterwaveResponse<Settlement>>;
     };
@@ -636,6 +745,7 @@ declare module "flutterwave-node-v3" {
       ): Promise<FlutterwaveResponse<Subaccount>>;
       fetch_all(data?: {
         page?: string;
+        limit?: string;
       }): Promise<FlutterwaveResponse<Subaccount[]>>;
       fetch(data: { id: string }): Promise<FlutterwaveResponse<Subaccount>>;
       update(data: {
@@ -667,10 +777,26 @@ declare module "flutterwave-node-v3" {
       }): Promise<FlutterwaveResponse<any>>;
       update_token(data: {
         token: string;
-        email: string;
+        email?: string;
         phone_number?: string;
         full_name?: string;
+        status?: "active" | "inactive";
       }): Promise<FlutterwaveResponse<any>>;
+      fetch_charge_transactions(data: {
+        id: string;
+        from?: string;
+        to?: string;
+      }): Promise<FlutterwaveResponse<any>>;
+      bulk(data: {
+        title: string;
+        retry_strategy: {
+          retry_interval: number;
+          retry_amount_variable: number;
+          retry_attempt: number;
+        };
+        bulk_data: TokenizedChargeRequest[];
+      }): Promise<FlutterwaveResponse<any>>;
+      fetch_bulk(data: { bulk_id: string }): Promise<FlutterwaveResponse<any>>;
     };
     Transaction: {
       fetch(data?: {
@@ -680,6 +806,7 @@ declare module "flutterwave-node-v3" {
         limit?: string;
         currency?: string;
         status?: string;
+        tx_ref?: string;
       }): Promise<FlutterwaveResponse<any[]>>;
       fee(data: {
         amount: string;
@@ -688,15 +815,19 @@ declare module "flutterwave-node-v3" {
         card_first6digits?: string;
       }): Promise<FlutterwaveResponse<any>>;
       resend_hooks(data: {
-        tx_ref: string;
+        tx_ref?: string;
+        id?: string;
         wait?: boolean;
       }): Promise<FlutterwaveResponse<any>>;
       verify(data: {
         id: string;
       }): Promise<FlutterwaveResponse<TransactionVerifyResponseData>>;
+      verify_by_tx(data: {
+        tx_ref: string;
+      }): Promise<FlutterwaveResponse<TransactionVerifyResponseData>>;
       refund(data: {
         id: string;
-        amount?: string;
+        amount?: string | number;
       }): Promise<FlutterwaveResponse<any>>;
       event(data: { id: string }): Promise<FlutterwaveResponse<any>>;
     };
@@ -711,6 +842,8 @@ declare module "flutterwave-node-v3" {
       fetch(data?: {
         page?: string;
         status?: string;
+        from?: string;
+        to?: string;
       }): Promise<FlutterwaveResponse<TransferResponseData[]>>;
       get_a_transfer(data: {
         id: string;
@@ -718,9 +851,10 @@ declare module "flutterwave-node-v3" {
       wallet_to_wallet(data: {
         amount: number;
         currency: string;
-        email: string;
-        reference: string;
-        narration: string;
+        email?: string;
+        reference?: string;
+        narration?: string;
+        merchant_id?: string;
       }): Promise<FlutterwaveResponse<any>>;
       fee(data: {
         amount: number;
@@ -735,8 +869,8 @@ declare module "flutterwave-node-v3" {
       create_bulk(data: {
         accounts: number;
         email: string;
-        is_permanent: boolean;
-        tx_ref: string;
+        is_permanent?: boolean;
+        tx_ref?: string;
         bvn?: string;
       }): Promise<FlutterwaveResponse<any>>;
       fetch(data: {
@@ -751,6 +885,10 @@ declare module "flutterwave-node-v3" {
       fetch(data?: {
         page?: number;
       }): Promise<FlutterwaveResponse<VirtualCard[]>>;
+      fetch_all(data?: {
+        page?: number;
+        limit?: number;
+      }): Promise<FlutterwaveResponse<VirtualCard[]>>;
       get(data: { id: string }): Promise<FlutterwaveResponse<VirtualCard>>;
       fund(data: {
         id: string;
@@ -761,9 +899,20 @@ declare module "flutterwave-node-v3" {
         id: string;
         amount: number;
       }): Promise<FlutterwaveResponse<any>>;
+      withdraw_funds(data: {
+        id: string;
+        amount: number;
+      }): Promise<FlutterwaveResponse<any>>;
       block(data: { id: string }): Promise<FlutterwaveResponse<any>>;
       unblock(data: { id: string }): Promise<FlutterwaveResponse<any>>;
       terminate(data: { id: string }): Promise<FlutterwaveResponse<any>>;
+      transactions(data: {
+        id: string;
+        from?: string;
+        to?: string;
+        index?: number;
+        size?: number;
+      }): Promise<FlutterwaveResponse<any>>;
     };
     Beneficiary: {
       create(
@@ -778,6 +927,9 @@ declare module "flutterwave-node-v3" {
     Subscription: {
       fetch_all(data?: {
         page?: string;
+        email?: string;
+        transaction_id?: string;
+        plan?: string;
       }): Promise<FlutterwaveResponse<Subscription[]>>;
       get(data: {
         email: string;
@@ -793,6 +945,9 @@ declare module "flutterwave-node-v3" {
       ): Promise<FlutterwaveResponse<PaymentPlan>>;
       get_all(data?: {
         page?: string;
+        from?: string;
+        to?: string;
+        limit?: string;
       }): Promise<FlutterwaveResponse<PaymentPlan[]>>;
       get_plan(data: { id: string }): Promise<FlutterwaveResponse<PaymentPlan>>;
       cancel(data: { id: string }): Promise<FlutterwaveResponse<PaymentPlan>>;
@@ -818,6 +973,20 @@ declare module "flutterwave-node-v3" {
         currency: string;
         amount: number;
       }): Promise<FlutterwaveResponse<any>>;
+    };
+    security: {
+      getIntegrityHash(data: any): any;
+    };
+    Chargeback: {
+      fetch_all(data?: {
+        page?: string;
+        from?: string;
+        to?: string;
+        status?: string;
+      }): Promise<FlutterwaveResponse<any[]>>;
+      fetch(data: { id: string }): Promise<FlutterwaveResponse<any>>;
+      accept(data: { id: string }): Promise<FlutterwaveResponse<any>>;
+      decline(data: { id: string }): Promise<FlutterwaveResponse<any>>;
     };
   }
 }

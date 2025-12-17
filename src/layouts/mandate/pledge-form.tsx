@@ -36,12 +36,15 @@ import {
 import type { CreateMandate } from "@/api/mandate/types";
 import { useAuth } from "@/contexts/use-auth";
 import { useCreateMandate } from "@/api/mandate/hooks";
-import { useFetchFlutterwaveBanks } from "@/api/flutterwave/hooks";
+import {
+  useFetchFlutterwaveBanks,
+  useTokenizeFlutterwaveAccount,
+} from "@/api/flutterwave/hooks";
 import type { FlutterwaveMandateConsent } from "@/api/flutterwave/types";
 import { useGetUserMandate } from "@/api/mandate/handlers";
 import { Section } from "@/components/section";
 import { formatCurrency } from "@/utils/currency";
-import { addYears, endOfYear } from "date-fns";
+import { addYears } from "date-fns";
 import clsx from "clsx";
 import { formatDateString } from "@/utils/date";
 
@@ -169,6 +172,7 @@ export function MandatePledgeForm({
   const { user } = useAuth();
 
   const navigate = useNavigate();
+  const tokenizeAccount = useTokenizeFlutterwaveAccount();
   const createMandate = useCreateMandate();
   const flutterwaveBanks = useFetchFlutterwaveBanks();
 
@@ -192,10 +196,6 @@ export function MandatePledgeForm({
       accountNumber: "",
     },
     validate: zod4Resolver(createMandateSchema),
-    transformValues: (values) => ({
-      ...values,
-      amount: Math.round(values.amount * 100),
-    }),
   });
 
   useEffect(() => {
@@ -214,12 +214,11 @@ export function MandatePledgeForm({
     }
   }, [amount, tier]);
 
-
   useEffect(() => {
     if (!pledgeForm.values.startDate) return;
 
     const oneYearForward = addYears(new Date(pledgeForm.values.startDate), 1);
-    const yearEnd = formatDateString(endOfYear(oneYearForward));
+    const yearEnd = formatDateString(oneYearForward);
 
     pledgeForm.setFieldValue("endDate", yearEnd);
   }, [pledgeForm.values.startDate]);
@@ -227,15 +226,36 @@ export function MandatePledgeForm({
   const handleSubmit = async (data: CreateMandate) => {
     if (!user) return;
 
+    if (!user.address || !user.phoneNumber) {
+      return;
+    }
+
+    // Step 1: Call Flutterwave to tokenize the account
+    const tokenResponse = await tokenizeAccount.mutateAsync({
+      data: {
+        email: user.email,
+        amount: data.amount,
+        address: user.address,
+        phone_number: user.phoneNumber,
+        account_bank: data.bankCode,
+        account_number: data.accountNumber,
+        start_date: data.startDate,
+        end_date: data.endDate!,
+        narration: `LAUMGA Foundation ${data.frequency} contribution`,
+      },
+    });
+
+    // Step 2: Create mandate in Firebase with the tokenResponse
     const result = await createMandate.mutateAsync({
       user,
       data,
+      tokenResponse,
     });
 
     setMandateSummary({
       reference: result.reference,
       status: result.status,
-      consent: result.mandate_consent ?? null,
+      consent: result.mandate_consent,
     });
 
     refetchMandate();
@@ -276,7 +296,7 @@ export function MandatePledgeForm({
                 </div>
               )}
             </div>
-            
+
             <Group>
               <Button onClick={() => navigate({ to: "/mandate/dashboard" })}>
                 View Dashboard
@@ -418,29 +438,36 @@ export function MandatePledgeForm({
       <section className="rounded-4xl border border-sage-green/40 bg-white/95 p-6 shadow-[0_24px_60px_rgba(0,35,19,0.08)] sm:p-10">
         <div className="space-y-6">
           {hasExistingMandate && (
-            <Alert
-              icon={<AlertCircle />}
-              color="teal"
-              radius="lg"
-              variant="light"
-              title="Mandate already active"
-            >
-              <Stack gap="xs">
-                <Text size="sm">
-                  You already have a mandate (
-                  {existingMandate?.flutterwaveReference}) in{" "}
-                  {existingMandate?.status} status. Manage pauses,
-                  reinstatements, or upgrades from your dashboard.
-                </Text>
+            <div className="rounded-3xl border border-vibrant-lime/40 bg-gradient-to-r from-mist-green/80 via-white to-mist-green/60 p-5 shadow-[0_25px_60px_rgba(0,35,19,0.08)]">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3 text-institutional-green">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-institutional-green/10">
+                    <AlertCircle className="h-6 w-6" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-institutional-green/70">
+                      Mandate already active
+                    </p>
+                    <p className="text-base font-semibold text-deep-forest">
+                      Reference {existingMandate?.flutterwaveReference}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 text-sm text-deep-forest/80">
+                  You currently have a {existingMandate?.status} mandate. Manage
+                  pauses, reinstatements, or upgrades inside your dashboard.
+                </div>
                 <Button
-                  size="sm"
-                  onClick={() => navigate({ to: "/mandate/dashboard" })}
+                  size="md"
+                  radius="xl"
                   variant="light"
+                  className="bg-vibrant-lime/20 text-institutional-green hover:bg-vibrant-lime/40"
+                  onClick={() => navigate({ to: "/mandate/dashboard" })}
                 >
                   Go to dashboard
                 </Button>
-              </Stack>
-            </Alert>
+              </div>
+            </div>
           )}
 
           {!profileReady && (
@@ -629,7 +656,7 @@ export function MandatePledgeForm({
               type="submit"
               size="xl"
               fullWidth
-              loading={createMandate.isPending}
+              loading={tokenizeAccount.isPending || createMandate.isPending}
               disabled={!profileReady || hasExistingMandate}
               className="h-14 rounded-2xl bg-vibrant-lime text-base font-semibold text-deep-forest transition hover:bg-vibrant-lime/90 disabled:cursor-not-allowed disabled:opacity-60"
             >

@@ -12,13 +12,11 @@ import {
 import { db } from "@/services/firebase";
 import { record } from "@/utils/record";
 import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { flutterwave } from "@/api/flutterwave";
 import { mandateCertificate } from "@/api/mandate-certificate";
 
 import {
   MANDATES_COLLECTION,
   createMandateSchema,
-  mandateDataSchema,
   mandateSchema,
 } from "./schema";
 import type {
@@ -30,7 +28,6 @@ import type {
   ListMandateVariables,
 } from "./types";
 import { determineTier, mapFlutterwaveStatus } from "./utils";
-import { tryCatch } from "@/utils/try-catch";
 
 async function getActive(userId: string) {
   if (!userId) return null;
@@ -50,37 +47,15 @@ function mandateRef(mandateId: string) {
 }
 
 async function create(variables: CreateMandateVariables) {
-  const { user, data } = variables;
+  const { user, data, tokenResponse } = variables;
+
+  if (!tokenResponse) {
+    throw new Error("Token response is required to create mandate");
+  }
 
   const validated = createMandateSchema.parse(data);
   const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
   const docRef = doc(mandatesRef) as MandateDocument;
-
-  if (!validated.bankCode) {
-    throw new Error("Select a supported bank to continue.");
-  }
-
-  if (!validated.accountNumber) {
-    throw new Error("Provide the account number you want debited.");
-  }
-
-  if (!user.address || !user.phoneNumber) {
-    throw new Error(
-      "Add your phone number and address on your profile before creating a mandate."
-    );
-  }
-
-  const tokenResponse = await flutterwave.$use.account.tokenize({
-    email: user.email,
-    amount: validated.amount,
-    address: user.address,
-    phone_number: user.phoneNumber,
-    account_bank: validated.bankCode,
-    account_number: validated.accountNumber,
-    start_date: validated.startDate,
-    end_date: validated.endDate,
-    narration: `LAUMGA Foundation ${validated.frequency} contribution`,
-  });
 
   const mandateData: CreateMandateData = {
     userId: user.id,
@@ -115,12 +90,12 @@ async function create(variables: CreateMandateVariables) {
     reference: tokenResponse.data.reference,
     status: tokenResponse.data.status,
     processor_response: tokenResponse.data.processor_response,
-    mandate_consent: tokenResponse.data.mandate_consent,
+    mandate_consent: tokenResponse.data.mandate_consent ?? null,
   };
 }
 
 async function syncStatus(variables: UpdateMandateVariables) {
-  const { id, user } = variables;
+  const { id, user, tokenDetails } = variables;
 
   const ref = mandateRef(id);
   const snapshot = await getDoc(ref);
@@ -129,23 +104,10 @@ async function syncStatus(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateDataSchema.parse(snapshot.data());
-
-  if (!mandateData.flutterwaveReference) {
-    throw new Error("Flutterwave mandate reference not found");
+  if (!tokenDetails) {
+    throw new Error("Token details are required to sync status");
   }
 
-  const result = await tryCatch(() => {
-    return flutterwave.$use.account.status(mandateData.flutterwaveReference!);
-  });
-
-  if (result.success === false) {
-    throw new Error(
-      `Failed to fetch mandate status from Flutterwave: ${result.error}`
-    );
-  }
-
-  const tokenDetails = result.data.data;
   await updateDoc(ref, {
     status: mapFlutterwaveStatus(tokenDetails.status),
     flutterwaveStatus: tokenDetails.status,
@@ -177,24 +139,6 @@ async function pause(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateDataSchema.parse(snapshot.data());
-
-  if (!mandateData.flutterwaveReference) {
-    throw new Error("Flutterwave mandate reference not found");
-  }
-
-  const result = await tryCatch(() => {
-    return flutterwave.$use.account.update(mandateData.flutterwaveReference!, {
-      status: "SUSPENDED",
-    });
-  });
-
-  if (result.success === false) {
-    throw new Error(
-      `Failed to pause mandate with Flutterwave: ${result.error}`
-    );
-  }
-
   await updateDoc(ref, {
     status: "paused",
     flutterwaveStatus: "SUSPENDED",
@@ -214,24 +158,6 @@ async function cancel(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
-  const mandateData = mandateDataSchema.parse(snapshot.data());
-
-  if (!mandateData.flutterwaveReference) {
-    throw new Error("Flutterwave mandate reference not found");
-  }
-
-  const result = await tryCatch(() => {
-    return flutterwave.$use.account.update(mandateData.flutterwaveReference!, {
-      status: "DELETED",
-    });
-  });
-
-  if (result.success === false) {
-    throw new Error(
-      `Failed to cancel mandate with Flutterwave: ${result.error}`
-    );
-  }
-
   await updateDoc(ref, {
     status: "cancelled",
     flutterwaveStatus: "DELETED",
@@ -247,24 +173,6 @@ async function reinstate(variables: UpdateMandateVariables) {
 
   if (!snapshot.exists()) {
     throw new Error("Mandate not found");
-  }
-
-  const mandateData = mandateDataSchema.parse(snapshot.data());
-
-  if (!mandateData.flutterwaveReference) {
-    throw new Error("Flutterwave mandate reference not found");
-  }
-
-  const result = await tryCatch(() => {
-    return flutterwave.$use.account.update(mandateData.flutterwaveReference!, {
-      status: "ACTIVE",
-    });
-  });
-
-  if (result.success === false) {
-    throw new Error(
-      `Failed to reinstate mandate with Flutterwave: ${result.error}`
-    );
   }
 
   await updateDoc(ref, {

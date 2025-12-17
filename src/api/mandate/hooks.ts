@@ -31,7 +31,6 @@ export function useSyncMandateStatus() {
   });
 }
 
-
 export function useGetMandate(mandateId: string) {
   return useQuery({
     queryKey: mandate.get.$use(mandateId),
