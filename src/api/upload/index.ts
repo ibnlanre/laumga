@@ -67,8 +67,11 @@ async function document(file: File) {
   return await uploadFile(validFile, "documents");
 }
 
-export const upload = createBuilder({
-  userImage,
-  galleryImage,
-  document,
-});
+export const upload = createBuilder(
+  {
+    userImage,
+    galleryImage,
+    document,
+  },
+  { prefix: ["upload"] }
+);

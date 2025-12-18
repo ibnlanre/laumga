@@ -31,7 +31,10 @@ async function get(id: string) {
   return await getQueryDoc(transactionsRef, mandateTransactionSchema);
 }
 
-export const mandateTransactions = createBuilder({
-  list,
-  get,
-});
+export const mandateTransactions = createBuilder(
+  {
+    list,
+    get,
+  },
+  { prefix: [MANDATE_TRANSACTIONS_COLLECTION] }
+);

@@ -6,12 +6,12 @@ import { Download, ExternalLink, Lock } from "lucide-react";
 import { formatDate } from "@/utils/date";
 import { useAuth } from "@/contexts/use-auth";
 import { useGetActiveMandateCertificate } from "@/api/mandate-certificate/handlers";
-import { useGetActiveMandate } from "@/api/mandate/handlers";
 import { LoadingState } from "@/components/loading-state";
+import { useGetMandate } from "@/api/mandate/hooks";
 
 export function MandateCertificateView() {
   const { user } = useAuth();
-  const mandate = useGetActiveMandate(user?.id);
+  const mandate = useGetMandate(user?.id);
   const mandateCertificate = useGetActiveMandateCertificate(mandate.data?.id);
 
   const formattedIssuedDate = useMemo(() => {

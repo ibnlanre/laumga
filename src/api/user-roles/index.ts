@@ -85,10 +85,13 @@ async function getUserPermissions(id: string) {
   return Array.from(new Set(permissions));
 }
 
-export const userRole = createBuilder({
-  get,
-  getUserPermissions,
-  assign,
-  remove,
-  list,
-});
+export const userRole = createBuilder(
+  {
+    get,
+    getUserPermissions,
+    assign,
+    remove,
+    list,
+  },
+  { prefix: [USER_ROLES_COLLECTION] }
+);

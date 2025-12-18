@@ -16,7 +16,14 @@ import {
   flutterwaveTokenizedChargeResponseSchema,
   flutterwaveTokenUpdateRequestSchema,
   flutterwaveTokenUpdateResponseSchema,
+  flutterwaveStatusSchema,
 } from "./schema";
+
+export type FlutterwaveErrorResponse = {
+  status: "error";
+  message: string;
+  data: null;
+};
 
 export type FlutterwaveBank = z.infer<typeof flutterwaveBankSchema>;
 export type FlutterwaveMandateConsent = z.infer<
@@ -63,3 +70,5 @@ export type FlutterwaveTokenizedChargeResponse = z.infer<
 export type FlutterwaveTokenizedChargeCustomer = z.infer<
   typeof flutterwaveTokenizedChargeCustomerSchema
 >;
+
+export type FlutterwaveStatus = z.infer<typeof flutterwaveStatusSchema>;

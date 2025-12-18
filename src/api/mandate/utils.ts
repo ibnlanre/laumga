@@ -1,12 +1,16 @@
 import type { PaymentPartner } from "@/api/payment-partner/types";
 import type { FlutterwaveSplitCharge } from "@/api/flutterwave/types";
-import type { MandateStatus, MandateTier } from "./types";
+import type { MandateTier } from "./types";
 
 export function determineTier(amount: number): MandateTier {
-  if (amount === 500_000) return "supporter";
-  if (amount === 1_000_000) return "builder";
-  if (amount === 2_500_000) return "guardian";
+  if (amount === 5000) return "supporter";
+  if (amount === 10000) return "builder";
+  if (amount === 25000) return "guardian";
   return "custom";
+}
+
+export function generateMandateReference(userId: string): string {
+  return `LAUMGA-${userId.slice(0, 8)}-${Date.now()}`;
 }
 
 export function generateDebitReference(mandateId: string): string {
@@ -67,19 +71,4 @@ export function buildFlutterwaveSplitConfiguration(
       transaction_split_ratio: partner.allocationValue,
     } satisfies FlutterwaveSplitCharge;
   });
-}
-
-export function mapFlutterwaveStatus(status?: string | null): MandateStatus {
-  switch (status?.toUpperCase()) {
-    case "ACTIVE":
-      return "active";
-    case "SUSPENDED":
-      return "paused";
-    case "DELETED":
-      return "cancelled";
-    case "APPROVED":
-      return "initiated";
-    default:
-      return "initiated";
-  }
 }

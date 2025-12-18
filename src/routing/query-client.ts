@@ -11,7 +11,7 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: minutesToMilliseconds(5),
+      staleTime: minutesToMilliseconds(3),
     },
   },
   mutationCache: new MutationCache({
@@ -20,7 +20,7 @@ export const queryClient = new QueryClient({
 
       const actualError =
         error instanceof Error ? error.message : String(error);
-      
+
       const displayError =
         actualError !== mutation.meta.errorMessage
           ? actualError

@@ -109,10 +109,13 @@ async function remove(id: string) {
   await deleteDoc(authorRef);
 }
 
-export const author = createBuilder({
-  remove,
-  create,
-  update,
-  list,
-  get,
-});
+export const author = createBuilder(
+  {
+    remove,
+    create,
+    update,
+    list,
+    get,
+  },
+  { prefix: [AUTHORS_COLLECTION] }
+);

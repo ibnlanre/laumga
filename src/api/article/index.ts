@@ -195,15 +195,18 @@ async function incrementViewCount(articleId: string) {
   });
 }
 
-export const article = createBuilder({
-  incrementViewCount,
-  getArticleBySlug,
-  related,
-  archive,
-  publish,
-  remove,
-  create,
-  update,
-  list,
-  get,
-});
+export const article = createBuilder(
+  {
+    incrementViewCount,
+    getArticleBySlug,
+    related,
+    archive,
+    publish,
+    remove,
+    create,
+    update,
+    list,
+    get,
+  },
+  { prefix: [ARTICLES_COLLECTION] }
+);

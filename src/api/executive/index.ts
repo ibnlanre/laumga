@@ -106,10 +106,13 @@ async function remove(id: string) {
   await deleteDoc(executiveRef);
 }
 
-export const executive = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  remove,
-});
+export const executive = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    remove,
+  },
+  { prefix: [EXECUTIVES_COLLECTION] }
+);

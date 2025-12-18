@@ -151,10 +151,7 @@ async function remove(id: string) {
   await batch.commit();
 }
 
-async function isUserRegisteredForEvent(
-  eventId?: string,
-  userId?: string
-) {
+async function isUserRegisteredForEvent(eventId?: string, userId?: string) {
   if (!eventId || !userId) {
     throw new Error("Event ID and User ID are required");
   }
@@ -173,11 +170,14 @@ async function isUserRegisteredForEvent(
   return await getDocs(registrationsQuery).then((snapshot) => !snapshot.empty);
 }
 
-export const eventRegistration = createBuilder({
-  isUserRegisteredForEvent,
-  create,
-  update,
-  list,
-  get,
-  remove,
-});
+export const eventRegistration = createBuilder(
+  {
+    isUserRegisteredForEvent,
+    create,
+    update,
+    list,
+    get,
+    remove,
+  },
+  { prefix: [EVENT_REGISTRATIONS_COLLECTION] }
+);

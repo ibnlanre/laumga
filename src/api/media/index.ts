@@ -107,11 +107,14 @@ async function deleteStorageObject(url: string) {
   }
 }
 
-export const media = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  remove,
-  getFeaturedMedia,
-});
+export const media = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    remove,
+    getFeaturedMedia,
+  },
+  { prefix: [MEDIA_COLLECTION] }
+);

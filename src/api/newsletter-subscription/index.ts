@@ -77,8 +77,11 @@ async function list(): Promise<NewsletterSubscription[]> {
   return await getQueryDocs(activeQuery, subscriptionSchema);
 }
 
-export const newsletterSubscription = createBuilder({
-  subscribe,
-  unsubscribe,
-  list,
-});
+export const newsletterSubscription = createBuilder(
+  {
+    subscribe,
+    unsubscribe,
+    list,
+  },
+  { prefix: [NEWSLETTER_SUBSCRIPTIONS_COLLECTION] }
+);

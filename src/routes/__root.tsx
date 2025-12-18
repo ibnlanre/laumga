@@ -21,9 +21,9 @@ import { PageLoader } from "@/components/page-loader";
 import { userQueryOptions } from "@/api/user/hooks";
 import { permissionQueryOptions } from "@/api/user-roles/options";
 
-// import { TanStackDevtools } from "@tanstack/react-devtools";
-// import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-// import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRoute({
   ssr: false,
@@ -205,10 +205,10 @@ function RootDocument({ children }: PropsWithChildren) {
             </MantineProvider>
           </AuthProvider>
 
-          {/* <TanStackDevtools
-            
+          <TanStackDevtools
             config={{
               position: "bottom-right",
+              hideUntilHover: false,
             }}
             plugins={[
               {
@@ -220,7 +220,7 @@ function RootDocument({ children }: PropsWithChildren) {
                 render: <ReactQueryDevtoolsPanel />,
               },
             ]}
-          /> */}
+          />
         </QueryClientProvider>
 
         <Scripts />

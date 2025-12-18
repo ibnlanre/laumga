@@ -89,9 +89,12 @@ async function updateStatus(variables: UpdateNotificationStatusVariables) {
   await updateDoc(notificationRef, { status });
 }
 
-export const notification = createBuilder({
-  create,
-  list,
-  get,
-  updateStatus,
-});
+export const notification = createBuilder(
+  {
+    create,
+    list,
+    get,
+    updateStatus,
+  },
+  { prefix: [NOTIFICATIONS_COLLECTION] }
+);

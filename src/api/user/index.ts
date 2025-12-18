@@ -250,14 +250,17 @@ async function logout() {
   }
 }
 
-export const user = createBuilder({
-  list,
-  get,
-  create,
-  update,
-  login,
-  loginWithProvider,
-  resetPassword,
-  applyPasswordReset,
-  logout,
-});
+export const user = createBuilder(
+  {
+    list,
+    get,
+    create,
+    update,
+    login,
+    loginWithProvider,
+    resetPassword,
+    applyPasswordReset,
+    logout,
+  },
+  { prefix: [USERS_COLLECTION] }
+);

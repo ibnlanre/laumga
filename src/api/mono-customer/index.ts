@@ -44,6 +44,9 @@ async function create(variables: CreateMonoCustomerVariables) {
   };
 }
 
-export const monoCustomer = createBuilder({
-  create,
-});
+export const monoCustomer = createBuilder(
+  {
+    create,
+  },
+  { prefix: ["monoCustomer"] }
+);

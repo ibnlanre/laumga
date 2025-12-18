@@ -81,15 +81,18 @@ async function remove(id: string) {
 }
 
 async function getActive(userId: string) {
-  const activeMandate = await mandate.$use.getActive(userId);
+  const activeMandate = await mandate.$use.get(userId);
   if (!activeMandate) return null;
   return mandateCertificate.$use.get(activeMandate.id);
 }
 
-export const mandateCertificate = createBuilder({
-  get,
-  create,
-  update,
-  remove,
-  getActive,
-});
+export const mandateCertificate = createBuilder(
+  {
+    get,
+    create,
+    update,
+    remove,
+    getActive,
+  },
+  { prefix: [MANDATE_CERTIFICATES_COLLECTION] }
+);

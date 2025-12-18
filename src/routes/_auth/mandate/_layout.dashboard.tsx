@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Text } from "@mantine/core";
+import { Button, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 
 import { LoadingState } from "@/components/loading-state";
@@ -22,22 +22,25 @@ import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
 import type { MandateTransaction } from "@/api/mandate-transaction/types";
-import { useGetActiveMandate } from "@/api/mandate/handlers";
 import {
   usePauseMandate,
   useReinstateMandate,
   useCancelMandate,
+  useGetMandate,
 } from "@/api/mandate/hooks";
+import { useUpdateFlutterwaveAccount } from "@/api/flutterwave/hooks";
 import { useFeed } from "@/api/feed/hooks";
 import { useListUserMandateTransactions } from "@/api/mandate-transaction/handlers";
 import { formatCurrency } from "@/utils/currency";
 import { capitalize } from "inflection";
 import { Section } from "@/components/section";
+import clsx from "clsx";
+import type { FlutterwaveStatus } from "@/api/flutterwave/types";
 
 const tierScale = [
-  { tier: "supporter", amount: 500_000 },
-  { tier: "builder", amount: 1_000_000 },
-  { tier: "guardian", amount: 2_500_000 },
+  { tier: "supporter", amount: 50000 },
+  { tier: "builder", amount: 100000 },
+  { tier: "guardian", amount: 250000 },
 ] as const;
 
 const transactionColumns: ColumnDef<MandateTransaction>[] = [
@@ -60,25 +63,26 @@ const transactionColumns: ColumnDef<MandateTransaction>[] = [
     ),
   },
   {
-    accessorKey: "status",
+    accessorKey: "flutterwaveStatus",
     header: "Status",
     cell: (info) => {
-      const status = info.getValue<string>();
-      const label = status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Unknown";
+      const status = info.getValue<FlutterwaveStatus>();
+
       const styles =
-        status === "successful"
+        status === "ACTIVE"
           ? "bg-mist-green text-deep-forest"
-          : status === "failed"
+          : status === "SUSPENDED"
             ? "bg-red-50 text-red-700"
             : "bg-amber-50 text-amber-700";
 
       return (
         <span
-          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${styles}`}
+          className={clsx(
+            "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize",
+            styles
+          )}
         >
-          {label}
+          {status}
         </span>
       );
     },
@@ -120,12 +124,14 @@ function RouteComponent() {
     isError: feedError,
   } = useFeed();
 
-  const { data: activeMandate, isLoading: mandateLoading } =
-    useGetActiveMandate(user?.id);
+  const { data: activeMandate, isLoading: mandateLoading } = useGetMandate(
+    user?.id
+  );
 
   const { data: transactions = [], isLoading: transactionsLoading } =
     useListUserMandateTransactions(user?.id);
 
+  const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -135,9 +141,9 @@ function RouteComponent() {
   const {
     amount = 0,
     frequency = "monthly",
-    status = "No mandate yet",
+    flutterwaveStatus = "No mandate yet",
     tier = "unassigned",
-    id = "",
+    flutterwaveReference = "",
   } = { ...activeMandate };
 
   const { percent: tierProgress, label: tierProgressLabel } = amount
@@ -155,8 +161,27 @@ function RouteComponent() {
       ),
       labels: { confirm: "Pause", cancel: "Cancel" },
       onConfirm: async () => {
-        if (!user || !id) return;
-        await pauseMutation.mutateAsync({ id, user });
+        if (!user || !flutterwaveReference) return;
+
+        await updateFlutterwaveAccount.mutateAsync(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "SUSPENDED" },
+            },
+          },
+          {
+            onSuccess: async ({ data }) => {
+              await pauseMutation.mutateAsync({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
@@ -172,8 +197,27 @@ function RouteComponent() {
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
       onConfirm: async () => {
-        if (!user || !activeMandate) return;
-        await reinstateMutation.mutateAsync({ id, user });
+        if (!user || !flutterwaveReference) return;
+
+        await updateFlutterwaveAccount.mutateAsync(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "ACTIVE" },
+            },
+          },
+          {
+            onSuccess: async ({ data }) => {
+              await reinstateMutation.mutateAsync({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
@@ -190,8 +234,27 @@ function RouteComponent() {
       labels: { confirm: "Cancel", cancel: "Keep It" },
       confirmProps: { color: "red" },
       onConfirm: async () => {
-        if (!user || !activeMandate) return;
-        await cancelMutation.mutateAsync({ id: id, user });
+        if (!user || !flutterwaveReference) return;
+
+        await updateFlutterwaveAccount.mutateAsync(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "DELETED" },
+            },
+          },
+          {
+            onSuccess: async ({ data }) => {
+              await cancelMutation.mutateAsync({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
@@ -256,29 +319,31 @@ function RouteComponent() {
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          {status === "active" && (
-                            <button
-                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-deep-forest"
+                          {flutterwaveStatus === "ACTIVE" && (
+                            <Button
+                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-institutional-green/40"
                               type="button"
                               onClick={handlePauseMandate}
                               aria-label="Pause mandate"
                               title="Pause mandate"
                             >
                               <Pause size={16} />
-                            </button>
+                            </Button>
                           )}
-                          {status === "paused" && (
-                            <button
-                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-deep-forest"
+
+                          {flutterwaveStatus === "SUSPENDED" && (
+                            <Button
+                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-vibrant-lime"
                               type="button"
                               onClick={handleResumeMandate}
                               aria-label="Resume mandate"
                               title="Resume mandate"
                             >
                               <Play size={16} />
-                            </button>
+                            </Button>
                           )}
-                          <button
+
+                          <Button
                             className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-red-600"
                             type="button"
                             onClick={handleCancelMandate}
@@ -286,7 +351,7 @@ function RouteComponent() {
                             title="Cancel mandate"
                           >
                             <X size={16} />
-                          </button>
+                          </Button>
                         </div>
                       </div>
                       <div className="text-center">
@@ -300,10 +365,7 @@ function RouteComponent() {
                       <p className="flex items-center justify-between text-sm font-medium text-institutional-green">
                         <span className="inline-flex items-center gap-2 capitalize">
                           <span className="size-2 rounded-full bg-vibrant-lime" />
-                          {status}
-                        </span>
-                        <span className="text-deep-forest/60">
-                          Debit schedule managed by Mono
+                          {flutterwaveStatus}
                         </span>
                       </p>
                     </div>

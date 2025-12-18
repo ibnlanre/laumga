@@ -16,6 +16,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ibnlanre/builder": "^1.0.4",
+    "@ibnlanre/portal": "^5.2.4",
     "@mantine/carousel": "^8.3.9",
     "@mantine/core": "^8.3.9",
     "@mantine/dates": "^8.3.9",

@@ -160,13 +160,16 @@ async function archive(variables: UpdateIssueVariables) {
   await updateDoc(issueRef, updatedData);
 }
 
-export const newsletter = createBuilder({
-  create,
-  list,
-  get,
-  update,
-  remove,
-  download,
-  publish,
-  archive,
-});
+export const newsletter = createBuilder(
+  {
+    create,
+    list,
+    get,
+    update,
+    remove,
+    download,
+    publish,
+    archive,
+  },
+  { prefix: [NEWSLETTER_ISSUES_COLLECTION] }
+);

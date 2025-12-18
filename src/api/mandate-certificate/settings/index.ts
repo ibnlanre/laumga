@@ -19,20 +19,20 @@ import { record } from "@/utils/record";
 
 async function create(variables: CreateMandateCertificateSettingsVariables) {
   const { user, data } = variables;
-  
+
   const payload = createMandateCertificateSettingsSchema.parse(data);
-  
+
   const settingsRef = doc(
     db,
     MANDATE_CERTIFICATE_COLLECTION,
     MANDATE_CERTIFICATE_SETTINGS
   ) as MandateCertificateSettingsDocument;
-  
+
   const newData = {
     ...payload,
     created: record(user),
   };
-  
+
   await setDoc(settingsRef, newData);
 }
 
@@ -65,8 +65,11 @@ async function update(variables: UpdateMandateCertificateSettingsVariables) {
   await setDoc(settingsRef, updatedData, { merge: true });
 }
 
-export const mandateCertificateSettings = createBuilder({
-  get,
-  update,
-  create,
-});
+export const mandateCertificateSettings = createBuilder(
+  {
+    get,
+    update,
+    create,
+  },
+  { prefix: [MANDATE_CERTIFICATE_SETTINGS] }
+);

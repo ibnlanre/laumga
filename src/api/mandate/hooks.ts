@@ -20,22 +20,22 @@ export function useCreateMandate() {
   });
 }
 
-export function useSyncMandateStatus() {
+export function useUpdateMandate() {
   return useMutation({
-    mutationKey: mandate.syncStatus.$get(),
-    mutationFn: mandate.$use.syncStatus,
+    mutationKey: mandate.update.$get(),
+    mutationFn: mandate.$use.update,
     meta: {
-      errorMessage: "Failed to sync mandate status.",
-      successMessage: "Mandate status synced successfully.",
+      errorMessage: "Failed to update mandate.",
+      successMessage: "Mandate updated successfully.",
     },
   });
 }
 
-export function useGetMandate(mandateId: string) {
+export function useGetMandate(id?: string) {
   return useQuery({
-    queryKey: mandate.get.$use(mandateId),
-    queryFn: () => mandate.$use.get(mandateId),
-    enabled: !!mandateId,
+    queryKey: mandate.get.$get(id),
+    queryFn: () => mandate.$use.get(id!),
+    enabled: !!id,
   });
 }
 

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { flutterwave } from ".";
 import { useServerFn } from "@tanstack/react-start";
+import type { FlutterwaveTokenStatusResponse } from "./types";
 
 export function useFetchFlutterwaveBanks() {
   return useQuery({
@@ -21,13 +22,16 @@ export function useTokenizeFlutterwaveAccount() {
   });
 }
 
-export function useGetFlutterwaveAccountStatus() {
-  return useMutation({
-    mutationKey: flutterwave.account.status.$get(),
-    mutationFn: useServerFn(flutterwave.$use.account.status),
+export function useGetFlutterwaveAccountStatus(reference?: string | null) {
+  const getStatus = useServerFn(flutterwave.$use.account.status);
+
+  return useQuery<FlutterwaveTokenStatusResponse>({
+    queryKey: flutterwave.account.status.$get(reference),
+    queryFn: () => getStatus({ data: reference! }),
     meta: {
       errorMessage: "Failed to get bank account status. Please try again.",
     },
+    enabled: !!reference,
   });
 }
 

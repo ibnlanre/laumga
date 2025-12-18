@@ -1,14 +1,15 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { createServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
+import { tryCatch } from "@/utils/try-catch";
 import {
   flutterwaveTokenizeRequestSchema,
   flutterwaveTokenizedChargeRequestSchema,
   flutterwaveTokenUpdateRequestSchema,
 } from "./schema";
-import type { FlutterwaveBank } from "./types";
+import type { FlutterwaveBank, FlutterwaveErrorResponse } from "./types";
 import type {
   FlutterwaveTokenizeResponse,
   FlutterwaveTokenStatusResponse,
@@ -72,24 +73,16 @@ const list: FlutterwaveBank[] = [
   { label: "Zenith Bank PLC", value: "057", code: "057" },
 ];
 
-export class FlutterwaveError extends Error {
-  constructor(
-    message: string,
-    public statusCode?: number,
-    public details?: any
-  ) {
-    super(message);
-    this.name = "FlutterwaveError";
-  }
-}
-
 const tokenize = createServerFn({ method: "POST" })
   .inputValidator(zodValidator(flutterwaveTokenizeRequestSchema))
   .handler(async ({ data }) => {
-    const response = await flutterwaveClient.post<FlutterwaveTokenizeResponse>(
-      "/v3/accounts/tokenize",
-      data
-    );
+    const response = await flutterwaveClient
+      .post<FlutterwaveTokenizeResponse>("/v3/accounts/tokenize", data)
+      .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
+        const flutterwaveError = error.response?.data;
+        throw new Error(flutterwaveError?.message);
+      });
+
     return response.data;
   });
 
@@ -97,13 +90,16 @@ const status = createServerFn({ method: "GET" })
   .inputValidator(zodValidator(z.string()))
   .handler(async ({ data: reference }) => {
     if (!reference) {
-      throw new FlutterwaveError("Token reference is required");
+      throw new Error("Token reference is required");
     }
 
-    const response =
-      await flutterwaveClient.get<FlutterwaveTokenStatusResponse>(
-        `/v3/accounts/token/${reference}`
-      );
+    const response = await flutterwaveClient
+      .get<FlutterwaveTokenStatusResponse>(`/v3/accounts/token/${reference}`)
+      .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
+        const flutterwaveError = error.response?.data;
+        throw new Error(flutterwaveError?.message);
+      });
+
     return response.data;
   });
 
@@ -117,39 +113,45 @@ const update = createServerFn({ method: "POST" })
     )
   )
   .handler(async ({ data: { reference, payload } }) => {
-    const response =
-      await flutterwaveClient.put<FlutterwaveTokenStatusResponse>(
+    const response = await flutterwaveClient
+      .put<FlutterwaveTokenStatusResponse>(
         `/v3/accounts/token/${reference}`,
         payload
-      );
+      )
+      .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
+        const flutterwaveError = error.response?.data;
+        throw new Error(flutterwaveError?.message);
+      });
+    
     return response.data;
   });
 
 const tokenized = createServerFn({ method: "POST" })
   .inputValidator(zodValidator(flutterwaveTokenizedChargeRequestSchema))
   .handler(async ({ data }) => {
-    const response =
-      await flutterwaveClient.post<FlutterwaveTokenizedChargeResponse>(
-        "/v3/tokenized-charge",
-        data
-      );
+    const response = await flutterwaveClient
+      .post<FlutterwaveTokenizedChargeResponse>("/v3/tokenized-charge", data)
+      .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
+        const flutterwaveError = error.response?.data;
+        throw new Error(flutterwaveError?.message);
+      });
+    
     return response.data;
   });
 
-export function getSupportedBanks() {
-  return;
-}
-
-export const flutterwave = createBuilder({
-  account: {
-    tokenize,
-    status,
-    update,
+export const flutterwave = createBuilder(
+  {
+    account: {
+      tokenize,
+      status,
+      update,
+    },
+    charge: {
+      tokenized,
+    },
+    bank: {
+      list,
+    },
   },
-  charge: {
-    tokenized,
-  },
-  bank: {
-    list,
-  },
-});
+  { prefix: ["flutterwave"] }
+);

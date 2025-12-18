@@ -7,20 +7,12 @@ export const flutterwaveBankSchema = z.object({
   code: z.string(),
 });
 
-export const flutterwaveMandateConsentSchema = z
-  .object({
-    bank_name: z.string(),
-    account_name: z.string(),
-    account_number: z.string(),
-    amount: z.string(),
-  })
-  .partial()
-  .transform((value) => ({
-    bank_name: value.bank_name ?? "",
-    account_name: value.account_name ?? "",
-    account_number: value.account_number ?? "",
-    amount: value.amount ?? "",
-  }));
+export const flutterwaveMandateConsentSchema = z.object({
+  bank_name: z.string(),
+  account_name: z.string(),
+  account_number: z.string(),
+  amount: z.union([z.number(), z.string()]),
+});
 
 export const flutterwaveTokenizeRequestSchema = z.object({
   email: z.email(),
@@ -34,8 +26,16 @@ export const flutterwaveTokenizeRequestSchema = z.object({
   narration: z.string().optional(),
 });
 
+export const flutterwaveStatusSchema = z.enum([
+  "PENDING",
+  "APPROVED",
+  "ACTIVE",
+  "SUSPENDED",
+  "DELETED",
+]);
+
 export const flutterwaveTokenizeDataSchema = z.object({
-  status: z.string(),
+  status: flutterwaveStatusSchema,
   amount: z.number(),
   address: z.string().nullable(),
   narration: z.string().nullable(),

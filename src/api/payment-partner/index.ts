@@ -110,10 +110,13 @@ async function getActive() {
   return await getQueryDocs(activeQuery, paymentPartnerSchema);
 }
 
-export const paymentPartner = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  getActive,
-});
+export const paymentPartner = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    getActive,
+  },
+  { prefix: [PAYMENT_PARTNERS_COLLECTION] }
+);

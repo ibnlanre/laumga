@@ -63,7 +63,9 @@ function RouteComponent() {
   );
 
   const totalMembers = users.length;
-  const activeMandates = mandates.filter(({ status }) => status === "active");
+  const activeMandates = mandates.filter(
+    ({ flutterwaveStatus }) => flutterwaveStatus === "ACTIVE"
+  );
   const mandateMRR = activeMandates.reduce(
     (sum, mandate) => sum + (mandate.amount ?? 0),
     0

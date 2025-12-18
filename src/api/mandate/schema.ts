@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { dateSchema, fieldValueSchema, isoDateTimeString } from "@/schema/date";
+import { flutterwaveMandateConsentSchema, flutterwaveStatusSchema } from "../flutterwave/schema";
 
 export const MANDATES_COLLECTION = "mandates";
 
@@ -9,15 +10,6 @@ export const mandateTierSchema = z.enum([
   "builder",
   "guardian",
   "custom",
-]);
-
-export const mandateStatusSchema = z.enum([
-  "initiated",
-  "active",
-  "paused",
-  "cancelled",
-  "completed",
-  "rejected",
 ]);
 
 export const mandateFrequencySchema = z.enum([
@@ -49,11 +41,12 @@ const mandateFormSchema = createMandateSchema
   .extend({
     userId: z.string(),
     tier: mandateTierSchema,
-    status: mandateStatusSchema,
     flutterwaveReference: z.string().nullable().default(null),
     flutterwaveAccountId: z.union([z.number(), z.string()]),
     flutterwaveCustomerId: z.union([z.number(), z.string()]),
-    flutterwaveStatus: z.string().nullable().default(null),
+    flutterwaveMandateConsent: flutterwaveMandateConsentSchema.nullable().default(null),
+    flutterwaveProcessorResponse: z.string().nullable().default(null),
+    flutterwaveStatus: flutterwaveStatusSchema,
   });
 
 export const mandateDataSchema = mandateFormSchema.extend({
@@ -69,3 +62,5 @@ export const createMandateDataSchema = mandateFormSchema.extend({
 export const mandateSchema = mandateDataSchema.extend({
   id: z.string(),
 });
+
+export const updateMandateSchema = mandateSchema.partial();

@@ -114,10 +114,13 @@ async function deleteMediaFromStorage(url: string) {
   } catch (error) {}
 }
 
-export const library = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  remove,
-});
+export const library = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    remove,
+  },
+  { prefix: [LIBRARIES_COLLECTION] }
+);

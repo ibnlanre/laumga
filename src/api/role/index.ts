@@ -107,11 +107,14 @@ async function getByName(name: string) {
   return roleSchema.parse({ id: roleDoc.id, ...roleDoc.data() });
 }
 
-export const role = createBuilder({
-  list,
-  get,
-  create,
-  update,
-  remove,
-  getByName,
-});
+export const role = createBuilder(
+  {
+    list,
+    get,
+    create,
+    update,
+    remove,
+    getByName,
+  },
+  { prefix: [ROLES_COLLECTION] }
+);

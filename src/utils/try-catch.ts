@@ -12,3 +12,43 @@ export const tryCatch = async <T, E = unknown>(
     return { success: false, error: error as E };
   }
 };
+
+type TryCatchChain<T> = {
+  catch<E = unknown>(
+    handler?: (error: E) => void | Promise<void>
+  ): Promise<TryCatchResult<T, E>>;
+};
+
+export const promise = {
+  try<T>(
+    operation: () => Promise<T>
+  ): Promise<TryCatchChain<T> & TryCatchResult<T, unknown>> {
+    return (async () => {
+      try {
+        const data = await operation();
+        const result: TryCatchSuccess<T> = { success: true, data };
+        return {
+          ...result,
+          catch: async <E = unknown>(
+            handler?: (error: E) => void | Promise<void>
+          ) => {
+            return result as TryCatchResult<T, E>;
+          },
+        };
+      } catch (error) {
+        const result: TryCatchError<unknown> = { success: false, error };
+        return {
+          ...result,
+          catch: async <E = unknown>(
+            handler?: (error: E) => void | Promise<void>
+          ) => {
+            if (handler) {
+              await handler(error as E);
+            }
+            return result as TryCatchResult<T, E>;
+          },
+        };
+      }
+    })();
+  },
+};

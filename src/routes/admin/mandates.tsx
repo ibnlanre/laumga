@@ -18,39 +18,44 @@ import { useMemo } from "react";
 
 import { DataTable } from "@/components/data-table";
 import { PageLoader } from "@/components/page-loader";
-import type { Mandate, MandateStatus } from "@/api/mandate/types";
+import type { Mandate } from "@/api/mandate/types";
+import type { FlutterwaveStatus } from "@/api/flutterwave/types";
+import { flutterwaveStatusSchema } from "@/api/flutterwave/schema";
 import {
   useListMandates,
   usePauseMandate,
   useReinstateMandate,
   useCancelMandate,
 } from "@/api/mandate/hooks";
+import { useUpdateFlutterwaveAccount } from "@/api/flutterwave/hooks";
 import { useAuth } from "@/contexts/use-auth";
 import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminStatCard } from "@/components/admin/stat-card";
+import { zodValidator } from "@tanstack/zod-adapter";
+import z from "zod";
 
 export const Route = createFileRoute("/admin/mandates")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    status: (search.status as MandateStatus) || undefined,
-  }),
+  validateSearch: zodValidator(
+    z.object({
+      status: flutterwaveStatusSchema.optional(),
+    })
+  ),
   component: MandatesAdmin,
 });
 
-const getStatusColor = (status: MandateStatus) => {
+const getStatusColor = (status: FlutterwaveStatus) => {
   switch (status) {
-    case "active":
+    case "PENDING":
+      return "blue";
+    case "ACTIVE":
       return "green";
-    case "paused":
+    case "SUSPENDED":
       return "orange";
-    case "initiated":
-      return "blue";
-    case "cancelled":
+    case "DELETED":
       return "red";
-    case "completed":
-      return "gray";
     default:
-      return "blue";
+      return "gray";
   }
 };
 
@@ -74,11 +79,12 @@ function MandatesAdmin() {
 
   const { data: mandates = [], isLoading } = useListMandates();
 
+  const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
 
-  const handlePauseMandate = ({ id, tier }: Mandate) => {
+  const handlePauseMandate = ({ tier, flutterwaveReference }: Mandate) => {
     modals.openConfirmModal({
       title: "Pause Mandate",
       children: (
@@ -88,13 +94,32 @@ function MandatesAdmin() {
       ),
       labels: { confirm: "Pause", cancel: "Cancel" },
       onConfirm: () => {
-        if (!user) return;
-        pauseMutation.mutate({ id, user });
+        if (!user || !flutterwaveReference) return;
+
+        updateFlutterwaveAccount.mutate(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "SUSPENDED" },
+            },
+          },
+          {
+            onSuccess: ({ data }) => {
+              pauseMutation.mutate({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
 
-  const handleResumeMandate = ({ id, tier }: Mandate) => {
+  const handleResumeMandate = ({ tier, flutterwaveReference }: Mandate) => {
     modals.openConfirmModal({
       title: "Resume Mandate",
       children: (
@@ -105,13 +130,32 @@ function MandatesAdmin() {
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
       onConfirm: () => {
-        if (!user) return;
-        reinstateMutation.mutate({ id, user });
+        if (!user || !flutterwaveReference) return;
+
+        updateFlutterwaveAccount.mutate(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "ACTIVE" },
+            },
+          },
+          {
+            onSuccess: ({ data }) => {
+              reinstateMutation.mutate({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
 
-  const handleCancelMandate = ({ id, tier }: Mandate) => {
+  const handleCancelMandate = ({ tier, flutterwaveReference }: Mandate) => {
     modals.openConfirmModal({
       title: "Cancel Mandate",
       children: (
@@ -123,8 +167,27 @@ function MandatesAdmin() {
       labels: { confirm: "Cancel", cancel: "Back" },
       confirmProps: { color: "red" },
       onConfirm: () => {
-        if (!user) return;
-        cancelMutation.mutate({ id, user });
+        if (!user || !flutterwaveReference) return;
+
+        updateFlutterwaveAccount.mutate(
+          {
+            data: {
+              reference: flutterwaveReference,
+              payload: { status: "DELETED" },
+            },
+          },
+          {
+            onSuccess: ({ data }) => {
+              cancelMutation.mutate({
+                user,
+                data: {
+                  flutterwaveStatus: data.status,
+                  flutterwaveProcessorResponse: data.processor_response,
+                },
+              });
+            },
+          }
+        );
       },
     });
   };
@@ -167,15 +230,15 @@ function MandatesAdmin() {
       ),
     },
     {
-      accessorKey: "status",
+      accessorKey: "flutterwaveStatus",
       header: "Status",
       cell: ({ row }) => (
         <Badge
-          color={getStatusColor(row.original.status)}
+          color={getStatusColor(row.original.flutterwaveStatus)}
           variant="light"
           className="capitalize"
         >
-          {row.original.status}
+          {row.original.flutterwaveStatus}
         </Badge>
       ),
     },
@@ -203,7 +266,7 @@ function MandatesAdmin() {
             </ActionIcon>
           </Tooltip>
 
-          {row.original.status === "active" && (
+          {row.original.flutterwaveStatus === "ACTIVE" && (
             <Tooltip label="Pause mandate">
               <ActionIcon
                 variant="light"
@@ -215,7 +278,7 @@ function MandatesAdmin() {
             </Tooltip>
           )}
 
-          {row.original.status === "paused" && (
+          {row.original.flutterwaveStatus === "SUSPENDED" && (
             <Tooltip label="Resume mandate">
               <ActionIcon
                 variant="light"
@@ -227,7 +290,9 @@ function MandatesAdmin() {
             </Tooltip>
           )}
 
-          {["active", "paused", "initiated"].includes(row.original.status) && (
+          {["INITIATED", "ACTIVE", "SUSPENDED"].includes(
+            row.original.flutterwaveStatus
+          ) && (
             <Tooltip label="Cancel mandate">
               <ActionIcon
                 variant="light"
@@ -244,8 +309,12 @@ function MandatesAdmin() {
   ];
 
   const stats = useMemo(() => {
-    const active = mandates.filter(({ status }) => status === "active").length;
-    const paused = mandates.filter(({ status }) => status === "paused").length;
+    const active = mandates.filter(
+      ({ flutterwaveStatus }) => flutterwaveStatus === "ACTIVE"
+    ).length;
+    const paused = mandates.filter(
+      ({ flutterwaveStatus }) => flutterwaveStatus === "SUSPENDED"
+    ).length;
     const totalPledged = mandates.reduce(
       (acc, { amount = 0 }) => acc + amount,
       0
@@ -409,12 +478,12 @@ function MandateDetailsContent({ mandate }: { mandate: Mandate }) {
               Status
             </Text>
             <Badge
-              color={getStatusColor(mandate.status)}
+              color={getStatusColor(mandate.flutterwaveStatus)}
               variant="light"
               size="lg"
               className="capitalize"
             >
-              {mandate.status}
+              {mandate.flutterwaveStatus}
             </Badge>
           </div>
         </Grid.Col>

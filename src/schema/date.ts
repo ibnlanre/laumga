@@ -12,8 +12,6 @@ export const timestampCodec = z
     encode: (date) => Timestamp.fromDate(date),
     decode: (timestamp) => timestamp.toDate(),
   })
-  .nullable()
-  .default(null);
 
 export const dateSchema = schema
   .extend({ at: timestampCodec })
@@ -28,8 +26,6 @@ const isFieldValue = (val: unknown): val is FieldValue => {
 
 export const fieldValueCodec = z
   .custom<FieldValue>(isFieldValue)
-  .nullable()
-  .default(null);
 
 export const fieldValueSchema = schema
   .extend({ at: fieldValueCodec })

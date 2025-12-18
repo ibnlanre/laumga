@@ -23,7 +23,10 @@ async function create({ data }: CreateFeedVariables) {
   await addDoc(feedRef, validated);
 }
 
-export const feed = createBuilder({
-  list,
-  create,
-});
+export const feed = createBuilder(
+  {
+    list,
+    create,
+  },
+  { prefix: [FEED_COLLECTION] }
+);

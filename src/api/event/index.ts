@@ -78,10 +78,13 @@ async function remove(id: string) {
   await deleteDoc(eventRef);
 }
 
-export const event = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  remove,
-});
+export const event = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    remove,
+  },
+  { prefix: [EVENTS_COLLECTION] }
+);

@@ -1,6 +1,7 @@
 import { createBuilder } from "@ibnlanre/builder";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   query,
@@ -27,19 +28,13 @@ import type {
   MandateDocument,
   ListMandateVariables,
 } from "./types";
-import { determineTier, mapFlutterwaveStatus } from "./utils";
+import { determineTier } from "./utils";
+import { addMinutes, isAfter } from "date-fns";
+import type { User } from "../user/types";
+import type { FlutterwaveStatus } from "../flutterwave/types";
 
-async function getActive(userId: string) {
-  if (!userId) return null;
-
-  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
-  const activeQuery = query(
-    mandatesRef,
-    where("userId", "==", userId),
-    where("status", "==", "active")
-  );
-
-  return await getQueryDoc(activeQuery, mandateSchema);
+function isStale(createdAt: Date) {
+  return isAfter(new Date(), addMinutes(createdAt, 10));
 }
 
 function mandateRef(mandateId: string) {
@@ -54,85 +49,60 @@ async function create(variables: CreateMandateVariables) {
   }
 
   const validated = createMandateSchema.parse(data);
-  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
-  const docRef = doc(mandatesRef) as MandateDocument;
+  const docRef = mandateRef(user.id);
 
   const mandateData: CreateMandateData = {
     userId: user.id,
     amount: validated.amount,
     frequency: validated.frequency,
     tier: determineTier(validated.amount),
-    status: mapFlutterwaveStatus(tokenResponse.data.status),
     startDate: validated.startDate,
     endDate: validated.endDate,
     flutterwaveReference: tokenResponse.data.reference,
     flutterwaveAccountId: tokenResponse.data.account_id,
     flutterwaveCustomerId: tokenResponse.data.customer_id,
     flutterwaveStatus: tokenResponse.data.status,
+    flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
+    flutterwaveProcessorResponse: tokenResponse.data.processor_response,
     created: record(user),
     updated: record(user),
   };
 
   await setDoc(docRef, mandateData);
-
-  const stored = await getDoc(docRef);
-  const createdMandate = mandateSchema.parse({
-    id: docRef.id,
-    ...stored.data(),
-  });
-
-  await mandateCertificate.$use.create({
-    mandate: createdMandate,
-    user,
-  });
-
-  return {
-    reference: tokenResponse.data.reference,
-    status: tokenResponse.data.status,
-    processor_response: tokenResponse.data.processor_response,
-    mandate_consent: tokenResponse.data.mandate_consent ?? null,
-  };
 }
 
-async function syncStatus(variables: UpdateMandateVariables) {
-  const { id, user, tokenDetails } = variables;
+async function update(variables: UpdateMandateVariables) {
+  const { user, data } = variables;
 
-  const ref = mandateRef(id);
+  const ref = mandateRef(user.id);
   const snapshot = await getDoc(ref);
 
   if (!snapshot.exists()) {
     throw new Error("Mandate not found");
   }
 
-  if (!tokenDetails) {
-    throw new Error("Token details are required to sync status");
-  }
-
-  await updateDoc(ref, {
-    status: mapFlutterwaveStatus(tokenDetails.status),
-    flutterwaveStatus: tokenDetails.status,
-    updated: record(user),
-  });
+  await updateDoc(ref, { ...data, updated: record(user) });
 }
 
 async function get(id: string) {
   const ref = mandateRef(id);
-  return await getQueryDoc(ref, mandateSchema);
-}
+  const mandate = await getQueryDoc(ref, mandateSchema);
 
-async function fetchByUserId(userId: string) {
-  if (!userId) return null;
+  if (!mandate) return null;
 
-  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
-  const mandatesQuery = query(mandatesRef, where("userId", "==", userId));
+  if (mandate.flutterwaveStatus !== "PENDING") return mandate;
+  if (mandate.created && isStale(mandate.created.at)) {
+    await deleteDoc(ref);
+    return null;
+  }
 
-  return await getQueryDoc(mandatesQuery, mandateSchema);
+  return mandate;
 }
 
 async function pause(variables: UpdateMandateVariables) {
-  const { id, user } = variables;
+  const { user } = variables;
 
-  const ref = mandateRef(id);
+  const ref = mandateRef(user.id);
   const snapshot = await getDoc(ref);
 
   if (!snapshot.exists()) {
@@ -140,35 +110,28 @@ async function pause(variables: UpdateMandateVariables) {
   }
 
   await updateDoc(ref, {
-    status: "paused",
     flutterwaveStatus: "SUSPENDED",
     updated: record(user),
   });
-
-  return { success: true };
 }
 
 async function cancel(variables: UpdateMandateVariables) {
-  const { id, user } = variables;
+  const { user } = variables;
 
-  const ref = mandateRef(id);
+  const ref = mandateRef(user.id);
   const snapshot = await getDoc(ref);
 
   if (!snapshot.exists()) {
     throw new Error("Mandate not found");
   }
 
-  await updateDoc(ref, {
-    status: "cancelled",
-    flutterwaveStatus: "DELETED",
-    updated: record(user),
-  });
+  await deleteDoc(ref);
 }
 
 async function reinstate(variables: UpdateMandateVariables) {
-  const { id, user } = variables;
+  const { user } = variables;
 
-  const ref = mandateRef(id);
+  const ref = mandateRef(user.id);
   const snapshot = await getDoc(ref);
 
   if (!snapshot.exists()) {
@@ -176,7 +139,6 @@ async function reinstate(variables: UpdateMandateVariables) {
   }
 
   await updateDoc(ref, {
-    status: "active",
     flutterwaveStatus: "ACTIVE",
     updated: record(user),
   });
@@ -188,14 +150,15 @@ async function list(variables?: ListMandateVariables) {
   return await getQueryDocs(mandatesQuery, mandateSchema);
 }
 
-export const mandate = createBuilder({
-  create,
-  get,
-  pause,
-  cancel,
-  reinstate,
-  syncStatus,
-  fetchByUserId,
-  getActive,
-  list,
-});
+export const mandate = createBuilder(
+  {
+    create,
+    get,
+    pause,
+    cancel,
+    reinstate,
+    update,
+    list,
+  },
+  { prefix: [MANDATES_COLLECTION] }
+);

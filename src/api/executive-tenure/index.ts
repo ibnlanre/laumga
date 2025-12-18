@@ -119,10 +119,13 @@ async function remove(id: string) {
   await deleteDoc(tenureRef);
 }
 
-export const executiveTenure = createBuilder({
-  create,
-  update,
-  list,
-  get,
-  remove,
-});
+export const executiveTenure = createBuilder(
+  {
+    create,
+    update,
+    list,
+    get,
+    remove,
+  },
+  { prefix: [EXECUTIVE_TENURES_COLLECTION] }
+);

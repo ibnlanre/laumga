@@ -23,6 +23,9 @@ importers:
       '@ibnlanre/builder':
         specifier: ^1.0.4
         version: 1.0.4(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@ibnlanre/portal':
+        specifier: ^5.2.4
+        version: 5.2.4(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
       '@mantine/carousel':
         specifier: ^8.3.9
         version: 8.3.9(@mantine/core@8.3.9(@mantine/hooks@8.3.9(react@19.2.1))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(@mantine/hooks@8.3.9(react@19.2.1))(embla-carousel-react@8.6.0(react@19.2.1))(embla-carousel@8.6.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -1099,6 +1102,13 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
+
+  '@ibnlanre/portal@5.2.4':
+    resolution: {integrity: sha512-afzLa7k+GrZ8rZ7n78T2G/Ax7d53DwHx+NI3bqWSlAVOz4ailkxNvamZda0pMLlrvK/XXush0/GJjGcVlxRQqQ==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      react: '>16.7'
+      react-dom: '>16.7'
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -5082,6 +5092,11 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@ibnlanre/builder@1.0.4(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+
+  '@ibnlanre/portal@5.2.4(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
     dependencies:
       react: 19.2.1
       react-dom: 19.2.1(react@19.2.1)
