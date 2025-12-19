@@ -2,12 +2,7 @@ import { user } from ".";
 import type { Options } from "@/client/options";
 import { queryOptions, useQuery, useMutation } from "@tanstack/react-query";
 import type { ListUserVariables } from "./types";
-
-export const userQueryOptions = (id?: string | null) => queryOptions({
-  queryKey: user.get.$get(id),
-  queryFn: () => user.$use.get(id!),
-  enabled: !!id,
-});
+import { userQueryOptions } from "./options";
 
 export function useListUsers(
   variables?: ListUserVariables,

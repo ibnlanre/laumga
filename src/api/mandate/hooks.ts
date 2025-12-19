@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { mandate } from "./index";
 import type { ListMandateVariables } from "./types";
+import { mandateQueryOptions } from "./options";
 
 export function useListMandates(variables?: ListMandateVariables) {
   return useQuery({
@@ -32,11 +33,7 @@ export function useUpdateMandate() {
 }
 
 export function useGetMandate(id?: string) {
-  return useQuery({
-    queryKey: mandate.get.$get(id),
-    queryFn: () => mandate.$use.get(id!),
-    enabled: !!id,
-  });
+  return useQuery(mandateQueryOptions(id));
 }
 
 export function usePauseMandate() {

@@ -66,6 +66,7 @@ export const flutterwaveTokenLifecycleStatusSchema = z.enum([
   "DELETED",
 ]);
 
+
 export const flutterwaveTokenStatusDataSchema = z.object({
   token: z.string().nullable(),
   reference: z.string(),
@@ -91,8 +92,14 @@ export const flutterwaveTokenStatusResponseSchema = z.object({
   data: flutterwaveTokenStatusDataSchema,
 });
 
+export const flutterwaveTokenStatusSchema = z.enum([
+  "ACTIVE",
+  "SUSPENDED",
+  "DELETED",
+]);
+
 export const flutterwaveTokenUpdateRequestSchema = z.object({
-  status: flutterwaveTokenLifecycleStatusSchema,
+  status: flutterwaveTokenStatusSchema,
 });
 
 export const flutterwaveTokenUpdateResponseSchema = z.object({

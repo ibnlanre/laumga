@@ -16,36 +16,34 @@ import { NotFound } from "@/components/not-found";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
-import { auth } from "@/services/firebase";
 import { PageLoader } from "@/components/page-loader";
-import { userQueryOptions } from "@/api/user/hooks";
+import { userQueryOptions } from "@/api/user/options";
 import { permissionQueryOptions } from "@/api/user-roles/options";
+import { getSession, logoutUser } from "@/api/firebase";
 
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRoute({
-  ssr: false,
   beforeLoad: async () => {
-    await auth.authStateReady();
-    const user = await auth.currentUser;
+    const session = await getSession();
 
-    if (!user) {
+    if (!session?.userId) {
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
     const currentUser = await queryClient.ensureQueryData(
-      userQueryOptions(user.uid)
+      userQueryOptions(session.userId)
     );
 
     if (!currentUser) {
-      await auth.signOut();
+      await logoutUser();
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
     const permissions = await queryClient.ensureQueryData(
-      permissionQueryOptions(user.uid)
+      permissionQueryOptions(session.userId)
     );
 
     return {

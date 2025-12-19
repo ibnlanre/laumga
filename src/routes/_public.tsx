@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { RegistrationProvider } from "@/contexts/registration-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PageLoader } from "@/components/page-loader";
 
 export const Route = createFileRoute("/_public")({
   beforeLoad: async ({ context }) => {
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/_public")({
     }
   },
   component: Layout,
+  pendingComponent: PageLoader,
 });
 
 function Layout() {

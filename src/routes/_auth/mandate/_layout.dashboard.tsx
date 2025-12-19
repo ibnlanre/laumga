@@ -314,7 +314,7 @@ function RouteComponent() {
                           <p className="text-xs uppercase tracking-[0.3em] text-deep-forest/50">
                             Active Mandate
                           </p>
-                          <p className="text-lg font-semibold text-deep-forest">
+                          <p className="text-lg font-semibold text-deep-forest capitalize">
                             {tier}
                           </p>
                         </div>

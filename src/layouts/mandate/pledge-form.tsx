@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { useInterval } from "@mantine/hooks";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
   BarChart3,
@@ -34,24 +34,13 @@ import {
 } from "@/api/mandate/schema";
 import type { CreateMandate } from "@/api/mandate/types";
 import { useAuth } from "@/contexts/use-auth";
-import {
-  useCreateMandate,
-  useGetMandate,
-  useUpdateMandate,
-} from "@/api/mandate/hooks";
-import {
-  useFetchFlutterwaveBanks,
-  useGetFlutterwaveAccountStatus,
-  useTokenizeFlutterwaveAccount,
-  useTokenizedFlutterwaveCharge,
-} from "@/api/flutterwave/hooks";
-import type { FlutterwaveTokenizedChargeData } from "@/api/flutterwave/types";
+import { useCreateMandate, useGetMandate } from "@/api/mandate/hooks";
+import { useFetchFlutterwaveBanks } from "@/api/flutterwave/hooks";
 import { Section } from "@/components/section";
 import { formatCurrency } from "@/utils/currency";
 import { addMinutes, addYears } from "date-fns";
 import clsx from "clsx";
 import { formatDate, formatDateString, formatDateTime } from "@/utils/date";
-import { generateMandateReference } from "@/api/mandate/utils";
 import { capitalize } from "inflection";
 
 const TIER_AMOUNTS = {
@@ -196,61 +185,60 @@ export function MandatePledgeForm({
 }: MandatePledgeFormProps) {
   const { user } = useAuth();
 
-  const navigate = useNavigate();
-
   const mandate = useGetMandate(user?.id);
-  const updateMandate = useUpdateMandate();
-
-  const checkTokenStatus = useGetFlutterwaveAccountStatus(
-    mandate?.data?.flutterwaveReference
-  );
-  const tokenStatus = checkTokenStatus.data?.data;
-  const tokenizedAccountToken = tokenStatus?.token;
-  const tokenLifecycleStatus = tokenStatus?.status;
-  const hasAuthorizedToken = Boolean(tokenizedAccountToken);
-  const isTokenActive = tokenLifecycleStatus === "ACTIVE";
-
-  const tokenizeAccount = useTokenizeFlutterwaveAccount();
   const createMandate = useCreateMandate();
   const flutterwaveBanks = useFetchFlutterwaveBanks();
-  const tokenizedCharge = useTokenizedFlutterwaveCharge();
 
   const [remainingMs, setRemainingMs] = useState(0);
   const [consentExpiresAt, setConsentExpiresAt] = useState<number | null>(null);
-  const [chargeReceipt, setChargeReceipt] =
-    useState<FlutterwaveTokenizedChargeData | null>(null);
 
-  const existingMandate = mandate.data;
-  const consentDetails = mandate.data?.flutterwaveMandateConsent;
+  const {
+    startDate,
+    flutterwaveMandateConsent,
+    flutterwaveEffectiveDate,
+    flutterwaveProcessorResponse,
+    flutterwaveAccountToken,
+    flutterwaveReference,
+    flutterwaveStatus,
+    frequency,
+  } = { ...mandate.data };
+
   const consentCountdownLabel = formatCountdown(remainingMs);
   const countdownExpired = remainingMs <= 0;
+  const hasAccountToken = Boolean(flutterwaveAccountToken);
+  const hasMandate = Boolean(mandate.data);
 
   const steps: StepCard[] = [
     {
       id: "identity",
-      title: "Customer identity check",
-      copy: "Your account is verified for recurring debits.",
-      complete: Boolean(mandate.data),
+      title: "Customer Identity Check",
+      copy: hasMandate
+        ? "Your account is verified for recurring debits."
+        : "KYC checks complete to verify your identity.",
+      complete: hasMandate,
     },
     {
       id: "consent",
-      title: "Authorize debit token",
-      copy: "Make a small transfer to authorize the mandate.",
-      complete: hasAuthorizedToken,
+      title: "Authorize Mandate",
+      copy: hasAccountToken
+        ? "You have successfully consented to the mandate." 
+        : "Make a small transfer to authorize the mandate.",
+      complete: hasAccountToken,
     },
     {
       id: "activation",
-      title: "Token activation",
-      copy: isTokenActive
-        ? "Token is active. Run your first debit to unlock automation."
-        : "Tokens typically activate within a few hours. We notify you instantly.",
-      complete: isTokenActive,
+      title: "Bank Approval",
+      copy:
+        flutterwaveStatus === "ACTIVE"
+          ? "Your mandate activation is now complete."
+          : "Waiting for bank approval to activate your mandate.",
+      complete: flutterwaveStatus === "ACTIVE",
     },
   ];
 
   const summaryTab: SummaryTab = !mandate.data
     ? "customer"
-    : !checkTokenStatus.data?.data?.token
+    : !hasAccountToken
       ? "consent"
       : "status";
 
@@ -260,26 +248,28 @@ export function MandatePledgeForm({
       return;
     }
 
-    setRemainingMs(Math.max(consentExpiresAt - Date.now(), 0));
+    const diff = consentExpiresAt - Date.now();
+    if (diff <= 0) {
+      setRemainingMs(0);
+      countdown.stop();
+    } else setRemainingMs(diff);
   }, 1000);
 
   useEffect(() => {
-    if (!mandate.data || countdown.active) return;
+    if (!mandate.data?.created?.at || consentExpiresAt) return;
 
-    if (mandate.data.created) {
-      const createdTimestamp = mandate.data.created.at;
+    const createdTimestamp = mandate.data.created.at;
+    const expiryTimestamp = addMinutes(createdTimestamp, 10).getTime();
+    const now = Date.now();
 
-      if (!createdTimestamp) return;
-      const expiryTimestamp = addMinutes(createdTimestamp, 10).getTime();
-      const now = Date.now();
+    if (now < expiryTimestamp) {
+      setConsentExpiresAt(expiryTimestamp);
+      setRemainingMs(expiryTimestamp - now);
+      countdown.start();
+    } else setRemainingMs(0);
 
-      if (now < expiryTimestamp) {
-        setConsentExpiresAt(expiryTimestamp);
-        setRemainingMs(expiryTimestamp - now);
-        countdown.start();
-      }
-    }
-  }, [mandate.isFetching, countdown.active]);
+    return countdown.stop;
+  }, [mandate.data?.created?.at]);
 
   const pledgeForm = useForm<CreateMandate>({
     initialValues: {
@@ -318,99 +308,24 @@ export function MandatePledgeForm({
     pledgeForm.setFieldValue("endDate", yearEnd);
   }, [pledgeForm.values.startDate]);
 
-  useEffect(() => {
-    if (!user || !existingMandate) return;
-    if (existingMandate.flutterwaveStatus === tokenLifecycleStatus) return;
-
-    updateMandate.mutate({
-      user,
-      data: {
-        flutterwaveStatus: tokenLifecycleStatus,
-        flutterwaveProcessorResponse:
-          tokenStatus?.processor_response ??
-          existingMandate.flutterwaveProcessorResponse,
-      },
-    });
-  }, [isTokenActive]);
-
-  const manualChargeAmount =
-    existingMandate?.amount ?? MIN_CUSTOM_MANDATE_AMOUNT;
-  const manualChargeLabel = formatCurrency(manualChargeAmount);
-
-  const handleManualCharge = () => {
-    if (!user || !tokenizedAccountToken || !isTokenActive) return;
-    if (!manualChargeAmount) return;
-
-    const frequencyLabel = existingMandate?.frequency;
-    const txRef = generateMandateReference(user.id);
-
-    setChargeReceipt(null);
-
-    tokenizedCharge.mutate(
-      {
-        data: {
-          token: tokenizedAccountToken,
-          email: user.email,
-          amount: existingMandate?.amount ?? MIN_CUSTOM_MANDATE_AMOUNT,
-          tx_ref: txRef,
-          type: "account",
-          narration: `Mandate debit (${frequencyLabel})`,
-        },
-      },
-      {
-        onSuccess: (response) => {
-          setChargeReceipt(response.data);
-        },
-      }
-    );
-  };
-
   const handleSubmit = (data: CreateMandate) => {
     if (!user) return;
 
-    tokenizeAccount.mutate(
-      {
-        data: {
-          email: user.email,
-          amount: data.amount,
-          address: user.address,
-          phone_number: user.phoneNumber,
-          account_bank: data.bankCode,
-          account_number: data.accountNumber,
-          start_date: data.startDate,
-          end_date: data.endDate!,
-          narration: `LAUMGA Foundation ${data.frequency} contribution`,
-        },
-      },
-      {
-        onSuccess: (tokenResponse) => {
-          createMandate.mutate({
-            user,
-            data,
-            tokenResponse,
-          });
-        },
-      }
-    );
+    createMandate.mutate({ user, data });
   };
 
-  const referenceValue =
-    existingMandate?.flutterwaveReference ?? "Reference pending";
-  const tokenStatusRaw =
-    tokenLifecycleStatus ?? existingMandate?.flutterwaveStatus ?? "PENDING";
+  const referenceValue = flutterwaveReference ?? "Reference pending";
+  const tokenStatusRaw = flutterwaveStatus ?? "PENDING";
   const tokenStatusLabel = capitalize(tokenStatusRaw);
-  const bankInstructions =
-    tokenStatus?.processor_response ??
-    existingMandate?.flutterwaveProcessorResponse;
-  const fallbackProcessorResponse = !tokenStatus?.processor_response
-    ? existingMandate?.flutterwaveProcessorResponse
-    : null;
+  const fallbackProcessorResponse = flutterwaveProcessorResponse ?? null;
   const accountName =
-    consentDetails?.account_name ?? "Flutterwave Mandate Activation";
-  const accountBank = consentDetails?.bank_name ?? "Awaiting bank assignment";
-  const accountNumberDisplay = consentDetails?.account_number ?? "••••••••••";
-  const startDateLabel = existingMandate?.startDate
-    ? formatDateString(new Date(existingMandate.startDate))
+    flutterwaveMandateConsent?.account_name ?? "Flutterwave Mandate Activation";
+  const accountBank =
+    flutterwaveMandateConsent?.bank_name ?? "Awaiting bank assignment";
+  const accountNumberDisplay =
+    flutterwaveMandateConsent?.account_number ?? "••••••••••";
+  const startDateLabel = startDate
+    ? formatDateString(new Date(startDate))
     : null;
   const paymentWindowDescription = countdownExpired
     ? "The 10-minute confirmation window elapsed."
@@ -419,14 +334,12 @@ export function MandatePledgeForm({
   const mandateStats = [
     {
       label: "Pledge amount",
-      value: formatCurrency(
-        existingMandate?.amount ?? MIN_CUSTOM_MANDATE_AMOUNT
-      ),
+      value: formatCurrency(mandate.data?.amount ?? MIN_CUSTOM_MANDATE_AMOUNT),
       details: "per debit cycle",
     },
     {
       label: "Frequency",
-      value: existingMandate?.frequency,
+      value: frequency,
       details: startDateLabel
         ? `starting ${formatDate(startDateLabel, "PP")}`
         : null,
@@ -735,8 +648,8 @@ export function MandatePledgeForm({
                 type="submit"
                 size="xl"
                 fullWidth
-                loading={tokenizeAccount.isPending || createMandate.isPending}
-                disabled={tokenizeAccount.isPending || createMandate.isPending}
+                loading={createMandate.isPending}
+                disabled={createMandate.isPending}
                 className="h-14 rounded-2xl bg-vibrant-lime text-base font-semibold text-deep-forest transition hover:bg-vibrant-lime/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {createMandate.isPending
@@ -870,7 +783,7 @@ export function MandatePledgeForm({
                         {accountNumberDisplay}
                       </span>
                       <CopyButton
-                        value={consentDetails?.account_number ?? ""}
+                        value={flutterwaveMandateConsent?.account_number ?? ""}
                         timeout={2000}
                       >
                         {({ copied, copy }) => (
@@ -879,7 +792,9 @@ export function MandatePledgeForm({
                             variant="light"
                             className="self-start rounded-2xl border border-deep-forest/30 text-deep-forest"
                             onClick={copy}
-                            disabled={!consentDetails?.account_number}
+                            disabled={
+                              !flutterwaveMandateConsent?.account_number
+                            }
                           >
                             {copied ? "Copied" : "Copy number"}
                           </Button>
@@ -887,12 +802,12 @@ export function MandatePledgeForm({
                       </CopyButton>
                     </div>
 
-                    {bankInstructions ? (
+                    {flutterwaveProcessorResponse ? (
                       <div className="rounded-2xl flex-1 bg-mist-green/30 p-4 text-sm text-deep-forest/80 border border-dashed border-deep-forest/30">
                         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
                           Bank instructions
                         </p>
-                        <p className="pt-2">{bankInstructions}</p>
+                        <p className="pt-2">{flutterwaveProcessorResponse}</p>
                       </div>
                     ) : (
                       <div className="rounded-2xl flex-1 border border-deep-forest/10 bg-mist-green/15 p-4 text-xs text-deep-forest/70">
@@ -935,25 +850,27 @@ export function MandatePledgeForm({
                   </div>
                 </div>
 
-                {tokenStatus && (
+                {flutterwaveEffectiveDate && (
                   <div className="rounded-3xl border border-vibrant-lime/30 bg-mist-green/20 p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
                       Token lifecycle
                     </p>
                     <div className="pt-3 text-sm text-deep-forest/80">
-                      {tokenStatus.processor_response && (
+                      {flutterwaveAccountToken && (
                         <p className="text-deep-forest/70">
-                          {tokenStatus.processor_response}
+                          {flutterwaveAccountToken}
                         </p>
                       )}
 
                       <section className="pt-1 flex gap-1 items-center">
-                        <p className="font-semibold text-deep-forest">
-                          {capitalize(tokenStatus.status.toLowerCase())}
-                        </p>
+                        {flutterwaveStatus && (
+                          <p className="font-semibold text-deep-forest">
+                            {capitalize(flutterwaveStatus.toLowerCase())}
+                          </p>
+                        )}
                         &bull;
-                        {tokenStatus.active_on && (
-                          <p>{formatDateTime(tokenStatus.active_on)}</p>
+                        {flutterwaveEffectiveDate && (
+                          <p>{formatDateTime(flutterwaveEffectiveDate)}</p>
                         )}
                       </section>
                     </div>
@@ -971,45 +888,15 @@ export function MandatePledgeForm({
                   </div>
                 )}
 
-                <div className="space-y-4 rounded-3xl border border-deep-forest/30 bg-mist-green/30 p-5">
-                  <div className="flex flex-col gap-y-5 gap-x-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
-                        First debit
-                      </p>
-                      <p className="text-lg font-semibold text-deep-forest">
-                        Charge {manualChargeLabel} manually
-                      </p>
-                    </div>
-                    <Button
-                      radius="lg"
-                      onClick={handleManualCharge}
-                      loading={tokenizedCharge.isPending}
-                      disabled={!isTokenActive || tokenizedCharge.isPending}
-                    >
-                      Initiate first debit
-                    </Button>
-                  </div>
-
-                  {chargeReceipt && (
-                    <div className="rounded-2xl border border-deep-forest/20 bg-white p-4 text-sm text-deep-forest/80">
-                      <p className="font-semibold text-deep-forest">
-                        Charge status: {capitalize(chargeReceipt.status)}
-                      </p>
-                      <p>Reference: {chargeReceipt.tx_ref}</p>
-                      {chargeReceipt.processor_response && (
-                        <p className="text-deep-forest/70">
-                          {chargeReceipt.processor_response}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 <div className="space-y-3 text-sm text-deep-forest/70">
                   <p>
-                    You can manage or cancel your mandate at any time from the
-                    mandate dashboard.
+                    You can manage or cancel your mandate at any time from the{" "}
+                    <Link
+                      to="/mandate/dashboard"
+                      className="font-semibold text-deep-forest underline hover:text-deep-forest/80"
+                    >
+                      mandate dashboard.
+                    </Link>
                   </p>
                 </div>
               </div>

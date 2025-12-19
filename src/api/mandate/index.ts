@@ -4,16 +4,13 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  query,
   setDoc,
   updateDoc,
-  where,
 } from "firebase/firestore";
 
 import { db } from "@/services/firebase";
 import { record } from "@/utils/record";
 import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { mandateCertificate } from "@/api/mandate-certificate";
 
 import {
   MANDATES_COLLECTION,
@@ -30,8 +27,8 @@ import type {
 } from "./types";
 import { determineTier } from "./utils";
 import { addMinutes, isAfter } from "date-fns";
-import type { User } from "../user/types";
-import type { FlutterwaveStatus } from "../flutterwave/types";
+import { flutterwave } from "../flutterwave";
+import { mandateCertificate } from "../mandate-certificate";
 
 function isStale(createdAt: Date) {
   return isAfter(new Date(), addMinutes(createdAt, 10));
@@ -42,11 +39,21 @@ function mandateRef(mandateId: string) {
 }
 
 async function create(variables: CreateMandateVariables) {
-  const { user, data, tokenResponse } = variables;
+  const { user, data } = variables;
 
-  if (!tokenResponse) {
-    throw new Error("Token response is required to create mandate");
-  }
+  const tokenResponse = await flutterwave.$use.account.tokenize({
+    data: {
+      email: user.email,
+      amount: data.amount,
+      address: user.address,
+      phone_number: user.phoneNumber,
+      account_bank: data.bankCode,
+      account_number: data.accountNumber,
+      start_date: data.startDate,
+      end_date: data.endDate!,
+      narration: `LAUMGA Foundation ${data.frequency} contribution`,
+    },
+  });
 
   const validated = createMandateSchema.parse(data);
   const docRef = mandateRef(user.id);
@@ -62,8 +69,10 @@ async function create(variables: CreateMandateVariables) {
     flutterwaveAccountId: tokenResponse.data.account_id,
     flutterwaveCustomerId: tokenResponse.data.customer_id,
     flutterwaveStatus: tokenResponse.data.status,
+    flutterwaveAccountToken: null,
     flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
     flutterwaveProcessorResponse: tokenResponse.data.processor_response,
+    flutterwaveEffectiveDate: null,
     created: record(user),
     updated: record(user),
   };
@@ -90,10 +99,24 @@ async function get(id: string) {
 
   if (!mandate) return null;
 
-  if (mandate.flutterwaveStatus !== "PENDING") return mandate;
-  if (mandate.created && isStale(mandate.created.at)) {
-    await deleteDoc(ref);
-    return null;
+  const account = await flutterwave.$use.account.status({
+    data: mandate.flutterwaveReference!,
+  });
+
+  if (account.data.status === "PENDING") {
+    if (isStale(new Date(account.data.created_at))) {
+      await deleteDoc(ref);
+      return null;
+    }
+  }
+
+  if (account.data.status !== mandate.flutterwaveStatus) {
+    mandate.flutterwaveStatus = account.data.status;
+    mandate.flutterwaveProcessorResponse = account.data.processor_response;
+    mandate.flutterwaveAccountToken = account.data.token;
+    mandate.flutterwaveEffectiveDate = account.data.active_on;
+
+    await updateDoc(ref, mandate);
   }
 
   return mandate;

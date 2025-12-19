@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Section } from "@/components/section";
 
 import { MandateHeader } from "@/layouts/mandate/header";
-import { MandateCertificateView } from "../../../layouts/mandate/certificate-view";
+import { MandateCertificateView } from "@/layouts/mandate/certificate-view";
 
 export const Route = createFileRoute("/_auth/mandate/_layout/certificate")({
+  ssr: false,
   component: RouteComponent,
 });
 

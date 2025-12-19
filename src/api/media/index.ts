@@ -99,12 +99,8 @@ async function remove(id: string) {
 async function deleteStorageObject(url: string) {
   if (!url) return;
 
-  try {
-    const storageRef = ref(storage, url);
-    await deleteObject(storageRef);
-  } catch (error) {
-    console.warn("Failed to delete gallery media", error);
-  }
+  const storageRef = ref(storage, url);
+  await deleteObject(storageRef);
 }
 
 export const media = createBuilder(

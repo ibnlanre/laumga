@@ -10,7 +10,8 @@ const pledgeSearchSchema = z
   .object({
     tier: z.enum(["supporter", "builder", "guardian", "custom"]),
     amount: z.number(),
-  }).partial();
+  })
+  .partial();
 
 export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
   validateSearch: zodValidator(pledgeSearchSchema),

@@ -86,18 +86,18 @@ function RouteComponent() {
 
               <div className="mt-6">
                 <p className="font-semibold text-institutional-green dark:text-text-primary-dark">
-                  Prof. Taofik A. Adedosu
+                  Mr. Goke Aruna
                 </p>
                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                  Fmr. President
+                  Chairman
                 </p>
               </div>
             </div>
-            <div className="flex justify-center items-center">
+            <div className="flex justify-center items-center size-full">
               <img
-                alt="Prof. Taofik A. Adedosu, Fmr. President of LAUMGA"
-                className="rounded-lg w-full max-w-sm object-cover shadow-2xl"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBy5AkZtRXuXVoKbWPr_Sd9_K4UvDSzLQipxGQAxOBtBjHRg-CbPgVy2owe7TnJMLi_VV2FCeQs27IrKDi_PVa4mWomg2_ukrimbefuq13eQhsjfit-49TLRTS5KoOM07jtMwNAv1tpo4I8r8Y-gVX9MhU1NNenslxIO64zPZ_Gq2t8zGmWtUtJC90Mpj2M-Rj1T_LoJBL8Uz6HRdKbgbLpSFAOJAHPl_bUmkptyNLxb9qHiDD-6392JkmRNuTUmTwqxUUMFTOdsM"
+                alt="Mr. Goke Aruna, Chairman LAUMGA Foundation"
+                className="rounded-lg size-full object-cover shadow-2xl aspect-4/3"
+                src="/laumga-chairman-photo.png"
               />
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
 import {
   CheckCircle,
   Heart,
@@ -22,6 +22,8 @@ export const Route = createFileRoute("/_auth/mandate/_layout/")({
 });
 
 function RouteComponent() {
+  const { mandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+
   const heroHighlights = [
     {
       title: "Scholarship lifeline",
@@ -169,13 +171,16 @@ function RouteComponent() {
               relief, and community-led ventures with disciplined transparency.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                to="/mandate/pledge"
-                search={{ tier: "supporter", amount: 5000 }}
-                className="rounded-full bg-vibrant-lime px-6 py-3 text-sm font-semibold uppercase tracking-wide text-deep-forest transition hover:bg-white"
-              >
-                Start a Mandate
-              </Link>
+              {!mandate && (
+                <Link
+                  to="/mandate/pledge"
+                  search={{ tier: "supporter", amount: 5000 }}
+                  className="rounded-full bg-vibrant-lime px-6 py-3 text-sm font-semibold uppercase tracking-wide text-deep-forest transition hover:bg-white"
+                >
+                  Start a Mandate
+                </Link>
+              )}
+
               <Link
                 to="/mandate/dashboard"
                 className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:border-white"
@@ -278,7 +283,10 @@ function RouteComponent() {
                     <ul className="mt-6 flex flex-col gap-3 text-sm text-gray-700">
                       {tier.perks.map((perk) => (
                         <li key={perk} className="flex items-center gap-2">
-                          <CheckCircle size={16} className="text-institutional-green" />
+                          <CheckCircle
+                            size={16}
+                            className="text-institutional-green"
+                          />
                           <span>{perk}</span>
                         </li>
                       ))}
@@ -297,7 +305,10 @@ function RouteComponent() {
                       )}
                     >
                       Commit now
-                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight
+                        size={16}
+                        className="group-hover:translate-x-1 transition-transform"
+                      />
                     </Link>
                   </div>
                 );

@@ -46,6 +46,7 @@ import type {
 import { record } from "@/utils/record";
 import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
 import { tryCatch } from "@/utils/try-catch";
+import { loginUser, logoutUser } from "@/api/firebase";
 
 async function list(variables?: ListUserVariables) {
   const result = await tryCatch(async () => {
@@ -172,6 +173,9 @@ async function login(variables: LoginVariables) {
     if (rememberMe) await setPersistence(auth, browserLocalPersistence);
     const credential = await signInWithEmailAndPassword(auth, email, password);
 
+    const idToken = await credential.user.getIdToken();
+    await loginUser({ data: { idToken } });
+
     return credential.user;
   });
 
@@ -191,6 +195,10 @@ async function loginWithProvider(provider: AuthProvider) {
   const result = await tryCatch(async () => {
     await setPersistence(auth, browserLocalPersistence);
     const credential = await signInWithPopup(auth, provider);
+
+    const idToken = await credential.user.getIdToken();
+    await loginUser({ data: { idToken } });
+
     return credential.user;
   });
 
@@ -238,6 +246,7 @@ async function applyPasswordReset(variables: ConfirmPasswordResetVariables) {
 async function logout() {
   const result = await tryCatch(async () => {
     await signOut(auth);
+    await logoutUser();
   });
 
   if (!result.success) {

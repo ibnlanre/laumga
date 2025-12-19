@@ -44,6 +44,8 @@ const mandateFormSchema = createMandateSchema
     flutterwaveReference: z.string().nullable().default(null),
     flutterwaveAccountId: z.union([z.number(), z.string()]),
     flutterwaveCustomerId: z.union([z.number(), z.string()]),
+    flutterwaveAccountToken: z.string().nullable().default(null),
+    flutterwaveEffectiveDate: isoDateTimeString.nullable().default(null),
     flutterwaveMandateConsent: flutterwaveMandateConsentSchema.nullable().default(null),
     flutterwaveProcessorResponse: z.string().nullable().default(null),
     flutterwaveStatus: flutterwaveStatusSchema,
