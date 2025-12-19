@@ -10,8 +10,9 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatDate, now } from "@/utils/date";
-import { useListArticles } from "@/api/article/hooks";
-import { useListEvents } from "@/api/event/hooks";
+import { listArticleOptions } from "@/api/article/options";
+import { useQuery } from "@tanstack/react-query";
+import { listEventOptions } from "@/api/event/options";
 import { Section } from "@/components/section";
 
 export const Route = createFileRoute("/_public/")({
@@ -19,20 +20,24 @@ export const Route = createFileRoute("/_public/")({
 });
 
 function RouteComponent() {
-  const { data: articles } = useListArticles({
-    filterBy: [{ field: "status", operator: "==", value: "published" }],
-  });
+  const { data: articles } = useQuery(
+    listArticleOptions({
+      filterBy: [{ field: "status", operator: "==", value: "published" }],
+    })
+  );
 
-  const { data: events } = useListEvents({
-    filterBy: [
-      {
-        field: "startDate",
-        operator: ">=",
-        value: now,
-      },
-    ],
-    sortBy: [{ field: "startDate", value: "asc" }],
-  });
+  const { data: events } = useQuery(
+    listEventOptions({
+      filterBy: [
+        {
+          field: "startDate",
+          operator: ">=",
+          value: now,
+        },
+      ],
+      sortBy: [{ field: "startDate", value: "asc" }],
+    })
+  );
 
   return (
     <main>

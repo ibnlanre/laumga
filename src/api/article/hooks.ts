@@ -1,7 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { article } from "./index";
-import type { Options } from "@/client/options";
-import type { ListArticleVariables } from "./types";
 
 export function useCreateArticle() {
   return useMutation({
@@ -33,25 +31,6 @@ export function useRemoveArticle() {
       errorMessage: "Failed to delete article.",
       successMessage: "Article deleted successfully.",
     },
-  });
-}
-
-export function useListArticles(
-  variables?: ListArticleVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: article.list.$use(variables),
-    queryFn: () => article.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetArticle(id?: string) {
-  return useQuery({
-    queryKey: article.get.$get(id),
-    queryFn: () => article.$use.get(id!),
-    enabled: !!id,
   });
 }
 

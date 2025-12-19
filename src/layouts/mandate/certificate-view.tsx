@@ -162,8 +162,13 @@ export function MandateCertificateView() {
           </span>
         </div>
         <div className="mt-6 flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-deep-forest text-2xl font-bold text-vibrant-lime">
-            <Image src="/logo-laumga-green.png" alt="Laumga" width={64} height={64} />
+          <div className="flex h-16 w-16 p-2.5 items-center justify-center rounded-full bg-black text-2xl font-bold text-vibrant-lime overflow-hidden">
+            <Image
+              src="/laumga-square.jpeg"
+              alt="Laumga"
+              width={48}
+              height={48}
+            />
           </div>
         </div>
         <div className="mt-4 text-center">
@@ -195,10 +200,9 @@ export function MandateCertificateView() {
           <div>
             <p className="font-semibold text-deep-forest">Issued</p>
             <p>
-              {mandateCertificate.data.created ? formatDate(
-                mandateCertificate.data.created.at,
-                "PPP"
-              ) : "Pending activation"}
+              {mandateCertificate.data.created
+                ? formatDate(mandateCertificate.data.created.at, "PPP")
+                : "Pending activation"}
             </p>
           </div>
           <div className="text-center">

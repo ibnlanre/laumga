@@ -1,19 +1,5 @@
 import { user } from ".";
-import type { Options } from "@/client/options";
-import { queryOptions, useQuery, useMutation } from "@tanstack/react-query";
-import type { ListUserVariables } from "./types";
-import { userQueryOptions } from "./options";
-
-export function useListUsers(
-  variables?: ListUserVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: user.list.$use(variables),
-    queryFn: () => user.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
+import { useMutation } from "@tanstack/react-query";
 
 export function useUpdateUser() {
   return useMutation({
@@ -35,10 +21,6 @@ export function useCreateUser() {
       successMessage: "User created successfully.",
     },
   });
-}
-
-export function useCurrentUser(id?: string) {
-  return useQuery(userQueryOptions(id));
 }
 
 export function useLogin() {

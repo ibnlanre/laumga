@@ -22,13 +22,3 @@ export function useUnsubscribe() {
     },
   });
 }
-
-export function useListSubscriptions() {
-  return useMutation({
-    mutationKey: newsletterSubscription.list.$get(),
-    mutationFn: newsletterSubscription.$use.list,
-    meta: {
-      errorMessage: "Failed to fetch newsletter subscriptions",
-    },
-  });
-}

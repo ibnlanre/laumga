@@ -30,12 +30,9 @@ import { DataTable } from "@/components/data-table";
 import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { permissionOptions, type Permission } from "@/schema/permissions";
-import {
-  useCreateRole,
-  useListRoles,
-  useRemoveRole,
-  useUpdateRole,
-} from "@/api/role/hooks";
+import { listRoleOptions } from "@/api/role/options";
+import { useQuery } from "@tanstack/react-query";
+import { useCreateRole, useRemoveRole, useUpdateRole } from "@/api/role/hooks";
 import { roleDataSchema } from "@/api/role/schema";
 import type { Role, RoleForm } from "@/api/role/types";
 
@@ -55,7 +52,8 @@ function RoleManagement() {
   const canEditRoles = permissions.includes("can-edit-roles");
   const canDeleteRoles = permissions.includes("can-delete-roles");
 
-  const { data: roles = [], isLoading } = useListRoles(undefined, {
+  const { data: roles = [], isLoading } = useQuery({
+    ...listRoleOptions(),
     enabled: canViewRoles,
   });
 

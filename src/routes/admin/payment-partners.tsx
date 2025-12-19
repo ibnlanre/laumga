@@ -40,10 +40,11 @@ import { formatDate } from "@/utils/date";
 import { useAuth } from "@/contexts/use-auth";
 import {
   useCreatePaymentPartner,
-  useGetActivePaymentPartners,
   useUpdatePaymentPartner,
 } from "@/api/payment-partner/hooks";
-import { useFetchFlutterwaveBanks } from "@/api/flutterwave/hooks";
+import { getActivePaymentPartnerOptions } from "@/api/payment-partner/options";
+import { listFlutterwaveBankOptions } from "@/api/flutterwave/options";
+import { useQuery } from "@tanstack/react-query";
 import type { FlutterwaveBank } from "@/api/flutterwave/types";
 import type {
   PaymentPartner,
@@ -69,14 +70,15 @@ function PaymentPartnerDashboard() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
 
-  const { data: partners = [], isLoading: isPartnersLoading } =
-    useGetActivePaymentPartners();
+  const { data: partners = [], isLoading: isPartnersLoading } = useQuery(
+    getActivePaymentPartnerOptions()
+  );
 
   const {
     data: banks = [],
     isFetching: isFetchingBanks,
     refetch: refetchBanks,
-  } = useFetchFlutterwaveBanks();
+  } = useQuery(listFlutterwaveBankOptions());
 
   const { mutateAsync: updatePartner, isPending: isUpdatingPartner } =
     useUpdatePaymentPartner();

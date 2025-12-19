@@ -1,8 +1,6 @@
-import { queryOptions, useMutation, useQuery, type DefaultError, type QueryKey } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-import type { Options } from "@/client/options";
 import { role } from "./index";
-import type { ListRoleVariables } from "./types";
 
 export function useCreateRole() {
   return useMutation({
@@ -37,17 +35,6 @@ export function useRemoveRole() {
   });
 }
 
-export function useListRoles(
-  variables?: ListRoleVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: role.list.$use(variables),
-    queryFn: () => role.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
 export function useGetRole(id?: string) {
   return useQuery({
     queryKey: role.get.$get(id),
@@ -55,4 +42,3 @@ export function useGetRole(id?: string) {
     enabled: !!id,
   });
 }
-

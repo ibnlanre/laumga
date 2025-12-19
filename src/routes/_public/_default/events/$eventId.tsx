@@ -12,13 +12,11 @@ import {
 import { formatDate, formatTime } from "@/utils/date";
 
 import { useAuth } from "@/contexts/use-auth";
-import { notifications } from "@mantine/notifications";
 import { isPast } from "date-fns";
-import {
-  useCheckIfUserRegisteredForEvent,
-  useCreateEventRegistration,
-} from "@/api/event-registration/hooks";
-import { useGetEvent } from "@/api/event/hooks";
+import { useCreateEventRegistration } from "@/api/event-registration/hooks";
+import { checkUserRegistrationOptions } from "@/api/event-registration/options";
+import { getEventOptions } from "@/api/event/options";
+import { useQuery } from "@tanstack/react-query";
 import { Section } from "@/components/section";
 import {
   showErrorNotification,
@@ -39,10 +37,9 @@ function EventDetailPage() {
   const { eventId } = Route.useParams();
   const { user } = useAuth();
 
-  const { data: event, isLoading } = useGetEvent(eventId);
-  const { data: isRegistered } = useCheckIfUserRegisteredForEvent(
-    eventId,
-    user?.id
+  const { data: event, isLoading } = useQuery(getEventOptions(eventId));
+  const { data: isRegistered } = useQuery(
+    checkUserRegistrationOptions(eventId, user?.id)
   );
 
   if (isLoading) {
@@ -78,7 +75,7 @@ function EventDetailPage() {
       showInfoNotification({
         title: "Login Required",
         message: "Please login to register for this event",
-      })
+      });
 
       navigate({ to: "/login" });
       return;

@@ -6,7 +6,8 @@ import { formatDate, now } from "@/utils/date";
 
 import { type Variables } from "@/client/core-query";
 import type { Event, EventData, EventType } from "@/api/event/types";
-import { useListEvents } from "@/api/event/hooks";
+import { listEventOptions } from "@/api/event/options";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_public/_default/events")({
   component: EventsPage,
@@ -48,7 +49,9 @@ function EventsPage() {
     });
   }
 
-  const { data: events, isLoading } = useListEvents(eventVariables);
+  const { data: events, isLoading } = useQuery(
+    listEventOptions(eventVariables)
+  );
 
   const filteredEvents = events?.filter((event) =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase())

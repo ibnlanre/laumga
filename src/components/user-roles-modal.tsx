@@ -10,8 +10,10 @@ import {
 } from "@mantine/core";
 import { useAuth } from "@/contexts/use-auth";
 import { useForm } from "@mantine/form";
-import { useAssignUserRoles, useGetUserRoles } from "@/api/user-roles/hooks";
-import { useListRoles } from "@/api/role/hooks";
+import { useAssignUserRoles } from "@/api/user-roles/hooks";
+import { getUserRoleOptions } from "@/api/user-roles/options";
+import { listRoleOptions } from "@/api/role/options";
+import { useQuery } from "@tanstack/react-query";
 import type { UserRoleFormData } from "@/api/user-roles/types";
 import { userRoleFormSchema } from "@/api/user-roles/schema";
 import { zod4Resolver } from "mantine-form-zod-resolver";
@@ -23,8 +25,11 @@ interface UserRolesModalProps {
 export function UserRolesModal({ id }: UserRolesModalProps) {
   const { user } = useAuth();
 
-  const { data: userRoles, isLoading: loadingUserRoles } = useGetUserRoles(id);
-  const { data: availableRoles = [], isLoading: loadingRoles } = useListRoles();
+  const { data: userRoles, isLoading: loadingUserRoles } = useQuery(
+    getUserRoleOptions(id)
+  );
+  const { data: availableRoles = [], isLoading: loadingRoles } =
+    useQuery(listRoleOptions());
   const assignRoleMutation = useAssignUserRoles();
 
   const form = useForm<UserRoleFormData>({

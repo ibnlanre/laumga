@@ -1,8 +1,6 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-import type { Options } from "@/client/options";
 import { library } from "./index";
-import type { ListLibraryVariables } from "./types";
 
 export function useCreateLibrary() {
   return useMutation({
@@ -35,17 +33,6 @@ export function useRemoveLibrary() {
       successMessage: "Library deleted successfully.",
     },
   });
-}
-
-export function useListLibraries(
-  variables?: ListLibraryVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: library.list.$use(variables),
-    queryFn: () => library.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
 }
 
 export function useGetLibrary(id?: string) {

@@ -1,12 +1,18 @@
 import { queryOptions } from "@tanstack/react-query";
 import { user } from ".";
+import type { ListUserVariables } from "./types";
 
-export const userQueryOptions = (id?: string | null) => {
+export const listUserOptions = (variables?: ListUserVariables) => {
   return queryOptions({
-  queryKey: user.get.$get(id),
-  queryFn: () => user.$use.get(id!),
-  enabled: !!id,
-});
-}
+    queryKey: user.list.$use(variables),
+    queryFn: () => user.$use.list(variables),
+  });
+};
 
-export type userQueryOptions = typeof userQueryOptions;
+export const getUserOptions = (id?: string | null) => {
+  return queryOptions({
+    queryKey: user.get.$get(id),
+    queryFn: () => user.$use.get(id!),
+    enabled: !!id,
+  });
+};

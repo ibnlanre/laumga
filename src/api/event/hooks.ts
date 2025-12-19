@@ -1,7 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { event } from "./index";
-import type { ListEventVariables } from "./types";
-import type { Options } from "@/client/options";
 
 export function useCreateEvent() {
   return useMutation({
@@ -33,24 +31,5 @@ export function useRemoveEvent() {
       errorMessage: "Failed to delete event.",
       successMessage: "Event deleted successfully.",
     },
-  });
-}
-
-export function useListEvents(
-  variables?: ListEventVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: event.list.$use(variables),
-    queryFn: () => event.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetEvent(id?: string) {
-  return useQuery({
-    queryKey: event.get.$get(id),
-    queryFn: () => event.$use.get(id!),
-    enabled: !!id,
   });
 }

@@ -24,10 +24,11 @@ import {
   Users,
 } from "lucide-react";
 
-import { useListUsers } from "@/api/user/hooks";
-import { useListMandates } from "@/api/mandate/hooks";
-import { useListEvents } from "@/api/event/hooks";
-import { useListArticles } from "@/api/article/hooks";
+import { listMandateOptions } from "@/api/mandate/options";
+import { useQuery } from "@tanstack/react-query";
+import { listEventOptions } from "@/api/event/options";
+import { listArticleOptions } from "@/api/article/options";
+import { listUserOptions } from "@/api/user/options";
 import type { Mandate } from "@/api/mandate/types";
 import type { User } from "@/api/user/types";
 import type { Event } from "@/api/event/types";
@@ -52,10 +53,10 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function RouteComponent() {
-  const { data: users = [] } = useListUsers();
-  const { data: mandates = [] } = useListMandates();
-  const { data: events = [] } = useListEvents();
-  const { data: articles = [] } = useListArticles();
+  const { data: users = [] } = useQuery(listUserOptions());
+  const { data: mandates = [] } = useQuery(listMandateOptions());
+  const { data: events = [] } = useQuery(listEventOptions());
+  const { data: articles = [] } = useQuery(listArticleOptions());
 
   const pendingUsers = useMemo(
     () => users.filter(({ status }) => status === "pending"),

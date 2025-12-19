@@ -16,7 +16,9 @@ import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import { formatDate } from "@/utils/date";
 import type { ApprovalStatus, User } from "@/api/user/types";
-import { useListUsers, useUpdateUser } from "@/api/user/hooks";
+import { useUpdateUser } from "@/api/user/hooks";
+import { listUserOptions } from "@/api/user/options";
+import { useQuery } from "@tanstack/react-query";
 import { modals } from "@mantine/modals";
 import { UserRolesModal } from "@/components/user-roles-modal";
 
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/admin/users")({
 function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const { data: users = [], isLoading } = useListUsers();
+  const { data: users = [], isLoading } = useQuery(listUserOptions());
   const updateUserMutation = useUpdateUser();
 
   const columnHelper = createColumnHelper<User>();

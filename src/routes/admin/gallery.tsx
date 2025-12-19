@@ -25,11 +25,9 @@ import { PageLoader } from "@/components/page-loader";
 import { useAuth } from "@/contexts/use-auth";
 import type { Media } from "@/api/media/types";
 import { MEDIA_CATEGORIES } from "@/api/media/schema";
-import {
-  useListMedia,
-  useRemoveMedia,
-  useUpdateMedia,
-} from "@/api/media/hooks";
+import { listMediaOptions } from "@/api/media/options";
+import { useQuery } from "@tanstack/react-query";
+import { useRemoveMedia, useUpdateMedia } from "@/api/media/hooks";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Media" },
@@ -67,7 +65,7 @@ function GalleryAdmin() {
   const { user } = useAuth();
   const actor = user;
 
-  const { data: items = [], isLoading } = useListMedia();
+  const { data: items = [], isLoading } = useQuery(listMediaOptions());
   const { mutateAsync: updateMedia, isPending: isUpdatingMedia } =
     useUpdateMedia();
   const { mutateAsync: removeMedia, isPending: isRemovingMedia } =

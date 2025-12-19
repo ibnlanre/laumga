@@ -34,8 +34,10 @@ import {
 } from "@/api/mandate/schema";
 import type { CreateMandate } from "@/api/mandate/types";
 import { useAuth } from "@/contexts/use-auth";
-import { useCreateMandate, useGetMandate } from "@/api/mandate/hooks";
-import { useFetchFlutterwaveBanks } from "@/api/flutterwave/hooks";
+import { useCreateMandate } from "@/api/mandate/hooks";
+import { getMandateOptions } from "@/api/mandate/options";
+import { useQuery } from "@tanstack/react-query";
+import { listFlutterwaveBankOptions } from "@/api/flutterwave/options";
 import { Section } from "@/components/section";
 import { formatCurrency } from "@/utils/currency";
 import { addMinutes, addYears } from "date-fns";
@@ -185,9 +187,9 @@ export function MandatePledgeForm({
 }: MandatePledgeFormProps) {
   const { user } = useAuth();
 
-  const mandate = useGetMandate(user?.id);
+  const mandate = useQuery(getMandateOptions(user?.id));
   const createMandate = useCreateMandate();
-  const flutterwaveBanks = useFetchFlutterwaveBanks();
+  const flutterwaveBanks = useQuery(listFlutterwaveBankOptions());
 
   const [remainingMs, setRemainingMs] = useState(0);
   const [consentExpiresAt, setConsentExpiresAt] = useState<number | null>(null);
@@ -221,7 +223,7 @@ export function MandatePledgeForm({
       id: "consent",
       title: "Authorize Mandate",
       copy: hasAccountToken
-        ? "You have successfully consented to the mandate." 
+        ? "You have successfully consented to the mandate."
         : "Make a small transfer to authorize the mandate.",
       complete: hasAccountToken,
     },

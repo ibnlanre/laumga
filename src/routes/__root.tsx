@@ -17,7 +17,7 @@ import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
 import { PageLoader } from "@/components/page-loader";
-import { userQueryOptions } from "@/api/user/options";
+import { getUserOptions } from "@/api/user/options";
 import { permissionQueryOptions } from "@/api/user-roles/options";
 import { getSession, logoutUser } from "@/api/firebase";
 
@@ -34,7 +34,7 @@ export const Route = createRootRoute({
     }
 
     const currentUser = await queryClient.ensureQueryData(
-      userQueryOptions(session.userId)
+      getUserOptions(session.userId)
     );
 
     if (!currentUser) {

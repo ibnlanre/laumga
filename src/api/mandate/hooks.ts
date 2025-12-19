@@ -1,14 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { mandate } from "./index";
-import type { ListMandateVariables } from "./types";
-import { mandateQueryOptions } from "./options";
-
-export function useListMandates(variables?: ListMandateVariables) {
-  return useQuery({
-    queryKey: mandate.list.$get(variables),
-    queryFn: () => mandate.$use.list(variables),
-  });
-}
 
 export function useCreateMandate() {
   return useMutation({
@@ -30,10 +21,6 @@ export function useUpdateMandate() {
       successMessage: "Mandate updated successfully.",
     },
   });
-}
-
-export function useGetMandate(id?: string) {
-  return useQuery(mandateQueryOptions(id));
 }
 
 export function usePauseMandate() {

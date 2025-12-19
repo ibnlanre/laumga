@@ -1,7 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { author } from "./index";
-import type { Options } from "@/client/options";
-import type { ListAuthorVariables } from "./types";
 
 export function useCreateAuthor() {
   return useMutation({
@@ -33,24 +31,5 @@ export function useRemoveAuthor() {
       errorMessage: "Failed to delete author.",
       successMessage: "Author deleted successfully.",
     },
-  });
-}
-
-export function useListAuthors(
-  variables?: ListAuthorVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: author.list.$use(variables),
-    queryFn: () => author.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetAuthor(id?: string) {
-  return useQuery({
-    queryKey: author.get.$get(id),
-    queryFn: () => author.$use.get(id!),
-    enabled: !!id,
   });
 }

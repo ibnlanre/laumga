@@ -28,7 +28,6 @@ import type {
 import { determineTier } from "./utils";
 import { addMinutes, isAfter } from "date-fns";
 import { flutterwave } from "../flutterwave";
-import { mandateCertificate } from "../mandate-certificate";
 
 function isStale(createdAt: Date) {
   return isAfter(new Date(), addMinutes(createdAt, 10));
@@ -132,8 +131,21 @@ async function pause(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
+  const mandate = snapshot.data();
+  if (!mandate.flutterwaveReference) {
+    throw new Error("Mandate has no Flutterwave reference");
+  }
+
+  const response = await flutterwave.$use.account.update({
+    data: {
+      reference: mandate.flutterwaveReference,
+      payload: { status: "SUSPENDED" },
+    },
+  });
+
   await updateDoc(ref, {
-    flutterwaveStatus: "SUSPENDED",
+    flutterwaveStatus: response.data.status,
+    flutterwaveProcessorResponse: response.data.processor_response,
     updated: record(user),
   });
 }
@@ -148,6 +160,18 @@ async function cancel(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
+  const mandate = snapshot.data();
+  if (!mandate.flutterwaveReference) {
+    throw new Error("Mandate has no Flutterwave reference");
+  }
+
+  await flutterwave.$use.account.update({
+    data: {
+      reference: mandate.flutterwaveReference,
+      payload: { status: "DELETED" },
+    },
+  });
+
   await deleteDoc(ref);
 }
 
@@ -161,8 +185,21 @@ async function reinstate(variables: UpdateMandateVariables) {
     throw new Error("Mandate not found");
   }
 
+  const mandate = snapshot.data();
+  if (!mandate.flutterwaveReference) {
+    throw new Error("Mandate has no Flutterwave reference");
+  }
+
+  const response = await flutterwave.$use.account.update({
+    data: {
+      reference: mandate.flutterwaveReference,
+      payload: { status: "ACTIVE" },
+    },
+  });
+
   await updateDoc(ref, {
-    flutterwaveStatus: "ACTIVE",
+    flutterwaveStatus: response.data.status,
+    flutterwaveProcessorResponse: response.data.processor_response,
     updated: record(user),
   });
 }

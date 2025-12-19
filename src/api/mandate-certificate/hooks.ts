@@ -1,18 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { mandateCertificate } from ".";
-import type { Options } from "@/client/options";
-
-export function useGetMandateCertificate(
-  id?: string,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: mandateCertificate.get.$get(id),
-    queryFn: () => mandateCertificate.$use.get(id!),
-    enabled: !!id,
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
 
 export function useCreateMandateCertificate() {
   return useMutation({

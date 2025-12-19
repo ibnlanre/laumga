@@ -3,9 +3,10 @@ import { useForm } from "@mantine/form";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
-import { useListExecutives } from "@/api/executive/hooks";
+import { listExecutiveOptions } from "@/api/executive/options";
+import { useQuery } from "@tanstack/react-query";
 import type { Executive, ExecutiveTier } from "@/api/executive/types";
-import { useListExecutiveTenures } from "@/api/executive-tenure/hooks";
+import { listExecutiveTenureOptions } from "@/api/executive-tenure/options";
 import { SearchCheckIcon, MapPin, Sparkles, User } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/alumni")({
@@ -35,10 +36,11 @@ function RouteComponent() {
 
   const [activeTenureId, setActiveTenureId] = useState<string | null>(null);
 
-  const { data: tenures = [], isLoading: isTenuresLoading } =
-    useListExecutiveTenures({
+  const { data: tenures = [], isLoading: isTenuresLoading } = useQuery(
+    listExecutiveTenureOptions({
       sortBy: [{ field: "year", value: "desc" }],
-    });
+    })
+  );
 
   useEffect(() => {
     if (!tenures.length) return;
@@ -57,21 +59,16 @@ function RouteComponent() {
     return tenures.find((tenure) => tenure.id === activeTenureId) ?? null;
   }, [tenures, activeTenureId]);
 
-  const { data: executives = [], isLoading: isExecutivesLoading } =
-    useListExecutives(
-      {
-        filterBy: [
-          { field: "tenureId", operator: "==", value: activeTenureId },
-        ],
-        sortBy: [
-          { field: "tier", value: "asc" },
-          { field: "role", value: "asc" },
-        ],
-      },
-      {
-        enabled: !!activeTenureId,
-      }
-    );
+  const { data: executives = [], isLoading: isExecutivesLoading } = useQuery({
+    ...listExecutiveOptions({
+      filterBy: [{ field: "tenureId", operator: "==", value: activeTenureId }],
+      sortBy: [
+        { field: "tier", value: "asc" },
+        { field: "role", value: "asc" },
+      ],
+    }),
+    enabled: !!activeTenureId,
+  });
 
   const groupedExecutives = useMemo(() => {
     const base = executives ?? [];

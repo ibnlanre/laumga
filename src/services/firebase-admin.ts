@@ -11,10 +11,10 @@ const serviceAccount = JSON.parse(
   Buffer.from(firebaseServerKey, "base64").toString("utf-8")
 );
 
-export const firebaseApp = admin.apps.length
+export const app = admin.apps.length
   ? admin.app()
   : admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
 
-export const firebaseAuth = getAuth(firebaseApp);
+export const auth = getAuth(app);

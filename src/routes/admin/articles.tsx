@@ -20,11 +20,9 @@ import { Eye, Check, X, Trash2, Star } from "lucide-react";
 import { PageLoader } from "@/components/page-loader";
 import { DataTable } from "@/components/data-table";
 import type { Article, ArticleStatus } from "@/api/article/types";
-import {
-  useListArticles,
-  useRemoveArticle,
-  useUpdateArticle,
-} from "@/api/article/hooks";
+import { useRemoveArticle, useUpdateArticle } from "@/api/article/hooks";
+import { listArticleOptions } from "@/api/article/options";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/use-auth";
 
 export const Route = createFileRoute("/admin/articles")({
@@ -40,7 +38,7 @@ function ArticlesAdmin() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailsOpened, setDetailsOpened] = useState(false);
 
-  const { data: articles = [], isLoading } = useListArticles();
+  const { data: articles = [], isLoading } = useQuery(listArticleOptions());
   const updateArticleMutation = useUpdateArticle();
   const deleteArticleMutation = useRemoveArticle();
 

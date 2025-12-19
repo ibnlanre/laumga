@@ -4,7 +4,8 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { clsx } from "clsx";
 
-import { useGetFeaturedMedia, useListMedia } from "@/api/media/hooks";
+import { getFeaturedMediaOptions, listMediaOptions } from "@/api/media/options";
+import { useQuery } from "@tanstack/react-query";
 import { MEDIA_CATEGORIES } from "@/api/media/schema";
 import { PageLoader } from "@/components/page-loader";
 
@@ -22,8 +23,8 @@ export const Route = createFileRoute("/_auth/gallery")({
 
 function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("all");
-  const { data: mediaItems = [], isLoading } = useListMedia();
-  const { data: featuredMedia = [] } = useGetFeaturedMedia();
+  const { data: mediaItems = [], isLoading } = useQuery(listMediaOptions());
+  const { data: featuredMedia = [] } = useQuery(getFeaturedMediaOptions());
 
   const filteredMedia =
     activeCategory === "all"

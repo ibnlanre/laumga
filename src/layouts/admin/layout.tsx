@@ -15,7 +15,9 @@ import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
 import clsx from "clsx";
 
 import { Section } from "@/components/section";
-import { useLogout, useListUsers } from "@/api/user/hooks";
+import { useLogout } from "@/api/user/hooks";
+import { listUserOptions } from "@/api/user/options";
+import { useQuery } from "@tanstack/react-query";
 import type { User } from "@/api/user/types";
 import { adminNavGroups } from "./navigation";
 import type { AdminNavGroup, AdminNavItem } from "./navigation";
@@ -35,7 +37,7 @@ export function AdminAppShell({ children, currentUser }: AdminAppShellProps) {
   >;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { mutateAsync: logout, isPending } = useLogout();
-  const { data: users = [] } = useListUsers();
+  const { data: users = [] } = useQuery(listUserOptions());
 
   const pendingMembers = useMemo(
     () => users.filter(({ status }) => status === "pending").length,

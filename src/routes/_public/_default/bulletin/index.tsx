@@ -8,7 +8,8 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
 import type { ArticleData } from "@/api/article/types";
-import { useListArticles } from "@/api/article/hooks";
+import { listArticleOptions } from "@/api/article/options";
+import { useQuery } from "@tanstack/react-query";
 import { Section } from "@/components/section";
 
 const bulletinSearchSchema = z.object({
@@ -58,8 +59,9 @@ function RouteComponent() {
     });
   }
 
-  const { data: articles, isLoading: isLoadingArticles } =
-    useListArticles(articleVariables);
+  const { data: articles, isLoading: isLoadingArticles } = useQuery(
+    listArticleOptions(articleVariables)
+  );
 
   const displayArticles = articles?.slice(0, limit);
   const isLoading = isLoadingArticles;
@@ -98,7 +100,7 @@ function RouteComponent() {
             </p>
           </div>
         </Section>
-        
+
         <div className="absolute -bottom-6 left-1/2 w-full max-w-4xl -translate-x-1/2 px-6 z-20">
           <div className="flex gap-2 p-2 justify-start md:justify-center rounded-full bg-white/20 backdrop-blur-lg shadow-lg border border-white/20 overflow-x-auto no-scrollbar">
             <button
@@ -182,45 +184,44 @@ function RouteComponent() {
       ) : (
         <Fragment>
           {featuredArticle && !debouncedSearch && (
- 
-              <Section className="py-16 md:py-24">
-                <div className="flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-12 bg-white p-6 rounded-lg shadow-sm">
-                  <div
-                    className="w-full lg:w-1/2 aspect-video bg-cover bg-center rounded-lg flex-1"
-                    role="img"
-                    aria-label={featuredArticle.title}
-                    style={{
-                      backgroundImage: `url('${featuredArticle.coverImageUrl || "https://placehold.co/600x400"}')`,
-                    }}
-                  />
-                  <div className="flex lg:w-1/2 flex-col justify-center gap-4 py-4">
-                    <p className="text-sm font-bold uppercase tracking-widest text-sage-green">
-                      EDITOR'S PICK
-                    </p>
-                    <h2 className="text-4xl font-display font-medium leading-tight text-deep-forest">
-                      {featuredArticle.title}
-                    </h2>
-                    <p className="text-base font-normal leading-relaxed text-deep-forest/70 line-clamp-3">
-                      {featuredArticle.excerpt || featuredArticle.content}
-                    </p>
-                    {/* <p className="text-sm font-medium text-institutional-green">
+            <Section className="py-16 md:py-24">
+              <div className="flex flex-col lg:flex-row items-stretch justify-between gap-8 lg:gap-12 bg-white p-6 rounded-lg shadow-sm">
+                <div
+                  className="w-full lg:w-1/2 aspect-video bg-cover bg-center rounded-lg flex-1"
+                  role="img"
+                  aria-label={featuredArticle.title}
+                  style={{
+                    backgroundImage: `url('${featuredArticle.coverImageUrl || "https://placehold.co/600x400"}')`,
+                  }}
+                />
+                <div className="flex lg:w-1/2 flex-col justify-center gap-4 py-4">
+                  <p className="text-sm font-bold uppercase tracking-widest text-sage-green">
+                    EDITOR'S PICK
+                  </p>
+                  <h2 className="text-4xl font-display font-medium leading-tight text-deep-forest">
+                    {featuredArticle.title}
+                  </h2>
+                  <p className="text-base font-normal leading-relaxed text-deep-forest/70 line-clamp-3">
+                    {featuredArticle.excerpt || featuredArticle.content}
+                  </p>
+                  {/* <p className="text-sm font-medium text-institutional-green">
                       By {featuredArticle.authorName || "Unknown Author"} •{" "}
                       {formatDate(
                         featuredArticle.publishedAt || featuredArticle.createdAt
                       )}
                     </p> */}
-                    <div className="mt-4">
-                      <Link
-                        to="/bulletin/$article"
-                        params={{ article: featuredArticle.slug }}
-                        className="inline-block text-base font-bold text-deep-forest underline-expand"
-                      >
-                        Read Full Article
-                      </Link>
-                    </div>
+                  <div className="mt-4">
+                    <Link
+                      to="/bulletin/$article"
+                      params={{ article: featuredArticle.slug }}
+                      className="inline-block text-base font-bold text-deep-forest underline-expand"
+                    >
+                      Read Full Article
+                    </Link>
                   </div>
                 </div>
-              </Section>
+              </div>
+            </Section>
           )}
 
           <Section className="py-24">

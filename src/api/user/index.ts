@@ -42,6 +42,7 @@ import type {
   UpdateUserVariables,
   UpstreamUserCollection,
   UpstreamUserDocument,
+  User,
 } from "./types";
 import { record } from "@/utils/record";
 import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
@@ -71,7 +72,7 @@ async function list(variables?: ListUserVariables) {
   return result.data;
 }
 
-const get = async (userId: string | null) => {
+const get = async (userId: string | null): Promise<User | null> => {
   if (!userId) return null;
 
   const result = await tryCatch(async () => {

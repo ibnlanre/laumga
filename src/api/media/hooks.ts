@@ -1,41 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
-
-import type { Options } from "@/client/options";
+import { useMutation } from "@tanstack/react-query";
 import { media } from ".";
-import type { ListMediaVariables } from "./types";
-
-export function useGetMedia(
-  id?: string,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: media.get.$get(id),
-    queryFn: () => media.$use.get(id!),
-    enabled: !!id,
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetFeaturedMedia(
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: media.getFeaturedMedia.$get(),
-    queryFn: () => media.$use.getFeaturedMedia(),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useListMedia(
-  variables?: ListMediaVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: media.list.$use(variables),
-    queryFn: () => media.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
 
 export function useCreateMedia() {
   return useMutation({

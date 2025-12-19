@@ -18,11 +18,9 @@ import { Eye, Check, X, Trash2, Calendar } from "lucide-react";
 import { formatDate } from "@/utils/date";
 
 import { PageLoader } from "@/components/page-loader";
-import {
-  useListEvents,
-  useRemoveEvent,
-  useUpdateEvent,
-} from "@/api/event/hooks";
+import { useRemoveEvent, useUpdateEvent } from "@/api/event/hooks";
+import { listEventOptions } from "@/api/event/options";
+import { useQuery } from "@tanstack/react-query";
 import type { Event, EventStatus } from "@/api/event/types";
 import { useAuth } from "@/contexts/use-auth";
 
@@ -38,7 +36,7 @@ function EventsAdmin() {
   const [detailsOpened, setDetailsOpened] = useState(false);
 
   const { user } = useAuth();
-  const { data: events = [], isLoading } = useListEvents();
+  const { data: events = [], isLoading } = useQuery(listEventOptions());
 
   const updateEventMutation = useUpdateEvent();
   const deleteEventMutation = useRemoveEvent();

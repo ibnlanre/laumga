@@ -4,13 +4,6 @@ import { flutterwave } from ".";
 import { useServerFn } from "@tanstack/react-start";
 import type { FlutterwaveTokenStatusResponse } from "./types";
 
-export function useFetchFlutterwaveBanks() {
-  return useQuery({
-    queryKey: flutterwave.bank.list.$use(),
-    queryFn: () => flutterwave.$use.bank.list,
-  });
-}
-
 export function useTokenizeFlutterwaveAccount() {
   return useMutation({
     mutationKey: flutterwave.account.tokenize.$get(),

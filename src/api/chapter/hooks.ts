@@ -1,7 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { chapter } from "./index";
-import type { ListChapterVariables } from "./types";
-import type { Options } from "@/client/options";
 
 export function useCreateChapter() {
   return useMutation({
@@ -33,24 +31,5 @@ export function useRemoveChapter() {
       errorMessage: "Failed to delete chapter.",
       successMessage: "Chapter deleted successfully.",
     },
-  });
-}
-
-export function useListChapters(
-  variables?: ListChapterVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: chapter.list.$use(variables),
-    queryFn: () => chapter.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetChapter(id?: string) {
-  return useQuery({
-    queryKey: chapter.get.$get(id),
-    queryFn: () => chapter.$use.get(id!),
-    enabled: !!id,
   });
 }

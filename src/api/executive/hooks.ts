@@ -1,8 +1,6 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
-import type { Options } from "@/client/options";
 import { executive } from "./index";
-import type { ListExecutiveVariables } from "./types";
 
 export function useCreateExecutive() {
   return useMutation({
@@ -35,17 +33,6 @@ export function useRemoveExecutive() {
       successMessage: "Executive deleted successfully.",
     },
   });
-}
-
-export function useListExecutives(
-  variables?: ListExecutiveVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: executive.list.$use(variables),
-    queryFn: () => executive.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
 }
 
 export function useGetExecutive(id?: string) {

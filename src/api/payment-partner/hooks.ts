@@ -1,6 +1,4 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
-
-import type { Options } from "@/client/options";
+import { useMutation } from "@tanstack/react-query";
 
 import { paymentPartner } from "./index";
 
@@ -24,32 +22,4 @@ export function useUpdatePaymentPartner() {
       successMessage: "Payment partner updated successfully.",
     },
   });
-}
-
-export function useListPaymentPartners(
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: paymentPartner.list.$use(),
-    queryFn: () => paymentPartner.$use.list(),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetPaymentPartner(id?: string) {
-  return useQuery({
-    queryKey: paymentPartner.get.$get(id),
-    queryFn: () => paymentPartner.$use.get(id as string),
-    enabled: !!id,
-  });
-}
-
-export function useGetActivePaymentPartners(
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: paymentPartner.getActive.$use(),
-    queryFn: () => paymentPartner.$use.getActive(),
-  })
-) {
-  return useQuery({ ...query, ...options });
 }

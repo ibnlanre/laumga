@@ -1,31 +1,5 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
-
-import type { Options } from "@/client/options";
+import { useMutation } from "@tanstack/react-query";
 import { notification } from ".";
-import type { ListNotificationVariables } from "./types";
-
-export function useNotifications(
-  variables?: ListNotificationVariables,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: notification.list.$use(variables),
-    queryFn: () => notification.$use.list(variables),
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
-
-export function useGetNotification(
-  id?: string,
-  options: Options<typeof query> = {},
-  query = queryOptions({
-    queryKey: notification.get.$get(id),
-    queryFn: () => notification.$use.get(id!),
-    enabled: !!id,
-  })
-) {
-  return useQuery({ ...query, ...options });
-}
 
 export function useCreateNotification() {
   return useMutation({

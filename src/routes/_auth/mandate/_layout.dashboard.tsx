@@ -26,10 +26,10 @@ import {
   usePauseMandate,
   useReinstateMandate,
   useCancelMandate,
-  useGetMandate,
 } from "@/api/mandate/hooks";
-import { useUpdateFlutterwaveAccount } from "@/api/flutterwave/hooks";
-import { useFeed } from "@/api/feed/hooks";
+import { getMandateOptions } from "@/api/mandate/options";
+import { listFeedOptions } from "@/api/feed/options";
+import { useQuery } from "@tanstack/react-query";
 import { useListUserMandateTransactions } from "@/api/mandate-transaction/handlers";
 import { formatCurrency } from "@/utils/currency";
 import { capitalize } from "inflection";
@@ -122,16 +122,16 @@ function RouteComponent() {
     data: feedData = [],
     isLoading: feedLoading,
     isError: feedError,
-  } = useFeed();
+  } = useQuery(listFeedOptions());
 
-  const { data: activeMandate, isLoading: mandateLoading } = useGetMandate(
-    user?.id
+  const { data: activeMandate, isLoading: mandateLoading } = useQuery(
+    getMandateOptions(user?.id)
   );
 
   const { data: transactions = [], isLoading: transactionsLoading } =
     useListUserMandateTransactions(user?.id);
 
-  const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
+  // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -163,25 +163,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await updateFlutterwaveAccount.mutateAsync(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "SUSPENDED" },
-            },
-          },
-          {
-            onSuccess: async ({ data }) => {
-              await pauseMutation.mutateAsync({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        await pauseMutation.mutateAsync({ user });
       },
     });
   };
@@ -199,25 +181,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await updateFlutterwaveAccount.mutateAsync(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "ACTIVE" },
-            },
-          },
-          {
-            onSuccess: async ({ data }) => {
-              await reinstateMutation.mutateAsync({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        await reinstateMutation.mutateAsync({ user });
       },
     });
   };
@@ -236,25 +200,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await updateFlutterwaveAccount.mutateAsync(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "DELETED" },
-            },
-          },
-          {
-            onSuccess: async ({ data }) => {
-              await cancelMutation.mutateAsync({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        await cancelMutation.mutateAsync({ user });
       },
     });
   };

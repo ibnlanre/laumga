@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useAppSession } from "./hooks";
-import { firebaseAuth } from "@/services/firebase-admin";
+import { auth } from "@/services/firebase-admin";
 import { z } from "zod";
 
 export const loginUser = createServerFn({ method: "POST" })
@@ -11,7 +11,7 @@ export const loginUser = createServerFn({ method: "POST" })
     const session = await useAppSession();
 
     try {
-      const decodedToken = await firebaseAuth.verifyIdToken(idToken);
+      const decodedToken = await auth.verifyIdToken(idToken);
 
       await session.update({
         userId: decodedToken.uid,

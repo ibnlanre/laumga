@@ -22,12 +22,12 @@ import type { Mandate } from "@/api/mandate/types";
 import type { FlutterwaveStatus } from "@/api/flutterwave/types";
 import { flutterwaveStatusSchema } from "@/api/flutterwave/schema";
 import {
-  useListMandates,
   usePauseMandate,
   useReinstateMandate,
   useCancelMandate,
 } from "@/api/mandate/hooks";
-import { useUpdateFlutterwaveAccount } from "@/api/flutterwave/hooks";
+import { listMandateOptions } from "@/api/mandate/options";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/use-auth";
 import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
@@ -77,9 +77,9 @@ const getTierIcon = (tier: string) => {
 function MandatesAdmin() {
   const { user } = useAuth();
 
-  const { data: mandates = [], isLoading } = useListMandates();
+  const { data: mandates = [], isLoading } = useQuery(listMandateOptions());
 
-  const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
+  // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -96,25 +96,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        updateFlutterwaveAccount.mutate(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "SUSPENDED" },
-            },
-          },
-          {
-            onSuccess: ({ data }) => {
-              pauseMutation.mutate({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        pauseMutation.mutate({ user });
       },
     });
   };
@@ -132,25 +114,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        updateFlutterwaveAccount.mutate(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "ACTIVE" },
-            },
-          },
-          {
-            onSuccess: ({ data }) => {
-              reinstateMutation.mutate({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        reinstateMutation.mutate({ user });
       },
     });
   };
@@ -169,25 +133,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        updateFlutterwaveAccount.mutate(
-          {
-            data: {
-              reference: flutterwaveReference,
-              payload: { status: "DELETED" },
-            },
-          },
-          {
-            onSuccess: ({ data }) => {
-              cancelMutation.mutate({
-                user,
-                data: {
-                  flutterwaveStatus: data.status,
-                  flutterwaveProcessorResponse: data.processor_response,
-                },
-              });
-            },
-          }
-        );
+        cancelMutation.mutate({ user });
       },
     });
   };
