@@ -19,7 +19,7 @@ import { queryClient } from "@/routing/query-client";
 import { PageLoader } from "@/components/page-loader";
 import { getUserOptions } from "@/api/user/options";
 import { permissionQueryOptions } from "@/api/user-roles/options";
-import { getSession, logoutUser } from "@/api/firebase";
+import { firebase } from "@/api/firebase";
 
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -27,7 +27,7 @@ import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const session = await getSession();
+    const session = await firebase.$use.getSession();
 
     if (!session?.userId) {
       return { currentUser: null, permissions: [], isAuthenticated: false };
@@ -38,7 +38,7 @@ export const Route = createRootRoute({
     );
 
     if (!currentUser) {
-      await logoutUser();
+      await firebase.$use.logoutUser();
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 

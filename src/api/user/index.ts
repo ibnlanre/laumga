@@ -42,12 +42,11 @@ import type {
   UpdateUserVariables,
   UpstreamUserCollection,
   UpstreamUserDocument,
-  User,
 } from "./types";
 import { record } from "@/utils/record";
 import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
 import { tryCatch } from "@/utils/try-catch";
-import { loginUser, logoutUser } from "@/api/firebase";
+import { firebase } from "@/api/firebase";
 
 async function list(variables?: ListUserVariables) {
   const result = await tryCatch(async () => {
@@ -61,18 +60,17 @@ async function list(variables?: ListUserVariables) {
   });
 
   if (!result.success) {
-    throw new Error(
-      getFirebaseErrorMessage(
-        result.error,
-        "Couldn't load users. Please try again."
-      )
+    const message = getFirebaseErrorMessage(
+      result.error,
+      "Couldn't load users. Please try again."
     );
+    throw new Error(message);
   }
 
   return result.data;
 }
 
-const get = async (userId: string | null): Promise<User | null> => {
+const get = async (userId: string | null) => {
   if (!userId) return null;
 
   const result = await tryCatch(async () => {
@@ -81,12 +79,11 @@ const get = async (userId: string | null): Promise<User | null> => {
   });
 
   if (!result.success) {
-    throw new Error(
-      getFirebaseErrorMessage(
-        result.error,
-        "Couldn't load that user. Please try again."
-      )
+    const message = getFirebaseErrorMessage(
+      result.error,
+      "Couldn't load that user. Please try again."
     );
+    throw new Error(message);
   }
 
   return result.data;
@@ -94,7 +91,6 @@ const get = async (userId: string | null): Promise<User | null> => {
 
 async function create(variables: CreateUserVariables) {
   const { data } = variables;
-
   const { password, confirmPassword: _, ...profile } = data;
 
   const result = await tryCatch(async () => {
@@ -134,12 +130,11 @@ async function create(variables: CreateUserVariables) {
   });
 
   if (!result.success) {
-    throw new Error(
-      getFirebaseErrorMessage(
-        result.error,
-        "Couldn't create your account. Please try again."
-      )
+    const message = getFirebaseErrorMessage(
+      result.error,
+      "Couldn't create your account. Please try again."
     );
+    throw new Error(message);
   }
 }
 
@@ -158,12 +153,11 @@ async function update(variables: UpdateUserVariables) {
   });
 
   if (!result.success) {
-    throw new Error(
-      getFirebaseErrorMessage(
-        result.error,
-        "Couldn't update the user. Please try again."
-      )
+    const message = getFirebaseErrorMessage(
+      result.error,
+      "Couldn't update the user. Please try again."
     );
+    throw new Error(message);
   }
 }
 
@@ -175,18 +169,17 @@ async function login(variables: LoginVariables) {
     const credential = await signInWithEmailAndPassword(auth, email, password);
 
     const idToken = await credential.user.getIdToken();
-    await loginUser({ data: { idToken } });
+    await firebase.$use.loginUser({ data: { idToken } });
 
     return credential.user;
   });
 
   if (!result.success) {
-    const friendlyMessage = getFirebaseErrorMessage(
+    const message = getFirebaseErrorMessage(
       result.error,
       "Couldn't sign you in. Please try again."
     );
-
-    throw new Error(friendlyMessage);
+    throw new Error(message);
   }
 
   return result.data;
@@ -198,17 +191,17 @@ async function loginWithProvider(provider: AuthProvider) {
     const credential = await signInWithPopup(auth, provider);
 
     const idToken = await credential.user.getIdToken();
-    await loginUser({ data: { idToken } });
+    await firebase.$use.loginUser({ data: { idToken } });
 
     return credential.user;
   });
 
   if (!result.success) {
-    const friendlyMessage = getFirebaseErrorMessage(
+    const message = getFirebaseErrorMessage(
       result.error,
       "Couldn't sign you in with the provider. Please try again."
     );
-    throw new Error(friendlyMessage);
+    throw new Error(message);
   }
 
   return result.data;
@@ -221,11 +214,11 @@ async function resetPassword(variables: ResetPasswordVariables) {
   });
 
   if (!result.success) {
-    const friendlyMessage = getFirebaseErrorMessage(
+    const message = getFirebaseErrorMessage(
       result.error,
       "Couldn't send password reset email. Please try again."
     );
-    throw new Error(friendlyMessage);
+    throw new Error(message);
   }
 }
 
@@ -236,27 +229,26 @@ async function applyPasswordReset(variables: ConfirmPasswordResetVariables) {
   });
 
   if (!result.success) {
-    const friendlyMessage = getFirebaseErrorMessage(
+    const message = getFirebaseErrorMessage(
       result.error,
       "Couldn't reset your password. Please try again."
     );
-    throw new Error(friendlyMessage);
+    throw new Error(message);
   }
 }
 
 async function logout() {
   const result = await tryCatch(async () => {
     await signOut(auth);
-    await logoutUser();
+    await firebase.$use.logoutUser();
   });
 
   if (!result.success) {
-    throw new Error(
-      getFirebaseErrorMessage(
-        result.error,
-        "Couldn't sign you out. Please try again."
-      )
+    const message = getFirebaseErrorMessage(
+      result.error,
+      "Couldn't sign you out. Please try again."
     );
+    throw new Error(message);
   }
 }
 

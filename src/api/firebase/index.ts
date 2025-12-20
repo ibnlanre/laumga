@@ -3,8 +3,9 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useAppSession } from "./hooks";
 import { auth } from "@/services/firebase-admin";
 import { z } from "zod";
+import { createBuilder } from "@ibnlanre/builder";
 
-export const loginUser = createServerFn({ method: "POST" })
+const loginUser = createServerFn({ method: "POST" })
   .inputValidator(zodValidator(z.object({ idToken: z.string() })))
   .handler(async ({ data }) => {
     const { idToken } = data;
@@ -22,16 +23,22 @@ export const loginUser = createServerFn({ method: "POST" })
     }
   });
 
-export const logoutUser = createServerFn({ method: "POST" }).handler(
+const logoutUser = createServerFn({ method: "POST" }).handler(
   async () => {
     const session = await useAppSession();
     await session.clear();
   }
 );
 
-export const getSession = createServerFn({ method: "GET" }).handler(
+const getSession = createServerFn({ method: "GET" }).handler(
   async () => {
     const session = await useAppSession();
     return session.data;
   }
 );
+
+export const firebase = createBuilder({
+  loginUser,
+  logoutUser,
+  getSession,
+})
