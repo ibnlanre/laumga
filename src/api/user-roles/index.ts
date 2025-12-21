@@ -1,89 +1,93 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import { collection, deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
 
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 
 import {
   USER_ROLES_COLLECTION,
   createUserRoleSchema,
+  userRoleFormSchema,
   userRoleSchema,
 } from "./schema";
-import type {
-  AssignRoleVariables,
-  DownstreamUserRoleCollection,
-  DownstreamUserRoleDocument,
-  ListUserRoleVariables,
-  RemoveRoleVariables,
-  UpstreamUserRoleDocument,
-} from "./types";
+import type { CreateUserRoleData, UserRole } from "./types";
 import { role } from "../role";
+import { userSchema } from "../user/schema";
+import { createVariablesSchema } from "@/client/schema";
 
-async function assign(variables: AssignRoleVariables) {
-  const { user, data, id } = variables;
+const assign = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: userRoleFormSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const userRolesRef = serverCollection<CreateUserRoleData>(
+      USER_ROLES_COLLECTION
+    ).doc(id);
 
-  const userRolesRef = doc(
-    db,
-    USER_ROLES_COLLECTION,
-    id
-  ) as UpstreamUserRoleDocument;
+    const existingSnapshot = await userRolesRef.get();
 
-  const existingSnapshot = await getDoc(userRolesRef);
+    if (existingSnapshot.exists) {
+      throw new Error("User already has this role");
+    }
 
-  if (!existingSnapshot.exists()) {
-    throw new Error("User already has this role");
-  }
+    const validated = createUserRoleSchema.parse({
+      ...data,
+      assigned: serverRecord(user),
+    });
 
-  const validated = createUserRoleSchema.parse(data);
-
-  const userRolesData = {
-    ...validated,
-    assigned: record(user),
-  };
-
-  await setDoc(userRolesRef, userRolesData);
-}
-
-async function remove(variables: RemoveRoleVariables) {
-  const { id } = variables;
-
-  const docRef = doc(db, USER_ROLES_COLLECTION, id) as UpstreamUserRoleDocument;
-  await deleteDoc(docRef);
-}
-
-async function list(variables: ListUserRoleVariables) {
-  const userRolesRef = collection(
-    db,
-    USER_ROLES_COLLECTION
-  ) as DownstreamUserRoleCollection;
-
-  const userRolesQuery = buildQuery(userRolesRef, variables);
-  return await getQueryDocs(userRolesQuery, userRoleSchema);
-}
-
-async function get(id: string) {
-  const userRolesRef = doc(
-    db,
-    USER_ROLES_COLLECTION,
-    id
-  ) as DownstreamUserRoleDocument;
-
-  return await getQueryDoc(userRolesRef, userRoleSchema);
-}
-
-async function getUserPermissions(id: string) {
-  const snapshot = await get(id);
-  if (!snapshot) return [];
-
-  const roleSnapshots = await Promise.all(snapshot.roleIds.map(role.$use.get));
-  const permissions = roleSnapshots.filter(Boolean).flatMap((snapshot) => {
-    if (!snapshot) return [];
-    return snapshot.permissions;
+    await userRolesRef.set(validated);
   });
 
-  return Array.from(new Set(permissions));
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data: { id } }) => {
+    const docRef = serverCollection<UserRole>(USER_ROLES_COLLECTION).doc(id);
+    await docRef.delete();
+  });
+
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(userRoleSchema))
+  .handler(async ({ data: variables }) => {
+    const userRolesRef = serverCollection<UserRole>(USER_ROLES_COLLECTION);
+    const userRolesQuery = buildServerQuery(userRolesRef, variables);
+    return await getServerQueryDocs(userRolesQuery, userRoleSchema);
+  });
+
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const userRolesRef = serverCollection<UserRole>(USER_ROLES_COLLECTION).doc(
+      id
+    );
+    return await getServerQueryDoc(userRolesRef, userRoleSchema);
+  });
+
+const getUserPermissions = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const snapshot = await get({ data: id });
+    if (!snapshot) return [];
+
+    const roleSnapshots = await Promise.all(
+      snapshot.roleIds.map((roleId) => role.$use.get({ data: roleId }))
+    );
+    const permissions = roleSnapshots.filter(Boolean).flatMap((snapshot) => {
+      if (!snapshot) return [];
+      return snapshot.permissions;
+    });
+
+    return Array.from(new Set(permissions));
+  });
 
 export const userRole = createBuilder(
   {

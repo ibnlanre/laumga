@@ -1,82 +1,83 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
   EVENTS_COLLECTION,
   createEventSchema,
   eventSchema,
   updateEventSchema,
 } from "./schema";
-import type {
-  CreateEventVariables,
-  UpdateEventVariables,
-  UpstreamEventCollection,
-  UpstreamEventDocument,
-  DownstreamEventCollection,
-  DownstreamEventDocument,
-  ListEventVariables,
-  CreateEventData,
-  UpdateEventData,
-} from "./types";
-import { record } from "@/utils/record";
+import type { CreateEventData, EventData, UpdateEventData } from "./types";
+import { userSchema } from "../user/schema";
 
-async function create(variables: CreateEventVariables) {
-  const { data, user } = variables;
-  const validated = createEventSchema.parse(data);
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(eventSchema))
+  .handler(async ({ data: variables }) => {
+    const eventsRef = serverCollection<EventData>(EVENTS_COLLECTION);
+    const query = buildServerQuery(eventsRef, variables);
+    return getServerQueryDocs(query, eventSchema);
+  });
 
-  const eventsRef = collection(
-    db,
-    EVENTS_COLLECTION
-  ) as UpstreamEventCollection;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const eventRef = serverCollection<EventData>(EVENTS_COLLECTION).doc(id);
+    return getServerQueryDoc(eventRef, eventSchema);
+  });
 
-  const eventData: CreateEventData = {
-    ...validated,
-    created: record(user),
-    updated: record(user),
-  };
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createEventSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const eventsRef = serverCollection<EventData>(EVENTS_COLLECTION);
 
-  await addDoc(eventsRef, eventData);
-}
+    const eventData: CreateEventData = {
+      ...data,
+      created: serverRecord(user),
+    };
 
-async function update(variables: UpdateEventVariables) {
-  const { id, data, user } = variables;
-  const validated = updateEventSchema.parse(data);
+    await eventsRef.add(eventData);
+  });
 
-  const eventRef = doc(db, EVENTS_COLLECTION, id) as UpstreamEventDocument;
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateEventSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const eventRef = serverCollection<EventData>(EVENTS_COLLECTION).doc(id);
 
-  const updateData: UpdateEventData = {
-    ...validated,
-    updated: record(user),
-  };
+    const updateData: UpdateEventData = {
+      ...data,
+      updated: serverRecord(user),
+    };
 
-  await updateDoc(eventRef, updateData);
-}
+    await eventRef.update(updateData);
+  });
 
-async function list(variables?: ListEventVariables) {
-  const eventsRef = collection(
-    db,
-    EVENTS_COLLECTION
-  ) as DownstreamEventCollection;
-  const eventsQuery = buildQuery(eventsRef, variables);
-  return await getQueryDocs(eventsQuery, eventSchema);
-}
-
-async function get(id: string) {
-  const eventRef = doc(db, EVENTS_COLLECTION, id) as DownstreamEventDocument;
-  return await getQueryDoc(eventRef, eventSchema);
-}
-
-async function remove(id: string) {
-  const eventRef = doc(db, EVENTS_COLLECTION, id) as UpstreamEventDocument;
-  await deleteDoc(eventRef);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const eventRef = serverCollection<EventData>(EVENTS_COLLECTION).doc(id);
+    await eventRef.delete();
+  });
 
 export const event = createBuilder(
   {

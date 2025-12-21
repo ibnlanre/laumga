@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { Alert, Button, Image } from "@mantine/core";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { Download, ExternalLink, Lock, Sparkles } from "lucide-react";
@@ -8,11 +7,12 @@ import * as ReactToPDF from "react-to-pdf";
 
 import { formatDate } from "@/utils/date";
 import { useAuth } from "@/contexts/use-auth";
-import { useGetActiveMandateCertificate } from "@/api/mandate-certificate/handlers";
+import { listGetActiveMandateCertificateOptions } from "@/api/mandate-certificate/options";
 import { LoadingState } from "@/components/loading-state";
 import { useCreateMandateCertificate } from "@/api/mandate-certificate/hooks";
 import { notifications } from "@mantine/notifications";
 import { formatCurrency } from "@/utils/currency";
+import { useQuery } from "@tanstack/react-query";
 
 export function MandateCertificateView() {
   const { user } = useAuth();
@@ -22,17 +22,18 @@ export function MandateCertificateView() {
     page: { margin: 20 },
   });
 
-  const mandateCertificate = useGetActiveMandateCertificate(mandate?.id);
+  const mandateCertificate = useQuery(
+    listGetActiveMandateCertificateOptions(mandate?.id)
+  );
   const createCertificate = useCreateMandateCertificate();
 
   const handleGenerateCertificate = () => {
     if (!mandate || !user) return;
 
     createCertificate.mutate(
-      { mandate, user },
+      { data: { mandate, user } },
       {
         onSuccess: () => {
-          mandateCertificate.refetch();
           notifications.show({
             title: "Certificate generated",
             message: "Your mandate certificate has been successfully created.",

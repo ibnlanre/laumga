@@ -313,7 +313,7 @@ export function MandatePledgeForm({
   const handleSubmit = (data: CreateMandate) => {
     if (!user) return;
 
-    createMandate.mutate({ user, data });
+    createMandate.mutate({ data: { user, data } });
   };
 
   const referenceValue = flutterwaveReference ?? "Reference pending";

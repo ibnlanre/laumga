@@ -4,7 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, MapPin, Users, Search, CalendarOff } from "lucide-react";
 import { formatDate, now } from "@/utils/date";
 
-import { type Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import type { Event, EventData, EventType } from "@/api/event/types";
 import { listEventOptions } from "@/api/event/options";
 import { useQuery } from "@tanstack/react-query";

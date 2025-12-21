@@ -1,9 +1,12 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
-import { getQueryDoc } from "@/client/core-query";
+import { serverRecord } from "@/utils/server-record";
+import {
+  getServerQueryDoc,
+  serverCollection,
+} from "@/client/core-query/server";
 
 import {
   createMandateCertificateDataSchema,
@@ -11,80 +14,95 @@ import {
   mandateCertificateSchema,
   updateMandateCertificateDataSchema,
 } from "./schema";
-import type {
-  MandateCertificateDocument,
-  CreateMandateCertificateVariables,
-  UpdateMandateCertificateVariables,
-} from "./types";
+import type { MandateCertificateData } from "./types";
 import { mandateCertificateSettings } from "./settings";
 import { mandate } from "../mandate";
+import { userSchema } from "../user/schema";
+import { mandateSchema } from "../mandate/schema";
 
-async function create(variables: CreateMandateCertificateVariables) {
-  const { mandate, user } = variables;
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      mandate: mandateSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { mandate, user } }) => {
+    const certificateData = createMandateCertificateDataSchema.parse({
+      userName: user.fullName,
+      amount: mandate.amount,
+      frequency: mandate.frequency,
+      tier: mandate.tier,
+      created: serverRecord(user),
+    });
 
-  const certificateData = createMandateCertificateDataSchema.parse({
-    userName: user.fullName,
-    amount: mandate.amount,
-    frequency: mandate.frequency,
-    tier: mandate.tier,
-    created: record(user),
+    const settings = await mandateCertificateSettings.$use.get();
+
+    if (settings) {
+      certificateData.chairmanName = settings.chairmanName;
+      certificateData.signatureUrl = settings.signatureUrl;
+    }
+
+    const ref = serverCollection<MandateCertificateData>(
+      MANDATE_CERTIFICATES_COLLECTION
+    ).doc(user.id);
+
+    await ref.set(certificateData);
   });
 
-  const settings = await mandateCertificateSettings.$use.get();
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: updateMandateCertificateDataSchema,
+    })
+  )
+  .handler(async ({ data: { id, data } }) => {
+    const certificateRef = serverCollection<MandateCertificateData>(
+      MANDATE_CERTIFICATES_COLLECTION
+    ).doc(id);
 
-  if (settings) {
-    certificateData.chairmanName = settings.chairmanName;
-    certificateData.signatureUrl = settings.signatureUrl;
-  }
+    await certificateRef.update(data);
+  });
 
-  const ref = doc(
-    db,
-    MANDATE_CERTIFICATES_COLLECTION,
-    user.id
-  ) as MandateCertificateDocument;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const certificatesRef = serverCollection<MandateCertificateData>(
+      MANDATE_CERTIFICATES_COLLECTION
+    ).doc(id);
 
-  await setDoc(ref, certificateData);
-}
+    return await getServerQueryDoc(certificatesRef, mandateCertificateSchema);
+  });
 
-async function update(variables: UpdateMandateCertificateVariables) {
-  const { id, data } = variables;
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const certificateRef = serverCollection<MandateCertificateData>(
+      MANDATE_CERTIFICATES_COLLECTION
+    ).doc(id);
 
-  const validated = updateMandateCertificateDataSchema.parse(data);
+    await certificateRef.delete();
+  });
 
-  const certificateRef = doc(
-    db,
-    MANDATE_CERTIFICATES_COLLECTION,
-    id
-  ) as MandateCertificateDocument;
-
-  await updateDoc(certificateRef, validated);
-}
-
-async function get(id: string) {
-  const certificatesRef = doc(
-    db,
-    MANDATE_CERTIFICATES_COLLECTION,
-    id
-  ) as MandateCertificateDocument;
-
-  return await getQueryDoc(certificatesRef, mandateCertificateSchema);
-}
-
-async function remove(id: string) {
-  const certificateRef = doc(
-    db,
-    MANDATE_CERTIFICATES_COLLECTION,
-    id
-  ) as MandateCertificateDocument;
-
-  await deleteDoc(certificateRef);
-}
-
-async function getActive(userId: string) {
-  const activeMandate = await mandate.$use.get(userId);
-  if (!activeMandate) return null;
-  return mandateCertificate.$use.get(activeMandate.id);
-}
+const getActive = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: userId }) => {
+    const activeMandate = await mandate.$use.get({ data: userId });
+    if (!activeMandate) return null;
+    // Recursively call get (which is a server function)
+    // Since we are in a server function, we can call the handler logic directly if we extracted it,
+    // or call the server function which might do an HTTP request to itself (inefficient but works).
+    // Or better, just use the logic directly here.
+    const certificatesRef = serverCollection<MandateCertificateData>(
+      MANDATE_CERTIFICATES_COLLECTION
+    ).doc(activeMandate.id); // Mandate ID is User ID usually?
+    // In create, we use user.id as doc ID.
+    // In mandate, doc ID is user.id.
+    // So activeMandate.id is user.id.
+    // So we can just fetch it.
+    return await getServerQueryDoc(certificatesRef, mandateCertificateSchema);
+  });
 
 export const mandateCertificate = createBuilder(
   {

@@ -5,7 +5,7 @@ import type {
 import type z from "zod";
 import type { AuthProvider } from "firebase/auth";
 
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 
 import type {
   approvalStatusSchema,

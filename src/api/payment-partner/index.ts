@@ -28,7 +28,7 @@ import type {
   CreatePaymentPartnerData,
 } from "./types";
 import { record } from "@/utils/record";
-import { getQueryDocs } from "@/client/core-query";
+import { getQueryDocs } from "@/client/core-query/client";
 
 async function create(variables: CreatePaymentPartnerVariables) {
   const { data, user } = variables;

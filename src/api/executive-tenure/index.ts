@@ -1,123 +1,125 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
 
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { record } from "@/utils/record";
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+import { db } from "@/services/firebase-admin";
 
 import {
   EXECUTIVE_TENURES_COLLECTION,
-  createExecutiveTenureSchema,
   executiveTenureSchema,
+  createExecutiveTenureSchema,
   updateExecutiveTenureSchema,
 } from "./schema";
 import type {
-  CreateExecutiveTenureVariables,
-  ListExecutiveTenureVariables,
-  UpdateExecutiveTenureVariables,
   CreateExecutiveTenureData,
   UpdateExecutiveTenureData,
-  DownstreamExecutiveTenureDocument,
-  DownstreamExecutiveTenureCollection,
-  UpstreamExecutiveTenureCollection,
-  UpstreamExecutiveTenureDocument,
+  ExecutiveTenureData,
 } from "./types";
+import { userSchema } from "../user/schema";
 
 async function deactivateActiveTenures(exceptId?: string) {
-  const tenuresRef = collection(
-    db,
+  const tenuresRef = serverCollection<ExecutiveTenureData>(
     EXECUTIVE_TENURES_COLLECTION
-  ) as DownstreamExecutiveTenureCollection;
+  );
+  const snapshot = await tenuresRef.where("isActive", "==", true).get();
 
-  const activeQuery = query(tenuresRef, where("isActive", "==", true));
-  const snapshot = await getDocs(activeQuery);
+  if (snapshot.empty) return;
 
-  const updates = snapshot.docs
-    .filter((snapshot) => snapshot.id !== exceptId)
-    .map((snapshot) => updateDoc(snapshot.ref, { isActive: false }));
-
-  await Promise.all(updates);
+  const batch = db.batch();
+  snapshot.docs.forEach((doc) => {
+    if (doc.id !== exceptId) {
+      batch.update(doc.ref, { isActive: false });
+    }
+  });
+  await batch.commit();
 }
 
-async function create(variables: CreateExecutiveTenureVariables) {
-  const { data, user } = variables;
-  const validated = createExecutiveTenureSchema.parse(data);
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(executiveTenureSchema))
+  .handler(async ({ data: variables }) => {
+    const tenuresRef = serverCollection<ExecutiveTenureData>(
+      EXECUTIVE_TENURES_COLLECTION
+    );
+    const query = buildServerQuery(tenuresRef, variables);
+    return getServerQueryDocs(query, executiveTenureSchema);
+  });
 
-  const tenuresRef = collection(
-    db,
-    EXECUTIVE_TENURES_COLLECTION
-  ) as UpstreamExecutiveTenureCollection;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const tenureRef = serverCollection<ExecutiveTenureData>(
+      EXECUTIVE_TENURES_COLLECTION
+    ).doc(id);
+    return getServerQueryDoc(tenureRef, executiveTenureSchema);
+  });
 
-  if (validated.isActive) {
-    await deactivateActiveTenures();
-  }
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createExecutiveTenureSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const validated = createExecutiveTenureSchema.parse(data);
+    const tenuresRef = serverCollection<ExecutiveTenureData>(
+      EXECUTIVE_TENURES_COLLECTION
+    );
 
-  const tenureData: CreateExecutiveTenureData = {
-    ...validated,
-    created: record(user),
-    updated: record(user),
-  };
+    if (validated.isActive) {
+      await deactivateActiveTenures();
+    }
 
-  await addDoc(tenuresRef, tenureData);
-}
+    const tenureData: CreateExecutiveTenureData = {
+      ...validated,
+      created: serverRecord(user),
+    };
 
-async function update(variables: UpdateExecutiveTenureVariables) {
-  const { id, data, user } = variables;
-  const validated = updateExecutiveTenureSchema.parse(data);
-  const tenureRef = doc(
-    db,
-    EXECUTIVE_TENURES_COLLECTION,
-    id
-  ) as UpstreamExecutiveTenureDocument;
+    await tenuresRef.add(tenureData);
+  });
 
-  if (validated.isActive) {
-    await deactivateActiveTenures(id);
-  }
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateExecutiveTenureSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const validated = updateExecutiveTenureSchema.parse(data);
+    const tenureRef = serverCollection<ExecutiveTenureData>(
+      EXECUTIVE_TENURES_COLLECTION
+    ).doc(id);
 
-  const updateData: UpdateExecutiveTenureData = {
-    ...validated,
-    updated: record(user),
-  };
+    if (validated.isActive) {
+      await deactivateActiveTenures(id);
+    }
 
-  await updateDoc(tenureRef, updateData);
-}
+    const updateData: UpdateExecutiveTenureData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-async function list(variables?: ListExecutiveTenureVariables) {
-  const tenuresRef = collection(
-    db,
-    EXECUTIVE_TENURES_COLLECTION
-  ) as DownstreamExecutiveTenureCollection;
+    await tenureRef.update(updateData);
+  });
 
-  const tenuresQuery = buildQuery(tenuresRef, variables);
-  return await getQueryDocs(tenuresQuery, executiveTenureSchema);
-}
-
-async function get(id: string) {
-  const tenureRef = doc(
-    db,
-    EXECUTIVE_TENURES_COLLECTION,
-    id
-  ) as DownstreamExecutiveTenureDocument;
-  return await getQueryDoc(tenureRef, executiveTenureSchema);
-}
-
-async function remove(id: string) {
-  const tenureRef = doc(
-    db,
-    EXECUTIVE_TENURES_COLLECTION,
-    id
-  ) as DownstreamExecutiveTenureDocument;
-  await deleteDoc(tenureRef);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const tenureRef = serverCollection<ExecutiveTenureData>(
+      EXECUTIVE_TENURES_COLLECTION
+    ).doc(id);
+    await tenureRef.delete();
+  });
 
 export const executiveTenure = createBuilder(
   {

@@ -1,18 +1,21 @@
 import { queryOptions } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { user } from ".";
 import type { ListUserVariables } from "./types";
 
-export const listUserOptions = (variables?: ListUserVariables) => {
+export const listUserOptions = (data?: ListUserVariables) => {
+  const list = useServerFn(user.$use.list);
   return queryOptions({
-    queryKey: user.list.$use(variables),
-    queryFn: () => user.$use.list(variables),
+    queryKey: user.list.$use({ data }),
+    queryFn: () => list({ data }),
   });
 };
 
-export const getUserOptions = (id?: string | null) => {
+export const getUserOptions = (id?: string) => {
+  const get = useServerFn(user.$use.get);
   return queryOptions({
-    queryKey: user.get.$get(id),
-    queryFn: () => user.$use.get(id!),
+    queryKey: user.get.$get({ data: id }),
+    queryFn: () => get({ data: id! }),
     enabled: !!id,
   });
 };

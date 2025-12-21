@@ -30,9 +30,9 @@ import { DataTable } from "@/components/data-table";
 import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { permissionOptions, type Permission } from "@/schema/permissions";
+import { useCreateRole, useRemoveRole, useUpdateRole } from "@/api/role/hooks";
 import { listRoleOptions } from "@/api/role/options";
 import { useQuery } from "@tanstack/react-query";
-import { useCreateRole, useRemoveRole, useUpdateRole } from "@/api/role/hooks";
 import { roleDataSchema } from "@/api/role/schema";
 import type { Role, RoleForm } from "@/api/role/types";
 
@@ -63,11 +63,13 @@ function RoleManagement() {
 
   const closeModal = (modalId: string) => modals.close(modalId);
 
-  const handleCreateRole = async (values: RoleForm) => {
+  const handleCreateRole = async (data: RoleForm) => {
     if (!user) return;
     await createRole.mutateAsync({
-      user,
-      data: values,
+      data: {
+        user,
+        data,
+      },
     });
 
     closeModal(CREATE_ROLE_MODAL_ID);
@@ -76,16 +78,18 @@ function RoleManagement() {
   const handleUpdateRole = async (roleId: string, values: RoleForm) => {
     if (!user) return;
     await updateRole.mutateAsync({
-      id: roleId,
-      user,
-      data: values,
+      data: {
+        id: roleId,
+        user,
+        data: values,
+      },
     });
 
     closeModal(EDIT_ROLE_MODAL_ID);
   };
 
   const handleDeleteRole = async (roleId: string) => {
-    await removeRole.mutateAsync(roleId);
+    await removeRole.mutateAsync({ data: { id: roleId } });
   };
 
   const openCreateModal = () => {

@@ -69,9 +69,11 @@ function ArticlesAdmin() {
     if (!user) return;
 
     await updateArticleMutation.mutateAsync({
-      id: articleId,
-      data: { status: newStatus },
-      user,
+      data: {
+        id: articleId,
+        data: { status: newStatus },
+        user,
+      },
     });
 
     setDetailsOpened(false);
@@ -84,16 +86,19 @@ function ArticlesAdmin() {
     if (!user) return;
 
     await updateArticleMutation.mutateAsync({
-      id: articleId,
-      data: { featured: !isFeatured },
-      user,
+      data: {
+        id: articleId,
+        data: { featured: !isFeatured },
+        user,
+      },
     });
   };
 
   const handleDelete = async (articleId: string) => {
     if (!confirm("Are you sure you want to delete this article?")) return;
 
-    await deleteArticleMutation.mutateAsync(articleId);
+    await deleteArticleMutation.mutateAsync({ data: articleId });
+
     setDetailsOpened(false);
   };
 

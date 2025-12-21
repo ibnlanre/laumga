@@ -30,7 +30,7 @@ import {
 import { getMandateOptions } from "@/api/mandate/options";
 import { listFeedOptions } from "@/api/feed/options";
 import { useQuery } from "@tanstack/react-query";
-import { useListUserMandateTransactions } from "@/api/mandate-transaction/handlers";
+import { listUserMandateTransactionsOptions } from "@/api/mandate-transaction/options";
 import { formatCurrency } from "@/utils/currency";
 import { capitalize } from "inflection";
 import { Section } from "@/components/section";
@@ -128,8 +128,9 @@ function RouteComponent() {
     getMandateOptions(user?.id)
   );
 
-  const { data: transactions = [], isLoading: transactionsLoading } =
-    useListUserMandateTransactions(user?.id);
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery(
+    listUserMandateTransactionsOptions(user?.id)
+  );
 
   // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
@@ -163,7 +164,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await pauseMutation.mutateAsync({ user });
+        await pauseMutation.mutateAsync({ data: { user } });
       },
     });
   };
@@ -181,7 +182,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await reinstateMutation.mutateAsync({ user });
+        await reinstateMutation.mutateAsync({ data: { user } });
       },
     });
   };
@@ -200,7 +201,7 @@ function RouteComponent() {
       onConfirm: async () => {
         if (!user || !flutterwaveReference) return;
 
-        await cancelMutation.mutateAsync({ user });
+        await cancelMutation.mutateAsync({ data: { user } });
       },
     });
   };

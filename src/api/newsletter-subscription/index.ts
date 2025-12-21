@@ -1,81 +1,65 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
 
-import { db } from "@/services/firebase";
+import {
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
 import {
   NEWSLETTER_SUBSCRIPTIONS_COLLECTION,
-  createSubscriptionSchema,
+  subscriptionFormSchema,
   subscriptionSchema,
 } from "./schema";
-import type {
-  CreateSubscriptionData,
-  CreateSubscriptionVariables,
-  NewsletterSubscription,
-  SubscriptionCollection,
-} from "./types";
-import { getQueryDocs } from "@/client/core-query";
+import type { CreateSubscriptionData, NewsletterSubscription } from "./types";
 
-async function subscribe(variables: CreateSubscriptionVariables) {
-  const { data } = variables;
+const subscribe = createServerFn({ method: "POST" })
+  .inputValidator(subscriptionFormSchema)
+  .handler(async ({ data }) => {
+    const validated = subscriptionFormSchema.parse(data);
 
-  const validated = createSubscriptionSchema.parse(data);
-  const subscriptionsRef = collection(
-    db,
+    const subscriptionsRef = serverCollection<CreateSubscriptionData>(
+      NEWSLETTER_SUBSCRIPTIONS_COLLECTION
+    );
+
+    const existingSnapshot = await subscriptionsRef
+      .where("email", "==", validated.email)
+      .get();
+
+    if (!existingSnapshot.empty) return;
+
+    const newSubscriptionData: CreateSubscriptionData = {
+      ...validated,
+      subscribedAt: FieldValue.serverTimestamp(),
+    };
+
+    await subscriptionsRef.add(newSubscriptionData);
+  });
+
+const unsubscribe = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: email }) => {
+    const subscriptionsRef = serverCollection<NewsletterSubscription>(
+      NEWSLETTER_SUBSCRIPTIONS_COLLECTION
+    );
+
+    const snapshot = await subscriptionsRef.where("email", "==", email).get();
+
+    if (snapshot.empty) {
+      throw new Error("Subscription not found");
+    }
+
+    await snapshot.docs[0].ref.delete();
+  });
+
+const list = createServerFn({ method: "GET" }).handler(async () => {
+  const subscriptionsRef = serverCollection<NewsletterSubscription>(
     NEWSLETTER_SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollection;
-
-  const existingQuery = query(
-    subscriptionsRef,
-    where("email", "==", validated.email)
   );
-  const existingSnapshot = await getDocs(existingQuery);
-  if (!existingSnapshot.empty) return;
-
-  const subscriptionData: CreateSubscriptionData = {
-    ...validated,
-    subscribedAt: serverTimestamp(),
-  };
-
-  await addDoc(subscriptionsRef, subscriptionData);
-}
-
-async function unsubscribe(email: string) {
-  const subscriptionsRef = collection(
-    db,
-    NEWSLETTER_SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollection;
-
-  const subscriptionQuery = query(
-    subscriptionsRef,
-    where("email", "==", email)
-  );
-
-  const snapshot = await getDocs(subscriptionQuery);
-  if (snapshot.empty) {
-    throw new Error("Subscription not found");
-  }
-
-  await deleteDoc(snapshot.docs[0].ref);
-}
-
-async function list(): Promise<NewsletterSubscription[]> {
-  const subscriptionsRef = collection(
-    db,
-    NEWSLETTER_SUBSCRIPTIONS_COLLECTION
-  ) as SubscriptionCollection;
-
-  const activeQuery = query(subscriptionsRef, orderBy("subscribedAt", "desc"));
-  return await getQueryDocs(activeQuery, subscriptionSchema);
-}
+  const activeQuery = subscriptionsRef.orderBy("subscribedAt", "desc");
+  return await getServerQueryDocs(activeQuery, subscriptionSchema);
+});
 
 export const newsletterSubscription = createBuilder(
   {

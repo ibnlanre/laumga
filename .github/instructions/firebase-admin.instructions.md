@@ -1,3 +1,7 @@
+---
+applyTo: "**"
+---
+
 # Firebase Admin SDK Setup
 
 ## Overview
@@ -32,13 +36,13 @@ FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"your-project","
 
 Run the application and try creating a mandate. If the environment variable is not set correctly, you'll see an error:
 
-```
+```shell
 Error: FIREBASE_SERVICE_ACCOUNT environment variable is not set
 ```
 
 or
 
-```
+```shell
 Error: Failed to initialize Firebase Admin SDK: ...
 ```
 

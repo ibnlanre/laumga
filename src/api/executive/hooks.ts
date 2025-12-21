@@ -1,3 +1,4 @@
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { executive } from "./index";
@@ -5,7 +6,7 @@ import { executive } from "./index";
 export function useCreateExecutive() {
   return useMutation({
     mutationKey: executive.create.$get(),
-    mutationFn: executive.$use.create,
+    mutationFn: useServerFn(executive.$use.create),
     meta: {
       errorMessage: "Failed to create executive.",
       successMessage: "Executive created successfully.",
@@ -16,7 +17,7 @@ export function useCreateExecutive() {
 export function useUpdateExecutive() {
   return useMutation({
     mutationKey: executive.update.$get(),
-    mutationFn: executive.$use.update,
+    mutationFn: useServerFn(executive.$use.update),
     meta: {
       errorMessage: "Failed to update executive.",
       successMessage: "Executive updated successfully.",
@@ -27,7 +28,7 @@ export function useUpdateExecutive() {
 export function useRemoveExecutive() {
   return useMutation({
     mutationKey: executive.remove.$get(),
-    mutationFn: executive.$use.remove,
+    mutationFn: useServerFn(executive.$use.remove),
     meta: {
       errorMessage: "Failed to delete executive.",
       successMessage: "Executive deleted successfully.",
@@ -38,7 +39,7 @@ export function useRemoveExecutive() {
 export function useGetExecutive(id?: string) {
   return useQuery({
     queryKey: executive.get.$get(id),
-    queryFn: () => executive.$use.get(id!),
+    queryFn: () => executive.$use.get({ data: id! }),
     enabled: !!id,
   });
 }

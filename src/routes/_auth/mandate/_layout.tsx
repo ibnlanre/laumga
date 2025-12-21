@@ -5,17 +5,18 @@ import type { ApprovalStatus } from "@/api/user/types";
 import { Section } from "@/components/section";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { queryClient } from "@/routing/query-client";
-import { getMandateOptions } from "@/api/mandate/options";
+import { mandate } from "@/api/mandate";
 
 export const Route = createFileRoute("/_auth/mandate/_layout")({
   loader: async ({ context }) => {
-    const { currentUser } = context;
+    const { userId } = context;
 
-    const mandate = await queryClient.ensureQueryData(
-      getMandateOptions(currentUser?.id)
-    );
+    const query = await queryClient.ensureQueryData({
+      queryKey: mandate.get.$get({ data: userId }),
+      queryFn: () => mandate.$use.get({ data: userId! }),
+    });
 
-    return { mandate };
+    return { mandate: query };
   },
   component: RouteComponent,
 });

@@ -10,7 +10,7 @@ import type {
   updateArticleSchema,
 } from "./schema";
 import type { User } from "../user/types";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 
 export type CreateArticleData = z.infer<typeof createArticleSchema>;
 export type ArticleCategory = z.infer<typeof articleSchema.shape.category>;

@@ -49,7 +49,8 @@ import {
   locationDetailsSchema,
   personalDetailsSchema,
 } from "@/api/registration/schema";
-import { useChapterByState } from "@/api/chapter/handlers";
+import { useQuery } from "@tanstack/react-query";
+import { getChapterByStateOptions } from "@/api/chapter/options";
 import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/register/")({
@@ -346,7 +347,9 @@ function LocationDetailsStep() {
     originStateOptions.length || isLoadingOriginStates;
   const hasResidenceStateSelect =
     residenceStateOptions.length || isLoadingResidenceStates;
-  const { data: chapter } = useChapterByState(form.values.stateOfResidence);
+  const { data: chapter } = useQuery(
+    getChapterByStateOptions(form.values.stateOfResidence)
+  );
 
   const isNigeriaResidence = form.values.countryOfResidence === "Nigeria";
 
@@ -643,7 +646,9 @@ function ReviewPanel() {
     reset,
   } = useRegistration();
 
-  const { data: chapter } = useChapterByState(locationDetails.stateOfResidence);
+  const { data: chapter } = useQuery(
+    getChapterByStateOptions(locationDetails.stateOfResidence)
+  );
   const { mutate, isPending } = useCreateUser();
   const navigate = useNavigate();
 

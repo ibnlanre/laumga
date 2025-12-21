@@ -17,41 +17,42 @@ import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
 import { PageLoader } from "@/components/page-loader";
-import { getUserOptions } from "@/api/user/options";
-import { permissionQueryOptions } from "@/api/user-roles/options";
 import { firebase } from "@/api/firebase";
 
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { userRole } from "@/api/user-roles";
+import { user } from "@/api/user";
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const session = await firebase.$use.getSession();
+    const { userId } = await firebase.$use.getSession();
 
-    if (!session?.userId) {
+    if (!userId) return { isAuthenticated: false };
+    return { isAuthenticated: true, userId };
+  },
+  loader: async ({ context }) => {
+    const { isAuthenticated, userId } = context;
+
+    if (!isAuthenticated || !userId) {
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
-    const currentUser = await queryClient.ensureQueryData(
-      getUserOptions(session.userId)
-    );
+    const currentUser = await queryClient.ensureQueryData({
+      queryKey: user.get.$get({ data: userId }),
+      queryFn: () => user.$use.get({ data: userId! }),
+    });
 
     if (!currentUser) {
       await firebase.$use.logoutUser();
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
-    const permissions = await queryClient.ensureQueryData(
-      permissionQueryOptions(session.userId)
-    );
+    const permissions = await queryClient.ensureQueryData({
+      queryKey: userRole.getUserPermissions.$get({ data: userId }),
+      queryFn: () => userRole.$use.getUserPermissions({ data: userId! }),
+    });
 
-    return {
-      isAuthenticated: !!currentUser,
-      currentUser,
-      permissions,
-      isOwner: false,
-    };
+    return { currentUser, permissions };
   },
   head: () => ({
     meta: [
@@ -186,7 +187,7 @@ const theme = createTheme({
 });
 
 function RootDocument({ children }: PropsWithChildren) {
-  const { currentUser, permissions } = Route.useRouteContext();
+  const { currentUser, permissions } = Route.useLoaderData();
 
   return (
     <html lang="en" {...mantineHtmlProps} className="overscroll-none">
@@ -203,22 +204,7 @@ function RootDocument({ children }: PropsWithChildren) {
             </MantineProvider>
           </AuthProvider>
 
-          <TanStackDevtools
-            config={{
-              position: "bottom-right",
-              hideUntilHover: false,
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              {
-                name: "React Query",
-                render: <ReactQueryDevtoolsPanel />,
-              },
-            ]}
-          />
+          <ReactQueryDevtools initialIsOpen />
         </QueryClientProvider>
 
         <Scripts />

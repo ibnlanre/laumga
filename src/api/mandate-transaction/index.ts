@@ -1,35 +1,43 @@
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { db } from "@/services/firebase";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import { collection, doc } from "firebase/firestore";
+
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
   MANDATE_TRANSACTIONS_COLLECTION,
   mandateTransactionSchema,
 } from "./schema";
-import type {
-  ListMandateVariables,
-  MandateTransactionCollection,
-  MandateTransactionDocument,
-} from "./types";
+import type { MandateTransactionData } from "./types";
 
-async function list(variables?: ListMandateVariables) {
-  const transactionsRef = collection(
-    db,
-    MANDATE_TRANSACTIONS_COLLECTION
-  ) as MandateTransactionCollection;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(mandateTransactionSchema))
+  .handler(async ({ data: variables }) => {
+    const transactionsRef = serverCollection<MandateTransactionData>(
+      MANDATE_TRANSACTIONS_COLLECTION
+    );
 
-  const transactionsQuery = buildQuery(transactionsRef, variables);
-  return await getQueryDocs(transactionsQuery, mandateTransactionSchema);
-}
+    const transactionsQuery = buildServerQuery(transactionsRef, variables);
+    return await getServerQueryDocs(
+      transactionsQuery,
+      mandateTransactionSchema
+    );
+  });
 
-async function get(id: string) {
-  const transactionsRef = doc(
-    db,
-    MANDATE_TRANSACTIONS_COLLECTION,
-    id
-  ) as MandateTransactionDocument;
-  return await getQueryDoc(transactionsRef, mandateTransactionSchema);
-}
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const transactionsRef = serverCollection<MandateTransactionData>(
+      MANDATE_TRANSACTIONS_COLLECTION
+    ).doc(id);
+    return await getServerQueryDoc(transactionsRef, mandateTransactionSchema);
+  });
 
 export const mandateTransactions = createBuilder(
   {

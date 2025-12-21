@@ -4,7 +4,7 @@ import type {
 } from "firebase/firestore";
 import type z from "zod";
 
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import type { User } from "@/api/user/types";
 
 import type {

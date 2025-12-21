@@ -51,8 +51,10 @@ export function MandateCustomerForm(props: MandateCustomerFormProps = {}) {
     if (!user) return;
 
     createCustomer.mutate({
-      user,
-      data,
+      data: {
+        user,
+        data,
+      },
     });
   };
 

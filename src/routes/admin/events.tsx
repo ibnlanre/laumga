@@ -171,9 +171,11 @@ function EventsAdmin() {
     if (!user) return;
 
     await updateEventMutation.mutateAsync({
-      id,
-      data: { status: newStatus },
-      user,
+      data: {
+        id,
+        data: { status: newStatus },
+        user,
+      },
     });
 
     setDetailsOpened(false);
@@ -182,7 +184,8 @@ function EventsAdmin() {
   const handleDelete = async (eventId: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
 
-    await deleteEventMutation.mutateAsync(eventId);
+    await deleteEventMutation.mutateAsync({ data: eventId });
+
     setDetailsOpened(false);
   };
 

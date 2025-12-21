@@ -1,93 +1,85 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
 
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
 import { newsletterSubscription } from "@/api/newsletter-subscription";
 import {
   NOTIFICATIONS_COLLECTION,
   createNotificationSchema,
+  notificationFormSchema,
   notificationSchema,
+  notificationStatusSchema,
 } from "./schema";
-import type {
-  CreateNotificationVariables,
-  DownstreamNotificationCollection,
-  DownstreamNotificationDocument,
-  ListNotificationVariables,
-  UpdateNotificationStatusVariables,
-  UpstreamNotificationCollection,
-  UpstreamNotificationDocument,
-} from "./types";
+import type { CreateNotificationData, NotificationData } from "./types";
+import { createVariablesSchema } from "@/client/schema";
 
-async function list(variables?: ListNotificationVariables) {
-  const notificationsRef = collection(
-    db,
-    NOTIFICATIONS_COLLECTION
-  ) as DownstreamNotificationCollection;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(notificationSchema))
+  .handler(async ({ data: variables }) => {
+    const notificationsRef = serverCollection<NotificationData>(
+      NOTIFICATIONS_COLLECTION
+    );
 
-  const baseSort: ListNotificationVariables["sortBy"] = [
-    { field: "createdAt", value: "desc" },
-  ];
-  const mergedVariables: ListNotificationVariables = {
-    ...(variables ?? {}),
-    sortBy: variables?.sortBy?.length ? variables.sortBy : baseSort,
-  };
-
-  const notificationsQuery = buildQuery(notificationsRef, mergedVariables);
-  return await getQueryDocs(notificationsQuery, notificationSchema);
-}
-
-async function get(id: string) {
-  const notificationRef = doc(
-    db,
-    NOTIFICATIONS_COLLECTION,
-    id
-  ) as DownstreamNotificationDocument;
-
-  return await getQueryDoc(notificationRef, notificationSchema);
-}
-
-async function create(variables: CreateNotificationVariables) {
-  const { data } = variables;
-  const notificationsRef = collection(
-    db,
-    NOTIFICATIONS_COLLECTION
-  ) as UpstreamNotificationCollection;
-
-  const notificationData = createNotificationSchema.parse({
-    ...data,
-    category: "contact",
-    createdAt: serverTimestamp(),
+    const notificationsQuery = buildServerQuery(notificationsRef, variables);
+    return await getServerQueryDocs(notificationsQuery, notificationSchema);
   });
 
-  await addDoc(notificationsRef, notificationData);
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const notificationRef = serverCollection<NotificationData>(
+      NOTIFICATIONS_COLLECTION
+    ).doc(id);
+    return await getServerQueryDoc(notificationRef, notificationSchema);
+  });
 
-  if (notificationData.newsletterOptIn) {
-    await newsletterSubscription.$use.subscribe({
-      data: {
-        email: notificationData.email,
-        fullName: notificationData.fullName,
-      },
+const create = createServerFn({ method: "POST" })
+  .inputValidator(notificationFormSchema)
+  .handler(async ({ data: inputData }) => {
+    const notificationData = createNotificationSchema.parse({
+      ...inputData,
+      category: "contact",
+      createdAt: FieldValue.serverTimestamp(),
     });
-  }
-}
 
-async function updateStatus(variables: UpdateNotificationStatusVariables) {
-  const { id, status } = variables;
-  const notificationRef = doc(
-    db,
-    NOTIFICATIONS_COLLECTION,
-    id
-  ) as UpstreamNotificationDocument;
+    const notificationsRef = serverCollection<CreateNotificationData>(
+      NOTIFICATIONS_COLLECTION
+    );
 
-  await updateDoc(notificationRef, { status });
-}
+    await notificationsRef.add(notificationData);
+
+    if (notificationData.newsletterOptIn) {
+      await newsletterSubscription.$use.subscribe({
+        data: {
+          email: notificationData.email,
+          fullName: notificationData.fullName,
+        },
+      });
+    }
+  });
+
+const updateStatus = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      status: notificationStatusSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { id, status } = data;
+    const notificationRef = serverCollection<NotificationData>(
+      NOTIFICATIONS_COLLECTION
+    ).doc(id);
+
+    await notificationRef.update({ status });
+  });
 
 export const notification = createBuilder(
   {

@@ -1,214 +1,219 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { addMinutes, isAfter } from "date-fns";
 
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
 
 import {
   MANDATES_COLLECTION,
   createMandateSchema,
   mandateSchema,
+  updateMandateSchema,
 } from "./schema";
-import type {
-  CreateMandateData,
-  CreateMandateVariables,
-  UpdateMandateVariables,
-  MandateCollection,
-  MandateDocument,
-  ListMandateVariables,
-} from "./types";
+import type { CreateMandateData, Mandate } from "./types";
 import { determineTier } from "./utils";
-import { addMinutes, isAfter } from "date-fns";
 import { flutterwave } from "../flutterwave";
+import { userSchema } from "../user/schema";
 
 function isStale(createdAt: Date) {
   return isAfter(new Date(), addMinutes(createdAt, 10));
 }
 
-function mandateRef(mandateId: string) {
-  return doc(db, MANDATES_COLLECTION, mandateId) as MandateDocument;
-}
-
-async function create(variables: CreateMandateVariables) {
-  const { user, data } = variables;
-
-  const tokenResponse = await flutterwave.$use.account.tokenize({
-    data: {
-      email: user.email,
-      amount: data.amount,
-      address: user.address,
-      phone_number: user.phoneNumber,
-      account_bank: data.bankCode,
-      account_number: data.accountNumber,
-      start_date: data.startDate,
-      end_date: data.endDate!,
-      narration: `LAUMGA Foundation ${data.frequency} contribution`,
-    },
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(mandateSchema))
+  .handler(async ({ data: variables }) => {
+    const mandatesRef = serverCollection<Mandate>(MANDATES_COLLECTION);
+    const query = buildServerQuery(mandatesRef, variables);
+    return getServerQueryDocs(query, mandateSchema);
   });
 
-  const validated = createMandateSchema.parse(data);
-  const docRef = mandateRef(user.id);
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(id);
+    const mandate = await getServerQueryDoc(ref, mandateSchema);
 
-  const mandateData: CreateMandateData = {
-    userId: user.id,
-    amount: validated.amount,
-    frequency: validated.frequency,
-    tier: determineTier(validated.amount),
-    startDate: validated.startDate,
-    endDate: validated.endDate,
-    flutterwaveReference: tokenResponse.data.reference,
-    flutterwaveAccountId: tokenResponse.data.account_id,
-    flutterwaveCustomerId: tokenResponse.data.customer_id,
-    flutterwaveStatus: tokenResponse.data.status,
-    flutterwaveAccountToken: null,
-    flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
-    flutterwaveProcessorResponse: tokenResponse.data.processor_response,
-    flutterwaveEffectiveDate: null,
-    created: record(user),
-    updated: record(user),
-  };
+    if (!mandate) return null;
 
-  await setDoc(docRef, mandateData);
-}
+    const account = await flutterwave.$use.account.status({
+      data: mandate.flutterwaveReference!,
+    });
 
-async function update(variables: UpdateMandateVariables) {
-  const { user, data } = variables;
-
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  await updateDoc(ref, { ...data, updated: record(user) });
-}
-
-async function get(id: string) {
-  const ref = mandateRef(id);
-  const mandate = await getQueryDoc(ref, mandateSchema);
-
-  if (!mandate) return null;
-
-  const account = await flutterwave.$use.account.status({
-    data: mandate.flutterwaveReference!,
-  });
-
-  if (account.data.status === "PENDING") {
-    if (isStale(new Date(account.data.created_at))) {
-      await deleteDoc(ref);
-      return null;
+    if (account.data.status === "PENDING") {
+      if (isStale(new Date(account.data.created_at))) {
+        await ref.delete();
+        return null;
+      }
     }
-  }
 
-  if (account.data.status !== mandate.flutterwaveStatus) {
-    mandate.flutterwaveStatus = account.data.status;
-    mandate.flutterwaveProcessorResponse = account.data.processor_response;
-    mandate.flutterwaveAccountToken = account.data.token;
-    mandate.flutterwaveEffectiveDate = account.data.active_on;
+    if (account.data.status !== mandate.flutterwaveStatus) {
+      mandate.flutterwaveStatus = account.data.status;
+      mandate.flutterwaveProcessorResponse = account.data.processor_response;
+      mandate.flutterwaveAccountToken = account.data.token;
+      mandate.flutterwaveEffectiveDate = account.data.active_on;
 
-    await updateDoc(ref, mandate);
-  }
+      await ref.update(mandate);
+    }
 
-  return mandate;
-}
-
-async function pause(variables: UpdateMandateVariables) {
-  const { user } = variables;
-
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  const response = await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "SUSPENDED" },
-    },
+    return mandate;
   });
 
-  await updateDoc(ref, {
-    flutterwaveStatus: response.data.status,
-    flutterwaveProcessorResponse: response.data.processor_response,
-    updated: record(user),
-  });
-}
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createMandateSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const tokenResponse = await flutterwave.$use.account.tokenize({
+      data: {
+        email: user.email,
+        amount: data.amount,
+        address: user.address,
+        phone_number: user.phoneNumber,
+        account_bank: data.bankCode,
+        account_number: data.accountNumber,
+        start_date: data.startDate,
+        end_date: data.endDate!,
+        narration: `LAUMGA Foundation ${data.frequency} contribution`,
+      },
+    });
 
-async function cancel(variables: UpdateMandateVariables) {
-  const { user } = variables;
+    const docRef = serverCollection<CreateMandateData>(MANDATES_COLLECTION).doc(
+      user.id
+    );
 
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
+    const mandateData: CreateMandateData = {
+      userId: user.id,
+      amount: data.amount,
+      frequency: data.frequency,
+      tier: determineTier(data.amount),
+      startDate: data.startDate,
+      endDate: data.endDate,
+      flutterwaveReference: tokenResponse.data.reference,
+      flutterwaveAccountId: tokenResponse.data.account_id,
+      flutterwaveCustomerId: tokenResponse.data.customer_id,
+      flutterwaveStatus: tokenResponse.data.status,
+      flutterwaveAccountToken: null,
+      flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
+      flutterwaveProcessorResponse: tokenResponse.data.processor_response,
+      flutterwaveEffectiveDate: null,
+      created: serverRecord(user),
+      updated: serverRecord(user),
+    };
 
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "DELETED" },
-    },
-  });
-
-  await deleteDoc(ref);
-}
-
-async function reinstate(variables: UpdateMandateVariables) {
-  const { user } = variables;
-
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  const response = await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "ACTIVE" },
-    },
+    await docRef.set(mandateData);
   });
 
-  await updateDoc(ref, {
-    flutterwaveStatus: response.data.status,
-    flutterwaveProcessorResponse: response.data.processor_response,
-    updated: record(user),
-  });
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: updateMandateSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
 
-async function list(variables?: ListMandateVariables) {
-  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
-  const mandatesQuery = buildQuery(mandatesRef, variables);
-  return await getQueryDocs(mandatesQuery, mandateSchema);
-}
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    await ref.update({ ...data, updated: serverRecord(user) });
+  });
+
+const pause = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
+
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    const mandate = snapshot.data();
+    if (!mandate?.flutterwaveReference) {
+      throw new Error("Mandate has no Flutterwave reference");
+    }
+
+    const response = await flutterwave.$use.account.update({
+      data: {
+        reference: mandate.flutterwaveReference,
+        payload: { status: "SUSPENDED" },
+      },
+    });
+
+    await ref.update({
+      flutterwaveStatus: response.data.status,
+      flutterwaveProcessorResponse: response.data.processor_response,
+      updated: serverRecord(user),
+    });
+  });
+
+const cancel = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
+
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    const mandate = snapshot.data();
+    if (!mandate?.flutterwaveReference) {
+      throw new Error("Mandate has no Flutterwave reference");
+    }
+
+    await flutterwave.$use.account.update({
+      data: {
+        reference: mandate.flutterwaveReference,
+        payload: { status: "DELETED" },
+      },
+    });
+
+    await ref.delete();
+  });
+
+const reinstate = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
+
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    const mandate = snapshot.data();
+    if (!mandate?.flutterwaveReference) {
+      throw new Error("Mandate has no Flutterwave reference");
+    }
+
+    const response = await flutterwave.$use.account.update({
+      data: {
+        reference: mandate.flutterwaveReference,
+        payload: { status: "ACTIVE" },
+      },
+    });
+
+    await ref.update({
+      flutterwaveStatus: response.data.status,
+      flutterwaveProcessorResponse: response.data.processor_response,
+      updated: serverRecord(user),
+    });
+  });
 
 export const mandate = createBuilder(
   {

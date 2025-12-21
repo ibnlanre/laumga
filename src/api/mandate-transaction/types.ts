@@ -1,4 +1,4 @@
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import {
   mandateTransactionSchema,
   mandateTransactionDataSchema,

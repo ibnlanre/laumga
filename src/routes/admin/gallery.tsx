@@ -107,9 +107,11 @@ function GalleryAdmin() {
     if (!actor) return;
 
     await updateMedia({
-      id: itemId,
-      data: { isFeatured: makeFeatured },
-      user: actor,
+      data: {
+        id: itemId,
+        data: { isFeatured: makeFeatured },
+        user: actor,
+      },
     });
 
     setDetailsOpened(false);
@@ -119,9 +121,11 @@ function GalleryAdmin() {
     if (!actor || !selectedItem) return;
 
     await updateMedia({
-      id: selectedItem.id,
-      data: { category: category as (typeof MEDIA_CATEGORIES)[number] },
-      user: actor,
+      data: {
+        id: selectedItem.id,
+        data: { category: category as (typeof MEDIA_CATEGORIES)[number] },
+        user: actor,
+      },
     });
 
     setSelectedCategory(category);
@@ -131,7 +135,7 @@ function GalleryAdmin() {
     if (!confirm("Are you sure you want to delete this photo?") || !actor)
       return;
 
-    await removeMedia(itemId);
+    await removeMedia({ data: itemId });
     setDetailsOpened(false);
   };
 

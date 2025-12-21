@@ -9,7 +9,7 @@ import type {
   updateChapterSchema,
   chapterDataSchema,
 } from "./schema";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import type { User } from "../user/types";
 
 export type Chapter = z.infer<typeof chapterSchema>;

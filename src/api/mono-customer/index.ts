@@ -1,48 +1,59 @@
+import { createServerFn } from "@tanstack/react-start";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import { doc, updateDoc } from "firebase/firestore";
 
 import { mono } from "@/api/mono";
 import type { MonoCustomerInput } from "@/api/mono/types";
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
+import { serverCollection } from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 import { USERS_COLLECTION } from "@/api/user/schema";
+import { userSchema } from "@/api/user/schema";
 
 import { monoCustomerFormSchema } from "./schema";
-import type { CreateMonoCustomerVariables } from "./types";
 
-async function create(variables: CreateMonoCustomerVariables) {
-  const { user, data } = variables;
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    zodValidator(
+      z.object({
+        data: monoCustomerFormSchema,
+        user: userSchema,
+      })
+    )
+  )
+  .handler(async ({ data }) => {
+    const { user, data: payload } = data;
 
-  const payload = monoCustomerFormSchema.parse(data);
+    const monoPayload: MonoCustomerInput = {
+      email: payload.email,
+      type: payload.type,
+      first_name: payload.firstName,
+      last_name: payload.lastName,
+      address: payload.address,
+      phone: payload.phoneNumber,
+      identity: {
+        type: "bvn",
+        number: payload.bvn,
+      },
+    };
 
-  const monoPayload: MonoCustomerInput = {
-    email: payload.email,
-    type: payload.type,
-    first_name: payload.firstName,
-    last_name: payload.lastName,
-    address: payload.address,
-    phone: payload.phoneNumber,
-    identity: {
-      type: "bvn",
-      number: payload.bvn,
-    },
-  };
+    const response = await mono.$use.customer.create({
+      data: monoPayload,
+    });
+    const monoCustomerId = response.data.id;
 
-  const response = await mono.$use.customer.create(monoPayload);
-  const monoCustomerId = response.data.id;
+    const userRef = serverCollection(USERS_COLLECTION).doc(user.id);
 
-  const userRef = doc(db, USERS_COLLECTION, user.id);
+    await userRef.update({
+      monoCustomerId,
+      updated: serverRecord(user),
+    });
 
-  await updateDoc(userRef, {
-    monoCustomerId,
-    updated: record(user),
+    return {
+      monoCustomerId,
+      customer: response,
+    };
   });
-
-  return {
-    monoCustomerId,
-    customer: response.data,
-  };
-}
 
 export const monoCustomer = createBuilder(
   {

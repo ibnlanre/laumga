@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod/v4";
-import { zodValidator } from "@tanstack/zod-adapter";
 
 import { MandatePledgeForm } from "@/layouts/mandate/pledge-form";
 import { MandateHeader } from "@/layouts/mandate/header";
@@ -14,7 +13,7 @@ const pledgeSearchSchema = z
   .partial();
 
 export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
-  validateSearch: zodValidator(pledgeSearchSchema),
+  validateSearch: pledgeSearchSchema,
   component: RouteComponent,
 });
 

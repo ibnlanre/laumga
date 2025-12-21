@@ -11,7 +11,7 @@ import type {
   mediaSchema,
   updateMediaSchema,
 } from "./schema";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import type { User } from "../user/types";
 
 export type Media = z.infer<typeof mediaSchema>;
@@ -27,12 +27,12 @@ export type DownstreamMediaDocument = DocumentReference<MediaData>;
 
 export type ListMediaVariables = Variables<MediaData>;
 
-export interface CreateMediaVariables {
+export interface CreateMediaVars {
   data: CreateMediaData;
   user: User;
 }
 
-export interface UpdateMediaVariables {
+export interface UpdateMediaVars {
   id: string;
   data: UpdateMediaData;
   user: User;

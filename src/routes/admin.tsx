@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, Router, createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { AdminLoginForm } from "@/layouts/auth/admin-login-form";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
@@ -9,7 +9,8 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { isOwner, currentUser } = Route.useRouteContext();
+  const { currentUser } = useLoaderData({ from: "__root__" });
+  const isOwner = false;
 
   if (!isOwner) {
     return <AdminLoginPage />;

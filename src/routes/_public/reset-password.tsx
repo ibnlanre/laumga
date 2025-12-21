@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
 import { ResetPasswordForm } from "@/layouts/public/reset-password-form";
@@ -10,7 +9,7 @@ const resetPasswordSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_public/reset-password")({
-  validateSearch: zodValidator(resetPasswordSearchSchema),
+  validateSearch: resetPasswordSearchSchema,
   component: RouteComponent,
 });
 

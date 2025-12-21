@@ -1,6 +1,13 @@
-import { getQueryDoc } from "@/client/core-query";
-import { db } from "@/services/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { createBuilder } from "@ibnlanre/builder";
+
+import { serverRecord } from "@/utils/server-record";
+import {
+  getServerQueryDoc,
+  serverCollection,
+} from "@/client/core-query/server";
+
 import { MANDATE_CERTIFICATE_COLLECTION } from "../schema";
 import {
   createMandateCertificateSettingsSchema,
@@ -10,60 +17,54 @@ import {
 } from "./schema";
 import type {
   CreateMandateCertificateSettingsData,
-  CreateMandateCertificateSettingsVariables,
-  MandateCertificateSettingsDocument,
-  UpdateMandateCertificateSettingsVariables,
+  MandateCertificateSettings,
+  UpdateMandateCertificateSettingsInput,
 } from "./types";
-import { createBuilder } from "@ibnlanre/builder";
-import { record } from "@/utils/record";
+import { userSchema } from "@/api/user/schema";
 
-async function create(variables: CreateMandateCertificateSettingsVariables) {
-  const { user, data } = variables;
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createMandateCertificateSettingsSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const settingsRef = serverCollection<CreateMandateCertificateSettingsData>(
+      MANDATE_CERTIFICATE_COLLECTION
+    ).doc(MANDATE_CERTIFICATE_SETTINGS);
 
-  const payload = createMandateCertificateSettingsSchema.parse(data);
+    await settingsRef.set(data);
+  });
 
-  const settingsRef = doc(
-    db,
-    MANDATE_CERTIFICATE_COLLECTION,
-    MANDATE_CERTIFICATE_SETTINGS
-  ) as MandateCertificateSettingsDocument;
+const get = createServerFn({ method: "GET" }).handler(async () => {
+  const settingsRef = serverCollection<MandateCertificateSettings>(
+    MANDATE_CERTIFICATE_COLLECTION
+  ).doc(MANDATE_CERTIFICATE_SETTINGS);
 
-  const newData = {
-    ...payload,
-    created: record(user),
-  };
+  return await getServerQueryDoc(settingsRef, mandateCertificateSettingsSchema);
+});
 
-  await setDoc(settingsRef, newData);
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: updateMandateCertificateSettingsSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const settingsRef = serverCollection<UpdateMandateCertificateSettingsInput>(
+      MANDATE_CERTIFICATE_COLLECTION
+    ).doc(MANDATE_CERTIFICATE_SETTINGS);
 
-async function get() {
-  const settingsRef = doc(
-    db,
-    MANDATE_CERTIFICATE_COLLECTION,
-    MANDATE_CERTIFICATE_SETTINGS
-  ) as MandateCertificateSettingsDocument;
-
-  return await getQueryDoc(settingsRef, mandateCertificateSettingsSchema);
-}
-
-async function update(variables: UpdateMandateCertificateSettingsVariables) {
-  const { user, data } = variables;
-
-  const payload = updateMandateCertificateSettingsSchema.parse(data);
-
-  const settingsRef = doc(
-    db,
-    MANDATE_CERTIFICATE_COLLECTION,
-    MANDATE_CERTIFICATE_SETTINGS
-  ) as MandateCertificateSettingsDocument;
-
-  const updatedData = {
-    ...payload,
-    updated: record(user),
-  };
-
-  await setDoc(settingsRef, updatedData, { merge: true });
-}
+    await settingsRef.set(
+      {
+        ...data,
+        updated: serverRecord(user),
+      },
+      { merge: true }
+    );
+  });
 
 export const mandateCertificateSettings = createBuilder(
   {

@@ -32,15 +32,12 @@ import { useAuth } from "@/contexts/use-auth";
 import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminStatCard } from "@/components/admin/stat-card";
-import { zodValidator } from "@tanstack/zod-adapter";
 import z from "zod";
 
 export const Route = createFileRoute("/admin/mandates")({
-  validateSearch: zodValidator(
-    z.object({
-      status: flutterwaveStatusSchema.optional(),
-    })
-  ),
+  validateSearch: z.object({
+    status: flutterwaveStatusSchema.optional(),
+  }),
   component: MandatesAdmin,
 });
 
@@ -78,8 +75,7 @@ function MandatesAdmin() {
   const { user } = useAuth();
 
   const { data: mandates = [], isLoading } = useQuery(listMandateOptions());
-
-  // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
+ 
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -96,7 +92,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        pauseMutation.mutate({ user });
+        pauseMutation.mutate({ data: { user } });
       },
     });
   };
@@ -114,7 +110,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        reinstateMutation.mutate({ user });
+        reinstateMutation.mutate({ data: { user } });
       },
     });
   };
@@ -133,7 +129,7 @@ function MandatesAdmin() {
       onConfirm: () => {
         if (!user || !flutterwaveReference) return;
 
-        cancelMutation.mutate({ user });
+        cancelMutation.mutate({ data: { user } });
       },
     });
   };
