@@ -17,6 +17,8 @@ import {
   flutterwaveTokenUpdateRequestSchema,
   flutterwaveTokenUpdateResponseSchema,
   flutterwaveStatusSchema,
+  flutterwaveTransactionSchema,
+  flutterwaveTransactionResponseSchema,
 } from "./schema";
 
 export type FlutterwaveErrorResponse = {
@@ -47,6 +49,13 @@ export type FlutterwaveTokenStatus = z.infer<
 >;
 export type FlutterwaveTokenStatusResponse = z.infer<
   typeof flutterwaveTokenStatusResponseSchema
+>;
+
+export type FlutterwaveTransaction = z.infer<
+  typeof flutterwaveTransactionSchema
+>;
+export type FlutterwaveTransactionResponse = z.infer<
+  typeof flutterwaveTransactionResponseSchema
 >;
 export type FlutterwaveTokenUpdateRequest = z.infer<
   typeof flutterwaveTokenUpdateRequestSchema

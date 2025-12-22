@@ -30,13 +30,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type {
-  ColumnDef,
   ColumnFiltersState,
   ColumnOrderState,
   ColumnPinningState,
   PaginationState,
   RowSelectionState,
   SortingState,
+  TableOptions,
   VisibilityState,
 } from "@tanstack/react-table";
 import { useState } from "react";
@@ -150,9 +150,10 @@ function DraggableTableHeader<TData>({
   );
 }
 
-export interface DataTableProps<TData> {
-  columns: ColumnDef<TData>[];
-  data: TData[];
+export interface DataTableProps<TData> extends Pick<
+  TableOptions<TData>,
+  "data" | "columns"
+> {
   enableColumnOrdering?: boolean;
   enableColumnPinning?: boolean;
   enableColumnResizing?: boolean;

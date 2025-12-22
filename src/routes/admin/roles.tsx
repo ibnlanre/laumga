@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import {
   ActionIcon,
   Badge,
@@ -317,7 +317,7 @@ function getColumns(config: ColumnConfig) {
         );
       },
     }),
-  ] as ColumnDef<Role>[];
+  ];
 }
 
 function PermissionBadges({ permissions }: { permissions: Permission[] }) {

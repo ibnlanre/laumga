@@ -38,7 +38,6 @@ const NAV_ITEMS: Record<HeaderVariant, NavItem[]> = {
     { label: "Articles", href: "/admin/articles" },
     { label: "Events", href: "/admin/events" },
     { label: "Gallery", href: "/admin/gallery" },
-    { label: "Payment Partners", href: "/admin/payment-partners" },
     { label: "Roles", href: "/admin/roles" },
     { label: "Users", href: "/admin/users" },
   ],
@@ -198,8 +197,10 @@ export function Header({ variant, className = "" }: HeaderProps) {
                 component={Link}
                 to="/login"
                 onClick={close}
+                size="lg"
+                radius="lg"
                 fullWidth
-                className="border-gray-300 text-gray-700"
+                className="border-gray-300 text-gray-700 text-base"
               >
                 Login
               </Button>
@@ -207,8 +208,10 @@ export function Header({ variant, className = "" }: HeaderProps) {
                 component={Link}
                 to="/register"
                 onClick={close}
+                size="lg"
+                radius="lg"
                 fullWidth
-                className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
+                className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white text-base"
               >
                 Join LAUMGA
               </Button>

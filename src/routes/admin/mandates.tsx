@@ -1,5 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { type ColumnDef } from "@tanstack/react-table";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Card,
   Title,
@@ -19,7 +18,10 @@ import { useMemo } from "react";
 import { DataTable } from "@/components/data-table";
 import { PageLoader } from "@/components/page-loader";
 import type { Mandate } from "@/api/mandate/types";
-import type { FlutterwaveStatus } from "@/api/flutterwave/types";
+import type {
+  FlutterwaveStatus,
+  FlutterwaveTransaction,
+} from "@/api/flutterwave/types";
 import { flutterwaveStatusSchema } from "@/api/flutterwave/schema";
 import {
   usePauseMandate,
@@ -33,6 +35,11 @@ import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminStatCard } from "@/components/admin/stat-card";
 import z from "zod";
+import { listTransactionOptions } from "@/api/flutterwave/options";
+import { createColumnHelper } from "@tanstack/react-table";
+import { formatDate } from "@/utils/date";
+import clsx from "clsx";
+import { Activity } from "lucide-react";
 
 export const Route = createFileRoute("/admin/mandates")({
   validateSearch: z.object({
@@ -75,7 +82,7 @@ function MandatesAdmin() {
   const { user } = useAuth();
 
   const { data: mandates = [], isLoading } = useQuery(listMandateOptions());
- 
+
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -141,9 +148,10 @@ function MandatesAdmin() {
     });
   };
 
-  const columns: ColumnDef<Mandate>[] = [
-    {
-      accessorKey: "tier",
+  const columnHelper = createColumnHelper<Mandate>();
+
+  const columns = [
+    columnHelper.accessor("tier", {
       header: "Tier",
       cell: ({ row }) => (
         <Group gap="sm">
@@ -158,9 +166,8 @@ function MandatesAdmin() {
           </div>
         </Group>
       ),
-    },
-    {
-      accessorKey: "amount",
+    }),
+    columnHelper.accessor("amount", {
       header: "Amount",
       cell: ({ row }) => (
         <Group gap="xs">
@@ -170,9 +177,8 @@ function MandatesAdmin() {
           </Text>
         </Group>
       ),
-    },
-    {
-      accessorKey: "flutterwaveStatus",
+    }),
+    columnHelper.accessor("flutterwaveStatus", {
       header: "Status",
       cell: ({ row }) => (
         <Badge
@@ -183,17 +189,37 @@ function MandatesAdmin() {
           {row.original.flutterwaveStatus}
         </Badge>
       ),
-    },
-    {
-      accessorKey: "flutterwaveReference",
+    }),
+    columnHelper.accessor("flutterwaveReference", {
       header: "Reference",
       cell: ({ row }) => (
         <Text size="sm" ff="monospace">
           {row.original.flutterwaveReference}
         </Text>
       ),
-    },
-    {
+    }),
+    columnHelper.display({
+      id: "history",
+      cell: ({ row }) => (
+        <Button
+          variant="subtle"
+          size="xs"
+          leftSection={<Activity className="size-4" />}
+          onClick={() => {
+            if (!user) return;
+
+            modals.open({
+              title: "Transaction History",
+              size: "xl",
+              children: <TransactionHistoryModal email={user?.email} />,
+            });
+          }}
+        >
+          History
+        </Button>
+      ),
+    }),
+    columnHelper.display({
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
@@ -247,16 +273,16 @@ function MandatesAdmin() {
           )}
         </Group>
       ),
-    },
+    }),
   ];
 
   const stats = useMemo(() => {
     const active = mandates.filter(
       ({ flutterwaveStatus }) => flutterwaveStatus === "ACTIVE"
-    ).length;
+    );
     const paused = mandates.filter(
       ({ flutterwaveStatus }) => flutterwaveStatus === "SUSPENDED"
-    ).length;
+    );
     const totalPledged = mandates.reduce(
       (acc, { amount = 0 }) => acc + amount,
       0
@@ -272,14 +298,14 @@ function MandatesAdmin() {
       },
       {
         label: "Active",
-        value: active,
+        value: active.length,
         description: "Currently debiting",
         icon: Play,
         tone: "sage" as const,
       },
       {
         label: "Paused",
-        value: paused,
+        value: paused.length,
         description: "Need attention",
         icon: Pause,
         tone: "coral" as const,
@@ -303,17 +329,6 @@ function MandatesAdmin() {
         eyebrow="Finance"
         title="Mandate management"
         description="Monitor recurring pledges, pause or resume debit flows, and keep contributions on track."
-        actions={
-          <Button
-            component={Link}
-            to="/admin/payment-partners"
-            variant="light"
-            color="deep-forest"
-            size="sm"
-          >
-            Configure split accounts
-          </Button>
-        }
       />
 
       <Grid gutter="lg">
@@ -397,7 +412,11 @@ function MandatesAdmin() {
   );
 }
 
-function MandateDetailsContent({ mandate }: { mandate: Mandate }) {
+interface MandateDetailsContentProps {
+  mandate: Mandate;
+}
+
+function MandateDetailsContent({ mandate }: MandateDetailsContentProps) {
   return (
     <Stack gap="md">
       <Grid>
@@ -494,5 +513,58 @@ function MandateDetailsContent({ mandate }: { mandate: Mandate }) {
         </Group>
       </div>
     </Stack>
+  );
+}
+
+const columnHelper = createColumnHelper<FlutterwaveTransaction>();
+
+const transactionColumns = [
+  columnHelper.accessor("created_at", {
+    header: "Date",
+    cell: (info) => formatDate(info.getValue()),
+  }),
+  columnHelper.accessor("status", {
+    header: "Status",
+    cell: (info) => (
+      <span
+        className={clsx(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+          info.getValue() === "successful"
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+        )}
+      >
+        {info.getValue()}
+      </span>
+    ),
+  }),
+  columnHelper.accessor("amount", {
+    header: "Amount",
+    cell: (info) => formatCurrency(info.getValue()),
+  }),
+  columnHelper.accessor("narration", {
+    header: "Narration",
+    cell: (info) => (
+      <span className="text-sm text-gray-500">{info.getValue()}</span>
+    ),
+  }),
+];
+
+function TransactionHistoryModal({ email }: { email: string }) {
+  const { data: transactionsResponse, isLoading } = useQuery(
+    listTransactionOptions({
+      customer_email: email,
+      status: "successful",
+    })
+  );
+
+  const transactions = transactionsResponse?.data || [];
+
+  return (
+    <DataTable
+      data={transactions}
+      columns={transactionColumns}
+      loading={isLoading}
+    />
   );
 }

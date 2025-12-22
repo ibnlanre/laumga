@@ -4,11 +4,7 @@ agent: agent
 
 # Split Payments
 
-# Split Payments
-
 Learn how to split incoming payments into Subaccounts.
-
-Suggest Edits
 
 Flutterwave’s split payments feature allows you to split an incoming payment and a commission fee between one or more bank accounts. This can be useful in the following example:
 

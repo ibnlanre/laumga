@@ -16,7 +16,7 @@ import type {
 import type { Variables } from "@/client/types";
 import type { User } from "../user/types";
 
-export type Mandate = z.infer<typeof mandateSchema>;
+export type Mandate = z.infer<typeof mandateSchema>
 export type MandateData = z.infer<typeof mandateDataSchema>;
 
 export type CreateMandateData = z.infer<typeof createMandateDataSchema>;

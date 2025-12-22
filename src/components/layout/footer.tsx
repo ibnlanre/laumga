@@ -166,6 +166,8 @@ export function Footer({ variant }: FooterProps) {
                   {...form.getInputProps("email")}
                   errorProps={{ c: "vibrant-lime" }}
                   type="email"
+                  radius="lg"
+                  size="md"
                   classNames={{
                     input:
                       "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-vibrant-lime-400",
@@ -175,6 +177,8 @@ export function Footer({ variant }: FooterProps) {
                 <Button
                   fullWidth
                   type="submit"
+                  radius="xl"
+                  size="md"
                   className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
                 >
                   Subscribe

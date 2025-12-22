@@ -66,7 +66,6 @@ export const flutterwaveTokenLifecycleStatusSchema = z.enum([
   "DELETED",
 ]);
 
-
 export const flutterwaveTokenStatusDataSchema = z.object({
   token: z.string().nullable(),
   reference: z.string(),
@@ -97,6 +96,59 @@ export const flutterwaveTokenStatusSchema = z.enum([
   "SUSPENDED",
   "DELETED",
 ]);
+
+export const flutterwaveTransactionSchema = z.object({
+  id: z.number(),
+  tx_ref: z.string(),
+  flw_ref: z.string(),
+  device_fingerprint: z.string().nullable(),
+  amount: z.number(),
+  currency: z.string(),
+  charged_amount: z.number(),
+  app_fee: z.number(),
+  merchant_fee: z.number(),
+  processor_response: z.string(),
+  auth_model: z.string(),
+  ip: z.string(),
+  narration: z.string(),
+  status: z.string(),
+  payment_type: z.string(),
+  created_at: isoDateTimeString,
+  account_id: z.number(),
+  card: z
+    .object({
+      first_6digits: z.string(),
+      last_4digits: z.string(),
+      issuer: z.string(),
+      country: z.string(),
+      type: z.string(),
+      token: z.string(),
+      expiry: z.string(),
+    })
+    .optional(),
+  meta: z.any().nullable(),
+  amount_settled: z.number(),
+  customer: z.object({
+    id: z.number(),
+    name: z.string(),
+    phone_number: z.string().nullable(),
+    email: z.string(),
+    created_at: isoDateTimeString,
+  }),
+});
+
+export const flutterwaveTransactionResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  meta: z.object({
+    page_info: z.object({
+      total: z.number(),
+      current_page: z.number(),
+      total_pages: z.number(),
+    }),
+  }),
+  data: z.array(flutterwaveTransactionSchema),
+});
 
 export const flutterwaveTokenUpdateRequestSchema = z.object({
   status: flutterwaveTokenStatusSchema,

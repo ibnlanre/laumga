@@ -21,7 +21,8 @@ import {
 import type { CreateMandateData, Mandate } from "./types";
 import { determineTier } from "./utils";
 import { flutterwave } from "../flutterwave";
-import { userSchema } from "../user/schema";
+import { userSchema, USERS_COLLECTION } from "../user/schema";
+import type { User } from "../user/types";
 
 function isStale(createdAt: Date) {
   return isAfter(new Date(), addMinutes(createdAt, 10));
@@ -32,7 +33,27 @@ const list = createServerFn({ method: "GET" })
   .handler(async ({ data: variables }) => {
     const mandatesRef = serverCollection<Mandate>(MANDATES_COLLECTION);
     const query = buildServerQuery(mandatesRef, variables);
-    return getServerQueryDocs(query, mandateSchema);
+    const mandates = await getServerQueryDocs(query, mandateSchema);
+
+    const userIds = [...new Set(mandates.map((m) => m.userId))];
+
+    if (userIds.length === 0) return mandates;
+
+    const usersRef = serverCollection<User>(USERS_COLLECTION);
+    const userDocs = await Promise.all(
+      userIds.map((id) => usersRef.doc(id).get())
+    );
+
+    const userMap = new Map(
+      userDocs
+        .filter((doc) => doc.exists)
+        .map((doc) => [doc.id, userSchema.parse({ id: doc.id, ...doc.data() })])
+    );
+
+    return mandates.map((m) => ({
+      ...m,
+      user: userMap.get(m.userId),
+    }));
   });
 
 const get = createServerFn({ method: "GET" })

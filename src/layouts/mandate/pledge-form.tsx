@@ -859,12 +859,12 @@ export function MandatePledgeForm({
                     </p>
                     <div className="pt-3 text-sm text-deep-forest/80">
                       {flutterwaveAccountToken && (
-                        <p className="text-deep-forest/70">
+                        <p className="text-deep-forest/70 text-wrap break-all">
                           {flutterwaveAccountToken}
                         </p>
                       )}
 
-                      <section className="pt-1 flex gap-1 items-center">
+                      <section className="pt-1 flex gap-1 items-center flex-wrap text-wrap">
                         {flutterwaveStatus && (
                           <p className="font-semibold text-deep-forest">
                             {capitalize(flutterwaveStatus.toLowerCase())}

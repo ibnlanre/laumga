@@ -1,17 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Activity,
   AlertCircle,
   CalendarClock,
   CalendarOff,
-  Download,
-  Inbox,
   Pause,
   Play,
   X,
 } from "lucide-react";
 import { useRef } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
 import { Button, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 
@@ -21,7 +17,6 @@ import { MandateHeader } from "@/layouts/mandate/header";
 import { useAuth } from "@/contexts/use-auth";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
-import type { MandateTransaction } from "@/api/mandate-transaction/types";
 import {
   usePauseMandate,
   useReinstateMandate,
@@ -30,12 +25,13 @@ import {
 import { getMandateOptions } from "@/api/mandate/options";
 import { listFeedOptions } from "@/api/feed/options";
 import { useQuery } from "@tanstack/react-query";
-import { listUserMandateTransactionsOptions } from "@/api/mandate-transaction/options";
 import { formatCurrency } from "@/utils/currency";
 import { capitalize } from "inflection";
 import { Section } from "@/components/section";
 import clsx from "clsx";
-import type { FlutterwaveStatus } from "@/api/flutterwave/types";
+import type { FlutterwaveTransaction } from "@/api/flutterwave/types";
+import { listTransactionOptions } from "@/api/flutterwave/options";
+import { createColumnHelper } from "@tanstack/react-table";
 
 const tierScale = [
   { tier: "supporter", amount: 50000 },
@@ -43,72 +39,38 @@ const tierScale = [
   { tier: "guardian", amount: 250000 },
 ] as const;
 
-const transactionColumns: ColumnDef<MandateTransaction>[] = [
-  {
-    accessorKey: "paidAt",
+const columnHelper = createColumnHelper<FlutterwaveTransaction>();
+
+const columns = [
+  columnHelper.accessor("created_at", {
     header: "Date",
-    cell: (info) => (
-      <span className="font-medium text-deep-forest">
-        {formatDate(info.getValue<string>(), "PPP")}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "monoReference",
-    header: "Reference",
-    cell: (info) => (
-      <span className="font-mono text-sm text-deep-forest/80">
-        {info.getValue<string>()}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "flutterwaveStatus",
+    cell: (info) => formatDate(info.getValue()),
+  }),
+  columnHelper.accessor("status", {
     header: "Status",
-    cell: (info) => {
-      const status = info.getValue<FlutterwaveStatus>();
-
-      const styles =
-        status === "ACTIVE"
-          ? "bg-mist-green text-deep-forest"
-          : status === "SUSPENDED"
-            ? "bg-red-50 text-red-700"
-            : "bg-amber-50 text-amber-700";
-
-      return (
-        <span
-          className={clsx(
-            "inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize",
-            styles
-          )}
-        >
-          {status}
-        </span>
-      );
-    },
-  },
-  {
-    accessorKey: "amount",
-    header: "Amount",
     cell: (info) => (
-      <span className="font-semibold text-deep-forest">
-        {formatCurrency(info.getValue<number>())}
+      <span
+        className={clsx(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+          info.getValue() === "successful"
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+        )}
+      >
+        {info.getValue()}
       </span>
     ),
-  },
-  {
-    id: "actions",
-    header: "Action",
-    cell: ({ row }) => (
-      <button
-        className="rounded-full p-2 text-deep-forest/60 transition hover:text-deep-forest"
-        type="button"
-        aria-label={`Download receipt for ${formatDate(row.original.paidAt, "PPP")}`}
-      >
-        <Download size={16} />
-      </button>
+  }),
+  columnHelper.accessor("amount", {
+    header: "Amount",
+    cell: (info) => formatCurrency(info.getValue()),
+  }),
+  columnHelper.accessor("narration", {
+    header: "Narration",
+    cell: (info) => (
+      <span className="text-sm text-gray-500">{info.getValue()}</span>
     ),
-  },
+  }),
 ];
 
 export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
@@ -128,9 +90,15 @@ function RouteComponent() {
     getMandateOptions(user?.id)
   );
 
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery(
-    listUserMandateTransactionsOptions(user?.id)
-  );
+  const { data: transactionsResponse, isLoading: transactionsLoading } =
+    useQuery(
+      listTransactionOptions({
+        customer_email: user?.email,
+        status: "successful",
+      })
+    );
+
+  const transactions = transactionsResponse?.data || [];
 
   // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
@@ -333,27 +301,6 @@ function RouteComponent() {
                       </div>
                     </div>
                   </article>
-
-                  <article className="rounded-3xl border border-sage-green/30 bg-white/90 p-6 shadow-lg">
-                    <div className="flex h-full flex-col gap-5">
-                      <div className="space-y-3">
-                        <p className="text-sm font-medium text-deep-forest/70">
-                          Mandate health
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <div className="rounded-full bg-mist-green/80 p-3 text-deep-forest">
-                            <Activity className="h-6 w-6" />
-                          </div>
-                          <p className="text-4xl font-bold tracking-tight text-deep-forest">
-                            {transactions.length}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-base text-deep-forest/70">
-                        Successful draws logged since you activated this pledge.
-                      </p>
-                    </div>
-                  </article>
                 </>
               ) : (
                 <div className="md:col-span-3">
@@ -371,6 +318,30 @@ function RouteComponent() {
                   </EmptyState>
                 </div>
               )}
+            </section>
+
+            <section className="rounded-3xl border border-sage-green/40 bg-white/95 p-6 shadow-lg">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+                    History
+                  </p>
+                  <h2 className="text-2xl font-bold text-deep-forest">
+                    Transaction History
+                  </h2>
+                  <p className="text-sm text-deep-forest/70">
+                    Your recent contributions and charges.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <DataTable
+                  data={transactions}
+                  columns={columns}
+                  loading={transactionsLoading}
+                />
+              </div>
             </section>
 
             <section className="rounded-3xl border border-sage-green/40 bg-white/95 p-6 shadow-lg">
@@ -433,53 +404,6 @@ function RouteComponent() {
                 </div>
               )}
               <div ref={observerRef} className="h-1" />
-            </section>
-
-            <section className="rounded-3xl border border-sage-green/30 bg-white/95 p-6 shadow-xl">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-deep-forest">
-                    Payment history
-                  </h2>
-                  <p className="text-sm text-deep-forest/70">
-                    Every debit linked to your mandate appears with a Mono
-                    reference for auditing.
-                  </p>
-                </div>
-              </div>
-
-              {transactionsLoading ? (
-                <div className="py-12">
-                  <LoadingState
-                    type="spinner"
-                    message="Loading transactions..."
-                  />
-                </div>
-              ) : transactions.length ? (
-                <div className="mt-6">
-                  <DataTable
-                    columns={transactionColumns}
-                    data={transactions}
-                    enableColumnOrdering={false}
-                    enableColumnPinning={false}
-                    enableColumnResizing={false}
-                    enableFilters={false}
-                    enableRowSelection={false}
-                    enableSearch={false}
-                    enableSorting
-                    loading={transactionsLoading}
-                    pageSize={5}
-                  />
-                </div>
-              ) : (
-                <div className="pt-6">
-                  <EmptyState
-                    icon={Inbox}
-                    title="No transactions yet"
-                    message="After your first successful debit, the ledger will populate automatically."
-                  />
-                </div>
-              )}
             </section>
 
             <section className="rounded-3xl bg-deep-forest px-6 py-8 text-white shadow-2xl">

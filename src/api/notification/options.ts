@@ -8,7 +8,7 @@ export const listNotificationOptions = (
 ) => {
   const list = useServerFn(notification.$use.list);
   return queryOptions({
-    queryKey: notification.list.$use({ data: variables }),
+    queryKey: notification.list.$get(variables),
     queryFn: () => list({ data: variables }),
   });
 };
@@ -16,7 +16,7 @@ export const listNotificationOptions = (
 export const getNotificationOptions = (id?: string) => {
   const get = useServerFn(notification.$use.get);
   return queryOptions({
-    queryKey: notification.get.$use({ data: id! }),
+    queryKey: notification.get.$get(id),
     queryFn: () => get({ data: id! }),
     enabled: !!id,
   });

@@ -18,7 +18,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminRolesRouteImport } from './routes/admin/roles'
-import { Route as AdminPaymentPartnersRouteImport } from './routes/admin/payment-partners'
 import { Route as AdminMandatesRouteImport } from './routes/admin/mandates'
 import { Route as AdminGalleryRouteImport } from './routes/admin/gallery'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
@@ -44,7 +43,6 @@ import { Route as PublicDefaultEventsEventIdRouteImport } from './routes/_public
 import { Route as PublicDefaultBulletinArticleRouteImport } from './routes/_public/_default/bulletin/$article'
 import { Route as AuthMandateLayoutPledgeRouteImport } from './routes/_auth/mandate/_layout.pledge'
 import { Route as AuthMandateLayoutDashboardRouteImport } from './routes/_auth/mandate/_layout.dashboard'
-import { Route as AuthMandateLayoutCustomerRouteImport } from './routes/_auth/mandate/_layout.customer'
 import { Route as AuthMandateLayoutCertificateRouteImport } from './routes/_auth/mandate/_layout.certificate'
 
 const AuthMandateRouteImport = createFileRoute('/_auth/mandate')()
@@ -85,11 +83,6 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminRolesRoute = AdminRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPaymentPartnersRoute = AdminPaymentPartnersRouteImport.update({
-  id: '/payment-partners',
-  path: '/payment-partners',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMandatesRoute = AdminMandatesRouteImport.update({
@@ -220,12 +213,6 @@ const AuthMandateLayoutDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AuthMandateLayoutRoute,
   } as any)
-const AuthMandateLayoutCustomerRoute =
-  AuthMandateLayoutCustomerRouteImport.update({
-    id: '/customer',
-    path: '/customer',
-    getParentRoute: () => AuthMandateLayoutRoute,
-  } as any)
 const AuthMandateLayoutCertificateRoute =
   AuthMandateLayoutCertificateRouteImport.update({
     id: '/certificate',
@@ -247,7 +234,6 @@ export interface FileRoutesByFullPath {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
@@ -260,7 +246,6 @@ export interface FileRoutesByFullPath {
   '/newsletter': typeof PublicDefaultNewsletterRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/mandate/customer': typeof AuthMandateLayoutCustomerRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/mandate/pledge': typeof AuthMandateLayoutPledgeRoute
   '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -281,7 +266,6 @@ export interface FileRoutesByTo {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
@@ -294,7 +278,6 @@ export interface FileRoutesByTo {
   '/newsletter': typeof PublicDefaultNewsletterRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/mandate/customer': typeof AuthMandateLayoutCustomerRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/mandate/pledge': typeof AuthMandateLayoutPledgeRoute
   '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -318,7 +301,6 @@ export interface FileRoutesById {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/_public/': typeof PublicIndexRoute
@@ -332,7 +314,6 @@ export interface FileRoutesById {
   '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
   '/_auth/mandate/_layout/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/_auth/mandate/_layout/customer': typeof AuthMandateLayoutCustomerRoute
   '/_auth/mandate/_layout/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/_auth/mandate/_layout/pledge': typeof AuthMandateLayoutPledgeRoute
   '/_public/_default/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -356,7 +337,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/'
@@ -369,7 +349,6 @@ export interface FileRouteTypes {
     | '/newsletter'
     | '/register'
     | '/mandate/certificate'
-    | '/mandate/customer'
     | '/mandate/dashboard'
     | '/mandate/pledge'
     | '/bulletin/$article'
@@ -390,7 +369,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/'
@@ -403,7 +381,6 @@ export interface FileRouteTypes {
     | '/newsletter'
     | '/register'
     | '/mandate/certificate'
-    | '/mandate/customer'
     | '/mandate/dashboard'
     | '/mandate/pledge'
     | '/bulletin/$article'
@@ -426,7 +403,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/_public/'
@@ -440,7 +416,6 @@ export interface FileRouteTypes {
     | '/_public/_default/newsletter'
     | '/_public/register/'
     | '/_auth/mandate/_layout/certificate'
-    | '/_auth/mandate/_layout/customer'
     | '/_auth/mandate/_layout/dashboard'
     | '/_auth/mandate/_layout/pledge'
     | '/_public/_default/bulletin/$article'
@@ -511,13 +486,6 @@ declare module '@tanstack/react-router' {
       path: '/roles'
       fullPath: '/admin/roles'
       preLoaderRoute: typeof AdminRolesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/payment-partners': {
-      id: '/admin/payment-partners'
-      path: '/payment-partners'
-      fullPath: '/admin/payment-partners'
-      preLoaderRoute: typeof AdminPaymentPartnersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/mandates': {
@@ -695,13 +663,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMandateLayoutDashboardRouteImport
       parentRoute: typeof AuthMandateLayoutRoute
     }
-    '/_auth/mandate/_layout/customer': {
-      id: '/_auth/mandate/_layout/customer'
-      path: '/customer'
-      fullPath: '/mandate/customer'
-      preLoaderRoute: typeof AuthMandateLayoutCustomerRouteImport
-      parentRoute: typeof AuthMandateLayoutRoute
-    }
     '/_auth/mandate/_layout/certificate': {
       id: '/_auth/mandate/_layout/certificate'
       path: '/certificate'
@@ -714,7 +675,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthMandateLayoutRouteChildren {
   AuthMandateLayoutCertificateRoute: typeof AuthMandateLayoutCertificateRoute
-  AuthMandateLayoutCustomerRoute: typeof AuthMandateLayoutCustomerRoute
   AuthMandateLayoutDashboardRoute: typeof AuthMandateLayoutDashboardRoute
   AuthMandateLayoutPledgeRoute: typeof AuthMandateLayoutPledgeRoute
   AuthMandateLayoutIndexRoute: typeof AuthMandateLayoutIndexRoute
@@ -722,7 +682,6 @@ interface AuthMandateLayoutRouteChildren {
 
 const AuthMandateLayoutRouteChildren: AuthMandateLayoutRouteChildren = {
   AuthMandateLayoutCertificateRoute: AuthMandateLayoutCertificateRoute,
-  AuthMandateLayoutCustomerRoute: AuthMandateLayoutCustomerRoute,
   AuthMandateLayoutDashboardRoute: AuthMandateLayoutDashboardRoute,
   AuthMandateLayoutPledgeRoute: AuthMandateLayoutPledgeRoute,
   AuthMandateLayoutIndexRoute: AuthMandateLayoutIndexRoute,
@@ -809,7 +768,6 @@ interface AdminRouteChildren {
   AdminEventsRoute: typeof AdminEventsRoute
   AdminGalleryRoute: typeof AdminGalleryRoute
   AdminMandatesRoute: typeof AdminMandatesRoute
-  AdminPaymentPartnersRoute: typeof AdminPaymentPartnersRoute
   AdminRolesRoute: typeof AdminRolesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -823,7 +781,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEventsRoute: AdminEventsRoute,
   AdminGalleryRoute: AdminGalleryRoute,
   AdminMandatesRoute: AdminMandatesRoute,
-  AdminPaymentPartnersRoute: AdminPaymentPartnersRoute,
   AdminRolesRoute: AdminRolesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

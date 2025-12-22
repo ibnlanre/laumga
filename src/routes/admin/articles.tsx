@@ -1,33 +1,83 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import {
-  Card,
-  Title,
-  Text,
+  ActionIcon,
   Badge,
   Button,
-  Group,
-  Stack,
-  ActionIcon,
-  Tooltip,
-  Modal,
+  Card,
   Grid,
+  Group,
+  MultiSelect,
+  Select,
+  Stack,
   Switch,
+  Text,
+  TextInput,
+  Textarea,
+  Title,
+  Tooltip,
 } from "@mantine/core";
-import { Eye, Check, X, Trash2, Star } from "lucide-react";
+import { useForm } from "@mantine/form";
+import { modals } from "@mantine/modals";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { Eye, Check, X, Trash2, Star, Plus } from "lucide-react";
 
 import { PageLoader } from "@/components/page-loader";
 import { DataTable } from "@/components/data-table";
-import type { Article, ArticleStatus } from "@/api/article/types";
-import { useRemoveArticle, useUpdateArticle } from "@/api/article/hooks";
+import { ImageUpload } from "@/components/image-upload";
+import type {
+  Article,
+  ArticleStatus,
+  CreateArticleData,
+  ArticleCategory,
+} from "@/api/article/types";
+import { createArticleSchema } from "@/api/article/schema";
+import {
+  useArchiveArticle,
+  useCreateArticle,
+  usePublishArticle,
+  useRemoveArticle,
+  useUpdateArticle,
+} from "@/api/article/hooks";
 import { listArticleOptions } from "@/api/article/options";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/use-auth";
+import { upload } from "@/api/upload";
+import { z } from "zod";
+import { record } from "@/utils/record";
+import type { User } from "@/api/user/types";
+
+const ARTICLE_CATEGORY_OPTIONS: { value: ArticleCategory; label: string }[] = [
+  { value: "news", label: "News" },
+  { value: "health", label: "Health" },
+  { value: "islamic", label: "Islamic" },
+  { value: "campus", label: "Campus" },
+  { value: "alumni", label: "Alumni" },
+  { value: "community", label: "Community" },
+];
+
+const ARTICLE_STATUS_OPTIONS = [
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
+  { value: "archived", label: "Archived" },
+];
+
+const CREATE_ARTICLE_MODAL_ID = "create-article-modal";
+const ARTICLE_DETAILS_MODAL_PREFIX = "article-details-modal";
+
+const articleFormSchema = createArticleSchema.omit({
+  created: true,
+  published: true,
+  updated: true,
+  archived: true,
+});
+
+type ArticleFormValues = z.infer<typeof articleFormSchema>;
 
 export const Route = createFileRoute("/admin/articles")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    status: (search.status as string) || undefined,
+  validateSearch: z.object({
+    status: z.string().optional(),
   }),
   component: ArticlesAdmin,
 });
@@ -35,74 +85,138 @@ export const Route = createFileRoute("/admin/articles")({
 function ArticlesAdmin() {
   const { user } = useAuth();
 
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [detailsOpened, setDetailsOpened] = useState(false);
-
   const { data: articles = [], isLoading } = useQuery(listArticleOptions());
-  const updateArticleMutation = useUpdateArticle();
-  const deleteArticleMutation = useRemoveArticle();
+  const createArticle = useCreateArticle();
+  const updateArticle = useUpdateArticle();
+  const deleteArticle = useRemoveArticle();
+  const publishArticle = usePublishArticle();
+  const archiveArticle = useArchiveArticle();
 
   const columnHelper = createColumnHelper<Article>();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "published":
-        return "green";
-      case "draft":
-        return "yellow";
-      case "archived":
-        return "gray";
-      default:
-        return "blue";
+  const closeModal = (id?: string) => {
+    if (id) {
+      modals.close(id);
     }
   };
 
-  const viewArticleDetails = (article: Article) => {
-    setSelectedArticle(article);
-    setDetailsOpened(true);
-  };
-
-  const handleStatusChange = async (
-    articleId: string,
-    newStatus: ArticleStatus
-  ) => {
+  const handleCreateArticle = async (values: ArticleFormValues) => {
     if (!user) return;
 
-    await updateArticleMutation.mutateAsync({
+    await createArticle.mutateAsync({
       data: {
-        id: articleId,
-        data: { status: newStatus },
+        user,
+        data: buildCreatePayload(values, user),
+      },
+    });
+
+    closeModal(CREATE_ARTICLE_MODAL_ID);
+  };
+
+  const handleToggleFeatured = async (article: Article, modalId?: string) => {
+    if (!user) return;
+
+    await updateArticle.mutateAsync({
+      data: {
+        id: article.id,
+        data: { featured: !article.featured },
         user,
       },
     });
 
-    setDetailsOpened(false);
+    closeModal(modalId);
   };
 
-  const handleToggleFeatured = async (
-    articleId: string,
-    isFeatured: boolean
-  ) => {
+  const handlePublish = async (articleId: string, modalId?: string) => {
     if (!user) return;
 
-    await updateArticleMutation.mutateAsync({
+    await publishArticle.mutateAsync({
       data: {
         id: articleId,
-        data: { featured: !isFeatured },
         user,
       },
     });
+
+    closeModal(modalId);
   };
 
-  const handleDelete = async (articleId: string) => {
-    if (!confirm("Are you sure you want to delete this article?")) return;
+  const handleArchive = async (articleId: string, modalId?: string) => {
+    if (!user) return;
 
-    await deleteArticleMutation.mutateAsync({ data: articleId });
+    await archiveArticle.mutateAsync({
+      data: {
+        id: articleId,
+        user,
+      },
+    });
 
-    setDetailsOpened(false);
+    closeModal(modalId);
   };
 
-  // Define columns for DataTable
+  const handleDelete = async (articleId: string, modalId?: string) => {
+    await deleteArticle.mutateAsync({ data: articleId });
+    closeModal(modalId);
+  };
+
+  const confirmDeleteArticle = (article: Article, modalId?: string) => {
+    modals.openConfirmModal({
+      title: `Delete ${article.title}?`,
+      children: (
+        <Text size="sm">
+          This action is permanent. The article will be removed from the
+          bulletin and cannot be recovered.
+        </Text>
+      ),
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red", loading: deleteArticle.isPending },
+      onConfirm: () => handleDelete(article.id, modalId),
+    });
+  };
+
+  const openCreateModal = () => {
+    modals.open({
+      modalId: CREATE_ARTICLE_MODAL_ID,
+      title: <Title order={3}>Create article</Title>,
+      radius: "lg",
+      size: "xl",
+      children: (
+        <ArticleForm
+          initialValues={getDefaultArticleFormValues()}
+          submitting={createArticle.isPending}
+          onSubmit={handleCreateArticle}
+          onCancel={() => closeModal(CREATE_ARTICLE_MODAL_ID)}
+        />
+      ),
+    });
+  };
+
+  const openArticleDetails = (article: Article) => {
+    const modalId = `${ARTICLE_DETAILS_MODAL_PREFIX}-${article.id}`;
+
+    modals.open({
+      modalId,
+      title: <Title order={3}>{article.title}</Title>,
+      radius: "lg",
+      size: "xl",
+      children: (
+        <ArticleDetails
+          article={article}
+          actionPending={
+            updateArticle.isPending ||
+            publishArticle.isPending ||
+            archiveArticle.isPending
+          }
+          deletePending={deleteArticle.isPending}
+          onToggleFeatured={() => handleToggleFeatured(article, modalId)}
+          onPublish={() => handlePublish(article.id, modalId)}
+          onArchive={() => handleArchive(article.id, modalId)}
+          onRepublish={() => handlePublish(article.id, modalId)}
+          onDelete={() => confirmDeleteArticle(article, modalId)}
+        />
+      ),
+    });
+  };
+
   const columns = [
     columnHelper.accessor("title", {
       header: "Article",
@@ -150,11 +264,10 @@ function ArticlesAdmin() {
       cell: (info) => (
         <Switch
           checked={info.getValue()}
-          onChange={() =>
-            handleToggleFeatured(info.row.original.id, info.getValue())
-          }
+          onChange={() => handleToggleFeatured(info.row.original)}
           size="sm"
           color="yellow"
+          disabled={updateArticle.isPending}
         />
       ),
     }),
@@ -168,7 +281,7 @@ function ArticlesAdmin() {
             <ActionIcon
               variant="subtle"
               color="blue"
-              onClick={() => viewArticleDetails(info.row.original)}
+              onClick={() => openArticleDetails(info.row.original)}
             >
               <Eye className="size-4" />
             </ActionIcon>
@@ -178,9 +291,8 @@ function ArticlesAdmin() {
               <ActionIcon
                 variant="subtle"
                 color="green"
-                onClick={() =>
-                  handleStatusChange(info.row.original.id, "published")
-                }
+                disabled={publishArticle.isPending}
+                onClick={() => handlePublish(info.row.original.id)}
               >
                 <Check className="size-4" />
               </ActionIcon>
@@ -191,9 +303,8 @@ function ArticlesAdmin() {
               <ActionIcon
                 variant="subtle"
                 color="gray"
-                onClick={() =>
-                  handleStatusChange(info.row.original.id, "archived")
-                }
+                disabled={archiveArticle.isPending}
+                onClick={() => handleArchive(info.row.original.id)}
               >
                 <X className="size-4" />
               </ActionIcon>
@@ -203,7 +314,8 @@ function ArticlesAdmin() {
             <ActionIcon
               variant="subtle"
               color="red"
-              onClick={() => handleDelete(info.row.original.id)}
+              disabled={deleteArticle.isPending}
+              onClick={() => confirmDeleteArticle(info.row.original)}
             >
               <Trash2 className="size-4" />
             </ActionIcon>
@@ -231,16 +343,24 @@ function ArticlesAdmin() {
               Manage and moderate bulletin articles
             </Text>
           </div>
-          {pendingCount > 0 && (
-            <Badge size="lg" color="orange" variant="filled">
-              {pendingCount} drafts pending
-            </Badge>
-          )}
+          <Group>
+            {pendingCount > 0 && (
+              <Badge size="lg" color="orange" variant="filled">
+                {pendingCount} drafts pending
+              </Badge>
+            )}
+            <Button
+              leftSection={<Plus className="size-4" />}
+              onClick={openCreateModal}
+            >
+              Create Article
+            </Button>
+          </Group>
         </Group>
       </div>
 
       <DataTable
-        columns={columns as ColumnDef<Article>[]}
+        columns={columns}
         data={articles}
         enableSearch
         enableFilters
@@ -263,153 +383,316 @@ function ArticlesAdmin() {
         pageSize={10}
         loading={isLoading}
       />
-
-      {/* Article Details Modal */}
-      <Modal
-        opened={detailsOpened}
-        onClose={() => setDetailsOpened(false)}
-        title="Article Details"
-        size="xl"
-      >
-        {selectedArticle && (
-          <Stack gap="md">
-            <div>
-              <Group justify="space-between" mb="md">
-                <Group gap="xs">
-                  {selectedArticle.featured && (
-                    <Star className="size-5 text-yellow-500 fill-yellow-500" />
-                  )}
-                  <Title order={3}>{selectedArticle.title}</Title>
-                </Group>
-                <Badge
-                  size="lg"
-                  color={getStatusColor(selectedArticle.status)}
-                  variant="light"
-                >
-                  {selectedArticle.status}
-                </Badge>
-              </Group>
-            </div>
-
-            {selectedArticle.coverImageUrl && (
-              <Card shadow="sm" padding="xs" radius="md" withBorder>
-                <Card.Section>
-                  <img
-                    src={selectedArticle.coverImageUrl}
-                    alt={selectedArticle.title}
-                    className="w-full max-h-96 object-cover"
-                  />
-                </Card.Section>
-              </Card>
-            )}
-
-            <Grid>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Category
-                </Text>
-                <Badge variant="light">{selectedArticle.category}</Badge>
-              </Grid.Col>
-
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Featured Article
-                </Text>
-                <Switch
-                  checked={selectedArticle.featured}
-                  onChange={() =>
-                    handleToggleFeatured(
-                      selectedArticle.id,
-                      selectedArticle.featured
-                    )
-                  }
-                  label={selectedArticle.featured ? "Yes" : "No"}
-                  color="yellow"
-                />
-              </Grid.Col>
-              <Grid.Col span={12}>
-                <Text size="sm" fw={500} c="dimmed" mb="xs">
-                  Content
-                </Text>
-                <Card withBorder padding="md" className="bg-gray-50">
-                  <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
-                    {selectedArticle.content}
-                  </Text>
-                </Card>
-              </Grid.Col>
-              <Grid.Col span={12}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Tags
-                </Text>
-                <Group gap="xs" mt="xs">
-                  {selectedArticle.tags.length > 0 ? (
-                    selectedArticle.tags.map((tag) => (
-                      <Badge key={tag} size="sm" variant="outline">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <Text size="sm" c="dimmed">
-                      No tags
-                    </Text>
-                  )}
-                </Group>
-              </Grid.Col>
-            </Grid>
-
-            <div className="mt-4 pt-4 border-t">
-              <Group justify="flex-end" gap="sm">
-                {selectedArticle.status === "draft" && (
-                  <Button
-                    leftSection={<Check className="size-4" />}
-                    color="green"
-                    onClick={() =>
-                      handleStatusChange(selectedArticle.id, "published")
-                    }
-                    loading={updateArticleMutation.isPending}
-                  >
-                    Publish Article
-                  </Button>
-                )}
-                {selectedArticle.status === "published" && (
-                  <Button
-                    leftSection={<X className="size-4" />}
-                    color="gray"
-                    variant="outline"
-                    onClick={() =>
-                      handleStatusChange(selectedArticle.id, "archived")
-                    }
-                    loading={updateArticleMutation.isPending}
-                  >
-                    Archive Article
-                  </Button>
-                )}
-                {selectedArticle.status === "archived" && (
-                  <Button
-                    leftSection={<Check className="size-4" />}
-                    color="green"
-                    onClick={() =>
-                      handleStatusChange(selectedArticle.id, "published")
-                    }
-                    loading={updateArticleMutation.isPending}
-                  >
-                    Republish Article
-                  </Button>
-                )}
-                <Button
-                  leftSection={<Trash2 className="size-4" />}
-                  color="red"
-                  variant="outline"
-                  onClick={() => handleDelete(selectedArticle.id)}
-                  loading={deleteArticleMutation.isPending}
-                >
-                  Delete Article
-                </Button>
-              </Group>
-            </div>
-          </Stack>
-        )}
-      </Modal>
     </div>
   );
+}
+
+interface ArticleFormProps {
+  initialValues: ArticleFormValues;
+  submitting: boolean;
+  onSubmit: (values: ArticleFormValues) => Promise<void> | void;
+  onCancel: () => void;
+}
+
+function ArticleForm({
+  initialValues,
+  submitting,
+  onSubmit,
+  onCancel,
+}: ArticleFormProps) {
+  const form = useForm<ArticleFormValues>({
+    initialValues,
+    validate: zod4Resolver(articleFormSchema),
+  });
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (file: File | null) => {
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const url = await upload.$use.galleryImage(file);
+      form.setFieldValue("coverImageUrl", url);
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={form.onSubmit(async (values) => {
+        await onSubmit(values);
+      })}
+    >
+      <Stack gap="md">
+        <TextInput
+          label="Title"
+          placeholder="Article title"
+          withAsterisk
+          {...form.getInputProps("title")}
+        />
+
+        <TextInput
+          label="Slug"
+          placeholder="article-slug"
+          withAsterisk
+          {...form.getInputProps("slug")}
+        />
+
+        <Select
+          label="Category"
+          placeholder="Select category"
+          data={ARTICLE_CATEGORY_OPTIONS}
+          withAsterisk
+          {...form.getInputProps("category")}
+        />
+
+        <Textarea
+          label="Excerpt"
+          placeholder="Short summary"
+          minRows={2}
+          withAsterisk
+          {...form.getInputProps("excerpt")}
+        />
+
+        <Textarea
+          label="Content"
+          placeholder="Full article content"
+          minRows={8}
+          withAsterisk
+          {...form.getInputProps("content")}
+        />
+
+        <MultiSelect
+          label="Tags"
+          placeholder="Add tags"
+          data={form.values.tags.map((tag) => ({ value: tag, label: tag }))}
+          searchable
+          {...form.getInputProps("tags")}
+        />
+
+        <ImageUpload
+          label="Cover Image"
+          value={form.values.coverImageUrl}
+          onChange={handleImageUpload}
+        />
+
+        <Group justify="space-between">
+          <Switch
+            label="Featured Article"
+            {...form.getInputProps("featured", { type: "checkbox" })}
+          />
+          <Select
+            label="Status"
+            data={ARTICLE_STATUS_OPTIONS}
+            withAsterisk
+            {...form.getInputProps("status")}
+          />
+        </Group>
+
+        <Group justify="flex-end" mt="md">
+          <Button
+            type="button"
+            variant="default"
+            onClick={onCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" loading={submitting} disabled={isUploading}>
+            Create Article
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+}
+
+interface ArticleDetailsProps {
+  article: Article;
+  actionPending: boolean;
+  deletePending: boolean;
+  onToggleFeatured: () => void;
+  onPublish: () => void;
+  onArchive: () => void;
+  onRepublish: () => void;
+  onDelete: () => void;
+}
+
+function ArticleDetails({
+  article,
+  actionPending,
+  deletePending,
+  onToggleFeatured,
+  onPublish,
+  onArchive,
+  onRepublish,
+  onDelete,
+}: ArticleDetailsProps) {
+  return (
+    <Stack gap="md">
+      <Group justify="space-between" mb="sm">
+        <Group gap="xs">
+          {article.featured && (
+            <Star className="size-5 text-yellow-500 fill-yellow-500" />
+          )}
+          <Title order={3}>{article.title}</Title>
+        </Group>
+        <Badge size="lg" color={getStatusColor(article.status)} variant="light">
+          {article.status}
+        </Badge>
+      </Group>
+
+      {article.coverImageUrl && (
+        <Card shadow="sm" padding="xs" radius="md" withBorder>
+          <Card.Section>
+            <img
+              src={article.coverImageUrl}
+              alt={article.title}
+              className="w-full max-h-96 object-cover"
+            />
+          </Card.Section>
+        </Card>
+      )}
+
+      <Grid>
+        <Grid.Col span={6}>
+          <Text size="sm" fw={500} c="dimmed">
+            Category
+          </Text>
+          <Badge variant="light">{article.category}</Badge>
+        </Grid.Col>
+        <Grid.Col span={6}>
+          <Text size="sm" fw={500} c="dimmed">
+            Featured Article
+          </Text>
+          <Switch
+            checked={article.featured}
+            onChange={() => onToggleFeatured()}
+            label={article.featured ? "Yes" : "No"}
+            color="yellow"
+          />
+        </Grid.Col>
+        <Grid.Col span={12}>
+          <Text size="sm" fw={500} c="dimmed" mb="xs">
+            Content
+          </Text>
+          <Card withBorder padding="md" className="bg-gray-50">
+            <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>
+              {article.content}
+            </Text>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={12}>
+          <Text size="sm" fw={500} c="dimmed">
+            Tags
+          </Text>
+          <Group gap="xs" mt="xs">
+            {article.tags.length > 0 ? (
+              article.tags.map((tag) => (
+                <Badge key={tag} size="sm" variant="outline">
+                  {tag}
+                </Badge>
+              ))
+            ) : (
+              <Text size="sm" c="dimmed">
+                No tags
+              </Text>
+            )}
+          </Group>
+        </Grid.Col>
+      </Grid>
+
+      <div className="mt-4 pt-4 border-t">
+        <Group justify="flex-end" gap="sm">
+          {article.status === "draft" && (
+            <Button
+              leftSection={<Check className="size-4" />}
+              color="green"
+              onClick={onPublish}
+              loading={actionPending}
+            >
+              Publish Article
+            </Button>
+          )}
+          {article.status === "published" && (
+            <Button
+              leftSection={<X className="size-4" />}
+              color="gray"
+              variant="outline"
+              onClick={onArchive}
+              loading={actionPending}
+            >
+              Archive Article
+            </Button>
+          )}
+          {article.status === "archived" && (
+            <Button
+              leftSection={<Check className="size-4" />}
+              color="green"
+              onClick={onRepublish}
+              loading={actionPending}
+            >
+              Republish Article
+            </Button>
+          )}
+          <Button
+            leftSection={<Trash2 className="size-4" />}
+            color="red"
+            variant="outline"
+            onClick={onDelete}
+            loading={deletePending}
+          >
+            Delete Article
+          </Button>
+        </Group>
+      </div>
+    </Stack>
+  );
+}
+
+function getStatusColor(status: ArticleStatus) {
+  switch (status) {
+    case "published":
+      return "green";
+    case "draft":
+      return "yellow";
+    case "archived":
+      return "gray";
+    default:
+      return "blue";
+  }
+}
+
+function getDefaultArticleFormValues(): ArticleFormValues {
+  const values: ArticleFormValues = {
+    title: "",
+    slug: "",
+    category: "news",
+    excerpt: "",
+    content: "",
+    tags: [],
+    coverImageUrl: "",
+    featured: false,
+    status: "draft",
+    viewCount: 0,
+    authorId: undefined,
+  };
+  return values;
+}
+
+function buildCreatePayload(
+  values: ArticleFormValues,
+  user: Pick<User, "id" | "fullName" | "photoUrl">
+): CreateArticleData {
+  const payload: CreateArticleData = {
+    ...values,
+    created: record(user),
+    updated: record(user),
+    published: values.status === "published" ? record(user) : null,
+    archived: values.status === "archived" ? record(user) : null,
+  };
+  return payload;
 }

@@ -12,6 +12,7 @@ import type {
   FlutterwaveTokenizeResponse,
   FlutterwaveTokenStatusResponse,
   FlutterwaveTokenizedChargeResponse,
+  FlutterwaveTransactionResponse,
 } from "./types";
 import { createBuilder } from "@ibnlanre/builder";
 
@@ -139,6 +140,32 @@ const tokenized = createServerFn({ method: "POST" })
     return response.data;
   });
 
+const transactions = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      customer_email: z.string().email(),
+      page: z.number().default(1),
+      status: z.string().optional(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const { customer_email, page, status } = data;
+    const response = await flutterwaveClient
+      .get<FlutterwaveTransactionResponse>("/v3/transactions", {
+        params: {
+          customer_email,
+          page,
+          status,
+        },
+      })
+      .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
+        const flutterwaveError = error.response?.data;
+        throw new Error(flutterwaveError?.message);
+      });
+
+    return response.data;
+  });
+
 export const flutterwave = createBuilder(
   {
     account: {
@@ -151,6 +178,9 @@ export const flutterwave = createBuilder(
     },
     bank: {
       list,
+    },
+    transaction: {
+      list: transactions,
     },
   },
   { prefix: ["flutterwave"] }
