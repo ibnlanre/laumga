@@ -4,6 +4,7 @@ const DEFAULT_MESSAGE = "Authentication failed. Please try again.";
 
 const firebaseAuthErrorMessages: Record<string, string> = {
   "auth/claims-too-large": "Account data is too large.",
+  "auth/email-already-in-use": "This email is already registered.",
   "auth/email-already-exists": "This email is already registered.",
   "auth/id-token-expired": "Your session expired. Please sign in again.",
   "auth/id-token-revoked": "Your session was revoked. Please sign in again.",

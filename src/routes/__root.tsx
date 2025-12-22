@@ -21,10 +21,6 @@ import { getUserOptions } from "@/api/user/options";
 import { permissionQueryOptions } from "@/api/user-roles/options";
 import { firebase } from "@/api/firebase";
 
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-
 export const Route = createRootRoute({
   beforeLoad: async () => {
     const session = await firebase.$use.getSession();
@@ -202,23 +198,6 @@ function RootDocument({ children }: PropsWithChildren) {
               <ModalsProvider>{children}</ModalsProvider>
             </MantineProvider>
           </AuthProvider>
-
-          <TanStackDevtools
-            config={{
-              position: "bottom-right",
-              hideUntilHover: false,
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              {
-                name: "React Query",
-                render: <ReactQueryDevtoolsPanel />,
-              },
-            ]}
-          />
         </QueryClientProvider>
 
         <Scripts />

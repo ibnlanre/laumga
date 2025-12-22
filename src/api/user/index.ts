@@ -134,6 +134,8 @@ async function create(variables: CreateUserVariables) {
       result.error,
       "Couldn't create your account. Please try again."
     );
+
+    console.error("User creation failed:", result.error);
     throw new Error(message);
   }
 }
