@@ -31,6 +31,7 @@ import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgo
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
 import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
+import { Route as PublicDefaultUserGuideRouteImport } from './routes/_public/_default/user-guide'
 import { Route as PublicDefaultNewsletterRouteImport } from './routes/_public/_default/newsletter'
 import { Route as PublicDefaultMembershipRouteImport } from './routes/_public/_default/membership'
 import { Route as PublicDefaultEventsRouteImport } from './routes/_public/_default/events'
@@ -150,6 +151,11 @@ const PublicRegisterIndexRoute = PublicRegisterIndexRouteImport.update({
   path: '/register/',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicDefaultUserGuideRoute = PublicDefaultUserGuideRouteImport.update({
+  id: '/_default/user-guide',
+  path: '/user-guide',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
   id: '/_default/newsletter',
   path: '/newsletter',
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
+  '/user-guide': typeof PublicDefaultUserGuideRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
+  '/user-guide': typeof PublicDefaultUserGuideRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/_public/_default/events': typeof PublicDefaultEventsRouteWithChildren
   '/_public/_default/membership': typeof PublicDefaultMembershipRoute
   '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
+  '/_public/_default/user-guide': typeof PublicDefaultUserGuideRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
   '/_auth/mandate/_layout/certificate': typeof AuthMandateLayoutCertificateRoute
   '/_auth/mandate/_layout/dashboard': typeof AuthMandateLayoutDashboardRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
+    | '/user-guide'
     | '/register'
     | '/mandate/certificate'
     | '/mandate/dashboard'
@@ -379,6 +389,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
+    | '/user-guide'
     | '/register'
     | '/mandate/certificate'
     | '/mandate/dashboard'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/_public/_default/events'
     | '/_public/_default/membership'
     | '/_public/_default/newsletter'
+    | '/_public/_default/user-guide'
     | '/_public/register/'
     | '/_auth/mandate/_layout/certificate'
     | '/_auth/mandate/_layout/dashboard'
@@ -579,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicRegisterIndexRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/_default/user-guide': {
+      id: '/_public/_default/user-guide'
+      path: '/user-guide'
+      fullPath: '/user-guide'
+      preLoaderRoute: typeof PublicDefaultUserGuideRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/_default/newsletter': {
       id: '/_public/_default/newsletter'
       path: '/newsletter'
@@ -737,6 +756,7 @@ interface PublicRouteChildren {
   PublicDefaultEventsRoute: typeof PublicDefaultEventsRouteWithChildren
   PublicDefaultMembershipRoute: typeof PublicDefaultMembershipRoute
   PublicDefaultNewsletterRoute: typeof PublicDefaultNewsletterRoute
+  PublicDefaultUserGuideRoute: typeof PublicDefaultUserGuideRoute
   PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
   PublicDefaultBulletinArticleRoute: typeof PublicDefaultBulletinArticleRoute
   PublicDefaultBulletinIndexRoute: typeof PublicDefaultBulletinIndexRoute
@@ -752,6 +772,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicDefaultEventsRoute: PublicDefaultEventsRouteWithChildren,
   PublicDefaultMembershipRoute: PublicDefaultMembershipRoute,
   PublicDefaultNewsletterRoute: PublicDefaultNewsletterRoute,
+  PublicDefaultUserGuideRoute: PublicDefaultUserGuideRoute,
   PublicRegisterIndexRoute: PublicRegisterIndexRoute,
   PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
   PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,
