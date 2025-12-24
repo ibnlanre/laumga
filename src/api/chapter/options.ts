@@ -28,7 +28,7 @@ export const getChapterByStateOptions = (state?: string) => {
       list({
         data: {
           filterBy: [{ field: "state", operator: "==", value: state }],
-          sortBy: [{ field: "name", value: "asc" }],
+          sortBy: [{ field: "name", direction: "asc" }],
         },
       }),
     enabled: !!state,
@@ -44,7 +44,7 @@ export const listChaptersByRegionOptions = (region?: ChapterRegion) => {
       list({
         data: {
           filterBy: [{ field: "region", operator: "==", value: region }],
-          sortBy: [{ field: "name", value: "asc" }],
+          sortBy: [{ field: "name", direction: "asc" }],
         },
       }),
     enabled: !!region,

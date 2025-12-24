@@ -53,8 +53,8 @@ export function buildQuery<DocumentType extends DocumentData = DocumentData>(
   }
 
   if (sortBy.length) {
-    sortBy.forEach(({ field, value }) => {
-      querySnapshot = query(querySnapshot, orderBy(field, value));
+    sortBy.forEach(({ field, direction }) => {
+      querySnapshot = query(querySnapshot, orderBy(field, direction));
     });
   }
 

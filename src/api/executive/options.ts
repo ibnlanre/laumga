@@ -28,7 +28,7 @@ export const listCurrentExecutivesOptions = () => {
       list({
         data: {
           filterBy: [{ field: "isActive", operator: "==", value: true }],
-          sortBy: [{ field: "tier", value: "asc" }],
+          sortBy: [{ field: "tier", direction: "asc" }],
         },
       }),
   });
@@ -45,7 +45,7 @@ export const listExecutiveByUserIdOptions = (userId?: string) => {
             { field: "userId", operator: "==", value: userId },
             { field: "isActive", operator: "==", value: true },
           ],
-          sortBy: [{ field: "tier", value: "asc" }],
+          sortBy: [{ field: "tier", direction: "asc" }],
         },
       }),
     enabled: !!userId,

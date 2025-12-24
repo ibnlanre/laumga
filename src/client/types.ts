@@ -25,7 +25,7 @@ export type FilterBy<
  */
 export type SortBy<DocumentType extends DocumentData> = Array<{
   field: Paths<DocumentType> | (string& {})
-  value: OrderByDirection;
+  direction: OrderByDirection;
 }>;
 
 export interface Variables<DocumentType extends DocumentData> {

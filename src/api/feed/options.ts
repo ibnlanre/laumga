@@ -17,7 +17,7 @@ export const getUserFeedOptions = (userId: string | null | undefined) => {
       { field: "type", operator: "==", value: "user" },
       { field: "userId", operator: "==", value: userId },
     ],
-    sortBy: [{ field: "timestamp", value: "desc" }],
+    sortBy: [{ field: "timestamp", direction: "desc" }],
   });
 
   return {

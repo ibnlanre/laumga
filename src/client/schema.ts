@@ -17,7 +17,7 @@ export function createVariablesSchema<DocumentType extends z.ZodObject>(
       sortBy: z.array(
         z.object({
           field: schema,
-          value: z.enum(["asc", "desc"]),
+          direction: z.enum(["asc", "desc"]),
         })
       ),
     })

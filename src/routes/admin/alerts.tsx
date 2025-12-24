@@ -32,7 +32,7 @@ function RouteComponent() {
 
   const { data: notifications = [], isLoading } = useQuery(
     listNotificationOptions({
-      sortBy: [{ field: "createdAt", value: "desc" }],
+      sortBy: [{ field: "createdAt", direction: "desc" }],
     })
   );
 

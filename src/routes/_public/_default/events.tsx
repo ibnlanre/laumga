@@ -30,7 +30,7 @@ function EventsPage() {
 
   const eventVariables: Variables<EventData> = {
     filterBy: [],
-    sortBy: [{ field: "startDate", value: "asc" }],
+    sortBy: [{ field: "startDate", direction: "asc" }],
   };
 
   if (selectedType !== "all") {

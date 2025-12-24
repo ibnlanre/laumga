@@ -35,7 +35,7 @@ function RouteComponent() {
           value: now,
         },
       ],
-      sortBy: [{ field: "startDate", value: "asc" }],
+      sortBy: [{ field: "startDate", direction: "asc" }],
     })
   );
 

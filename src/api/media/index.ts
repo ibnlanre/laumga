@@ -45,7 +45,7 @@ const getFeaturedMedia = createServerFn({ method: "GET" }).handler(async () => {
   const mediaRef = serverCollection<MediaData>(MEDIA_COLLECTION);
   const variables: ListMediaVariables = {
     filterBy: [{ field: "isFeatured", operator: "==", value: true }],
-    sortBy: [{ field: "uploaded", value: "desc" }],
+    sortBy: [{ field: "uploaded", direction: "desc" }],
   };
   const mediaQuery = buildServerQuery(mediaRef, variables);
   return getServerQueryDocs(mediaQuery, mediaSchema);

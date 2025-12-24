@@ -43,8 +43,8 @@ export function buildServerQuery<
   }
 
   if (sortBy.length) {
-    sortBy.forEach(({ field, value }) => {
-      querySnapshot = querySnapshot.orderBy(field, value);
+    sortBy.forEach(({ field, direction }) => {
+      querySnapshot = querySnapshot.orderBy(field, direction);
     });
   }
 
