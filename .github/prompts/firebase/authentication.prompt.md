@@ -1,6 +1,7 @@
 ---
-agent: agent
+agent: firebase
 ---
+
 # Admin Authentication API Errors  |  Firebase Authentication
 
 Here is a full list of the error codes and descriptions, including recommended resolution steps, that are thrown by the Firebase Admin Node.js Authentication API:
@@ -203,7 +204,7 @@ No Firebase project was found for the credential used to initialize the Admin SD
 
 `auth/reserved-claims`
 
-One or more custom user claims provided to `setCustomUserClaims()` are reserved. For example, [OIDC](http://openid.net/specs/openid-connect-core-1_0.html#IDToken) specific claims such as (sub, iat, iss, exp, aud, auth\_time, etc) should not be used as keys for custom claims.
+One or more custom user claims provided to `setCustomUserClaims()` are reserved. For example, [OIDC](http://openid.net/specs/openid-connect-core-1_0.html#IDToken) specific claims such as (sub, iat, iss, exp, aud, auth_time, etc) should not be used as keys for custom claims.
 
 `auth/session-cookie-expired`
 

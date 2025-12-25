@@ -1,5 +1,5 @@
 ---
-agent: agent
+agent: flutterwave
 ---
 
 # Direct Debit (E-mandate)

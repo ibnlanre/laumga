@@ -45,6 +45,36 @@ import clsx from "clsx";
 import { formatDate, formatDateString, formatDateTime } from "@/utils/date";
 import { capitalize } from "inflection";
 
+const FLUTTERWAVE_PAYMENT_PLAN_BASE_URL =
+  "https://checkout.flutterwave.com/v3/payment-plan";
+
+const paymentPlanIds = {
+  supporter: import.meta.env.VITE_FLUTTERWAVE_SUPPORTER_PLAN_ID ?? null,
+  builder: import.meta.env.VITE_FLUTTERWAVE_BUILDER_PLAN_ID ?? null,
+  guardian: import.meta.env.VITE_FLUTTERWAVE_GUARDIAN_PLAN_ID ?? null,
+} as const;
+
+const FLUTTERWAVE_TOKENIZATION_ENABLED =
+  import.meta.env.VITE_FLUTTERWAVE_TOKENIZATION_ENABLED === "true";
+
+const flutterwaveSupportResponse =
+  "Thanks for contacting Flutterwave! I understand you want to be enabled for mandate/tokenization. Currently, this service is available to only select merchants. We are working on expanding this feature to include more businesses, and we will keep you updated once it becomes available for your account.";
+
+const paymentPlanSteps = [
+  {
+    title: "Pick a tier",
+    copy: "Choose Supporter, Builder, or Guardian according to your budget.",
+  },
+  {
+    title: "Subscribe via Flutterwave",
+    copy: "Checkout opens in a new tab and supports bank transfer or cards.",
+  },
+  {
+    title: "We log every debit",
+    copy: "Forward the Flutterwave receipt so we update your dashboard immediately.",
+  },
+];
+
 const TIER_AMOUNTS = {
   supporter: 5000,
   builder: 10000,
@@ -60,6 +90,7 @@ const tierOptions = [
     accent: "text-sage-green",
     icon: Shield,
     amountValue: TIER_AMOUNTS.supporter,
+    planId: paymentPlanIds.supporter,
   },
   {
     id: "builder",
@@ -69,6 +100,7 @@ const tierOptions = [
     accent: "text-institutional-green",
     icon: TrendingUp,
     amountValue: TIER_AMOUNTS.builder,
+    planId: paymentPlanIds.builder,
   },
   {
     id: "guardian",
@@ -78,8 +110,17 @@ const tierOptions = [
     accent: "text-vibrant-lime",
     icon: Star,
     amountValue: TIER_AMOUNTS.guardian,
+    planId: paymentPlanIds.guardian,
   },
 ] as const;
+
+const tierPaymentPlans = tierOptions
+  .filter((tier) => Boolean(tier.planId))
+  .map((tier) => ({
+    ...tier,
+    planId: tier.planId!,
+    checkoutUrl: `${FLUTTERWAVE_PAYMENT_PLAN_BASE_URL}/${tier.planId}`,
+  }));
 
 const impactPillars = [
   {
@@ -155,6 +196,7 @@ const tierIconWrapperClasses = {
 };
 
 const MIN_CUSTOM_MANDATE_AMOUNT = 1_000;
+const THOUSAND_SEPARATOR = ",";
 const MANDATE_FREQUENCIES = mandateFrequencySchema.options;
 
 type SummaryTab = "customer" | "consent" | "status";
@@ -186,10 +228,15 @@ export function MandatePledgeForm({
   amount = 1000,
 }: MandatePledgeFormProps) {
   const { user } = useAuth();
+  const tokenizationEnabled = FLUTTERWAVE_TOKENIZATION_ENABLED;
 
   const mandate = useQuery(getMandateOptions(user?.id));
   const createMandate = useCreateMandate();
-  const flutterwaveBanks = useQuery(listFlutterwaveBankOptions());
+  const flutterwaveBankOptions = listFlutterwaveBankOptions();
+  const flutterwaveBanks = useQuery({
+    ...flutterwaveBankOptions,
+    enabled: tokenizationEnabled && (flutterwaveBankOptions.enabled ?? true),
+  });
 
   const [remainingMs, setRemainingMs] = useState(0);
   const [consentExpiresAt, setConsentExpiresAt] = useState<number | null>(null);
@@ -209,6 +256,8 @@ export function MandatePledgeForm({
   const countdownExpired = remainingMs <= 0;
   const hasAccountToken = Boolean(flutterwaveAccountToken);
   const hasMandate = Boolean(mandate.data);
+  const showFallbackFlow = !tokenizationEnabled && !hasMandate;
+  const hasPaymentPlanLinks = tierPaymentPlans.length > 0;
 
   const steps: StepCard[] = [
     {
@@ -405,7 +454,7 @@ export function MandatePledgeForm({
 
       <section className="relative overflow-hidden rounded-4xl border border-white/60 bg-white/90 p-6 shadow-[0_40px_120px_rgba(0,35,19,0.08)] sm:p-10">
         <Tabs value={summaryTab}>
-          <Tabs.Panel value="customer">
+          <Tabs.Panel value="mandate">
             <form
               onSubmit={pledgeForm.onSubmit(handleSubmit)}
               className="space-y-8"
@@ -520,7 +569,7 @@ export function MandatePledgeForm({
                       placeholder="Enter amount"
                       min={MIN_CUSTOM_MANDATE_AMOUNT}
                       step={1_000}
-                      thousandSeparator=","
+                      thousandSeparator={THOUSAND_SEPARATOR}
                       allowNegative={false}
                       hideControls
                       classNames={{
@@ -659,6 +708,384 @@ export function MandatePledgeForm({
                   : "Start your mandate"}
               </Button>
             </form>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="customer">
+            {showFallbackFlow ? (
+              <div className="space-y-8">
+                <section className="space-y-6 rounded-3xl border-2 border-dashed border-institutional-green/70 bg-mist-green/30 p-6">
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/60">
+                      Temporary flow
+                    </p>
+                    <h2 className="text-3xl font-semibold text-deep-forest">
+                      Subscribe via Flutterwave payment plans
+                    </h2>
+                    <p className="text-sm text-deep-forest/70">
+                      Flutterwave is still turning on mandate tokenization for
+                      our merchant account, so we are routing pledges through
+                      their hosted payment plan links.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-deep-forest/10 bg-white/80 p-4 text-sm text-deep-forest/80">
+                    {flutterwaveSupportResponse}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {paymentPlanSteps.map(({ title, copy }) => (
+                      <div
+                        key={title}
+                        className="rounded-2xl border border-deep-forest/10 bg-white/95 p-4"
+                      >
+                        <p className="text-sm font-semibold text-deep-forest">
+                          {title}
+                        </p>
+                        <p className="text-sm text-deep-forest/70">{copy}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {hasPaymentPlanLinks ? (
+                  <div
+                    className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+                    aria-label="Flutterwave payment plans"
+                  >
+                    {tierPaymentPlans.map(
+                      ({
+                        id,
+                        label,
+                        amountLabel,
+                        copy,
+                        icon: Icon,
+                        accent,
+                        checkoutUrl,
+                        planId,
+                      }) => (
+                        <article
+                          key={id}
+                          className="flex h-full flex-col rounded-3xl border-2 border-sage-green/60 bg-white/95 p-6 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <p
+                                className={clsx(
+                                  "text-xs font-semibold uppercase tracking-[0.3em]",
+                                  accent
+                                )}
+                              >
+                                {label}
+                              </p>
+                              <p className="text-3xl font-bold text-deep-forest">
+                                {amountLabel}
+                                <span className="ml-2 text-sm font-semibold text-deep-forest/60">
+                                  monthly
+                                </span>
+                              </p>
+                            </div>
+                            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mist-green/40 text-deep-forest">
+                              <Icon className="h-6 w-6" />
+                            </span>
+                          </div>
+
+                          <p className="pt-4 text-sm text-deep-forest/70 flex-1">
+                            {copy}
+                          </p>
+
+                          <Button
+                            component="a"
+                            href={checkoutUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            size="md"
+                            radius="xl"
+                            className="mt-4 bg-vibrant-lime text-deep-forest hover:bg-vibrant-lime/90"
+                          >
+                            Subscribe on Flutterwave
+                          </Button>
+
+                          <p className="pt-2 text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/50">
+                            Plan ID: {planId}
+                          </p>
+                        </article>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    Flutterwave payment plan links are being prepared. Email
+                    stewardship@laumga.org so we can process your pledge
+                    manually.
+                  </div>
+                )}
+
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+                  Need a different cadence? Email stewardship@laumga.org and we
+                  will set up a custom plan.
+                </p>
+              </div>
+            ) : (
+              <form
+                onSubmit={pledgeForm.onSubmit(handleSubmit)}
+                className="space-y-8"
+              >
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/60">
+                    Step 1
+                  </p>
+                  <h2 className="text-3xl font-semibold text-deep-forest">
+                    Complete your mandate
+                  </h2>
+                  <p className="text-sm text-deep-forest/70">
+                    Choose how often Flutterwave should debit, how long the
+                    cadence should run, and the verified account we can draw
+                    from.
+                  </p>
+                </div>
+
+                <div
+                  className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr"
+                  aria-label="Mandate tiers"
+                >
+                  {tierOptions.map(
+                    ({
+                      id,
+                      label,
+                      amountLabel,
+                      copy,
+                      icon: Icon,
+                      accent,
+                      amountValue,
+                    }) => {
+                      const isActive = pledgeForm.values.amount === amountValue;
+
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() =>
+                            pledgeForm.setFieldValue("amount", amountValue)
+                          }
+                          className={clsx(
+                            "group relative flex h-full flex-col justify-between rounded-3xl border-2 p-6 text-left transition-all",
+                            {
+                              "border-deep-forest bg-deep-forest text-white shadow-xl":
+                                isActive,
+                              "border-sage-green/40 bg-white/90 text-deep-forest hover:border-deep-forest":
+                                !isActive,
+                            }
+                          )}
+                        >
+                          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em]">
+                            <span>{label}</span>
+                            <span
+                              className={
+                                isActive
+                                  ? tierIconWrapperClasses.active
+                                  : tierIconWrapperClasses.inactive
+                              }
+                            >
+                              <Icon
+                                className={clsx("h-5 w-5", {
+                                  "text-white": isActive,
+                                  [accent]: !isActive,
+                                })}
+                              />
+                            </span>
+                          </div>
+                          <div className="space-y-2 pt-6">
+                            <p
+                              className={clsx("text-3xl font-bold", {
+                                "text-white": isActive,
+                                "text-deep-forest": !isActive,
+                              })}
+                            >
+                              {amountLabel}
+                            </p>
+                            <p
+                              className={clsx("text-sm", {
+                                "text-white/80": isActive,
+                                "text-deep-forest/70": !isActive,
+                              })}
+                            >
+                              {copy}
+                            </p>
+                          </div>
+                          {isActive && (
+                            <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-vibrant-lime">
+                              Active
+                            </span>
+                          )}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="flex flex-col rounded-3xl border-2 border-dashed border-deep-forest/50 bg-deep-forest/5 p-6 justify-evenly space-y-6">
+                    <section>
+                      <div className="space-y-0.5">
+                        <h3 className="text-lg font-semibold text-deep-forest">
+                          Amount
+                        </h3>
+
+                        <p className="text-sm text-deep-forest/70">
+                          How much would you like to pledge each cycle?
+                        </p>
+                      </div>
+
+                      <NumberInput
+                        aria-label="Custom mandate amount"
+                        placeholder="Enter amount"
+                        min={MIN_CUSTOM_MANDATE_AMOUNT}
+                        step={1_000}
+                        thousandSeparator={THOUSAND_SEPARATOR}
+                        allowNegative={false}
+                        hideControls
+                        classNames={{
+                          ...inputClassNames,
+                          input: clsx(inputClassNames.input, "mt-4"),
+                        }}
+                        leftSection="₦"
+                        leftSectionProps={{ className: "text-deep-forest" }}
+                        {...pledgeForm.getInputProps("amount")}
+                      />
+
+                      <p className="text-xs mt-3 font-semibold uppercase tracking-wider text-deep-forest/70">
+                        Minimum Amount:{" "}
+                        {formatCurrency(MIN_CUSTOM_MANDATE_AMOUNT)}
+                      </p>
+                    </section>
+
+                    <section className="space-y-4">
+                      <div className="space-y-0.5">
+                        <h3 className="text-lg font-semibold text-deep-forest">
+                          Payment frequency
+                        </h3>
+
+                        <p className="text-sm text-deep-forest/70">
+                          How often would you like to contribute?
+                        </p>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {MANDATE_FREQUENCIES.map((frequency) => (
+                          <button
+                            key={frequency}
+                            type="button"
+                            onClick={() => {
+                              pledgeForm.setFieldValue("frequency", frequency);
+                            }}
+                            className={clsx(
+                              "rounded-2xl border-2 px-4 py-4 text-base font-semibold capitalize",
+                              {
+                                "border-deep-forest bg-deep-forest text-white":
+                                  pledgeForm.values.frequency === frequency,
+                                "border-sage-green/50 bg-white text-deep-forest hover:border-deep-forest":
+                                  pledgeForm.values.frequency !== frequency,
+                              }
+                            )}
+                          >
+                            {frequency.replace("-", " ")}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+
+                  <section className="space-y-8">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-deep-forest">
+                        Kickoff debit preferences
+                      </h3>
+
+                      <DateInput
+                        label="Start date"
+                        placeholder="Pick a start date"
+                        minDate={new Date()}
+                        withAsterisk
+                        {...pledgeForm.getInputProps("startDate")}
+                        classNames={{
+                          label: inputClassNames.label,
+                          input: inputClassNames.input,
+                        }}
+                        size="lg"
+                      />
+
+                      <DateInput
+                        label="End date"
+                        placeholder="Pick an end date"
+                        minDate={pledgeForm.values.startDate}
+                        withAsterisk
+                        {...pledgeForm.getInputProps("endDate")}
+                        classNames={{
+                          label: inputClassNames.label,
+                          input: inputClassNames.input,
+                        }}
+                        size="lg"
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-deep-forest">
+                        Bank account details
+                      </h3>
+
+                      <Select
+                        label="Bank"
+                        data={flutterwaveBanks.data || []}
+                        clearable
+                        searchable
+                        placeholder="Select your bank"
+                        disabled={flutterwaveBanks.isPending}
+                        nothingFoundMessage="No supported banks yet"
+                        comboboxProps={{
+                          transitionProps: {
+                            transition: "fade",
+                            duration: 100,
+                          },
+                        }}
+                        withAsterisk
+                        leftSection={
+                          flutterwaveBanks.isPending ? (
+                            <Loader size="xs" />
+                          ) : null
+                        }
+                        {...pledgeForm.getInputProps("bankCode")}
+                        classNames={inputClassNames}
+                        size="lg"
+                      />
+
+                      <TextInput
+                        label="Account number"
+                        placeholder="0123456789"
+                        maxLength={10}
+                        withAsterisk
+                        inputMode="numeric"
+                        {...pledgeForm.getInputProps("accountNumber")}
+                        classNames={inputClassNames}
+                        size="lg"
+                      />
+                    </div>
+                  </section>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="xl"
+                  fullWidth
+                  loading={createMandate.isPending}
+                  disabled={createMandate.isPending}
+                  className="h-14 rounded-2xl bg-vibrant-lime text-base font-semibold text-deep-forest transition hover:bg-vibrant-lime/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {createMandate.isPending
+                    ? "Creating mandate..."
+                    : "Start your mandate"}
+                </Button>
+              </form>
+            )}
           </Tabs.Panel>
 
           <Tabs.Panel value="consent">

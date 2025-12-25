@@ -1,17 +1,8 @@
 ---
-applyTo: "**"
+agent: firebase
 ---
 
 # Create a Cloud Storage reference on Web  |  Cloud Storage for Firebase
-
-# Create a Cloud Storage reference on Web bookmark_borderbookmark Stay organized with collections Save and categorize content based on your preferences.
-
-- On this page
-- Create a Reference
-- Navigate with References
-- Reference Properties
-- Limitations on References
-- Full Example
 
 Your files are stored in a Cloud Storage bucket. The files in this bucket are presented in a hierarchical structure, just like the file system on your local hard disk, or the data in the Firebase Realtime Database. By creating a reference to a file, your app gains access to it. These references can then be used to upload or download data, get or update metadata or delete the file. A reference can either point to a specific file or to a higher level node in the hierarchy.
 
@@ -31,9 +22,11 @@ const storage = getStorage();
 
 // Create a storage reference from our storage service
 const storageRef = ref(storage);
+```
 
 [storage_create_ref.js](https://github.com/firebase/snippets-web/blob/95c8c159ff4d90af442352f058406f1aeb8adcbb/snippets/storage-next/create-reference/storage_create_ref.js#L8-L14)
 
+```ts
 // Get a reference to the storage service, which is used to create references in your storage bucket
 var storage = firebase.storage();
 

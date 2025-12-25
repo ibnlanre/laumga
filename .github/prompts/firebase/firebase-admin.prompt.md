@@ -1,5 +1,5 @@
 ---
-applyTo: "**"
+agent: firebase
 ---
 
 # Firebase Admin SDK Setup

@@ -1,5 +1,5 @@
 ---
-agent: agent
+agent: firebase
 ---
 
 # Use Firebase in dynamic web apps with SSR (Server-side Rendering) bookmark_borderbookmark Stay organized with collections Save and categorize content based on your preferences.
