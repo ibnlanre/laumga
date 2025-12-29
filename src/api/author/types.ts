@@ -11,7 +11,7 @@ import type {
   authorDataSchema,
 } from "./schema";
 import type { User } from "../user/types";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 
 export type AuthorSocialLink = z.infer<typeof authorSocialLinkSchema>;
 export type CreateAuthorData = z.infer<typeof createAuthorSchema>;

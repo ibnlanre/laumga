@@ -1,107 +1,100 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
   CHAPTERS_COLLECTION,
   chapterSchema,
   createChapterSchema,
+  updateChapterSchema,
 } from "./schema";
 import type {
-  ListChapterVariables,
+  ChapterData,
   CreateChapterData,
-  DownstreamChapterCollection,
-  DownstreamChapterDocument,
-  UpstreamChapterCollection,
-  UpstreamChapterDocument,
   UpdateChapterData,
-  UpdateChapterVariables,
-  CreateChapterVariables,
 } from "./types";
-import { record } from "@/utils/record";
-import { updateChapterSchema } from "./schema";
+import { userSchema } from "../user/schema";
 
-async function create(variables: CreateChapterVariables) {
-  const { data, user } = variables;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(chapterSchema))
+  .handler(async ({ data: variables }) => {
+    const chaptersRef = serverCollection<ChapterData>(CHAPTERS_COLLECTION);
+    const query = buildServerQuery(chaptersRef, variables);
+    return getServerQueryDocs(query, chapterSchema);
+  });
 
-  const validated = createChapterSchema.parse(data);
-  const chaptersRef = collection(
-    db,
-    CHAPTERS_COLLECTION
-  ) as UpstreamChapterCollection;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const chapterRef =
+      serverCollection<ChapterData>(CHAPTERS_COLLECTION).doc(id);
+    return getServerQueryDoc(chapterRef, chapterSchema);
+  });
 
-  const existingQuery = query(
-    chaptersRef,
-    where("state", "==", validated.state)
-  );
-  const existingSnapshot = await getDocs(existingQuery);
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createChapterSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const validated = createChapterSchema.parse(data);
+    const chaptersRef = serverCollection<ChapterData>(CHAPTERS_COLLECTION);
 
-  if (!existingSnapshot.empty) {
-    throw new Error("Chapter already exists for this state");
-  }
+    const existingSnapshot = await chaptersRef
+      .where("state", "==", validated.state)
+      .get();
 
-  const chapterData: CreateChapterData = {
-    ...validated,
-    created: record(user),
-    updated: record(user),
-  };
+    if (!existingSnapshot.empty) {
+      throw new Error("Chapter already exists for this state");
+    }
 
-  await addDoc(chaptersRef, chapterData);
-}
+    const chapterData: CreateChapterData = {
+      ...validated,
+      created: serverRecord(user),
+    };
 
-async function update(variables: UpdateChapterVariables) {
-  const { id, data, user } = variables;
-  const validated = updateChapterSchema.parse(data);
-  const chapterRef = doc(
-    db,
-    CHAPTERS_COLLECTION,
-    id
-  ) as UpstreamChapterDocument;
+    await chaptersRef.add(chapterData);
+  });
 
-  const updateData: UpdateChapterData = {
-    ...validated,
-    updated: record(user),
-  };
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateChapterSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const validated = updateChapterSchema.parse(data);
+    const chapterRef =
+      serverCollection<ChapterData>(CHAPTERS_COLLECTION).doc(id);
 
-  await updateDoc(chapterRef, updateData);
-}
+    const updateData: UpdateChapterData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-async function list(variables?: ListChapterVariables) {
-  const chaptersRef = collection(
-    db,
-    CHAPTERS_COLLECTION
-  ) as DownstreamChapterCollection;
+    await chapterRef.update(updateData);
+  });
 
-  const chaptersQuery = buildQuery(chaptersRef, variables);
-  return await getQueryDocs(chaptersQuery, chapterSchema);
-}
-
-async function get(id: string) {
-  const chapterRef = doc(
-    db,
-    CHAPTERS_COLLECTION,
-    id
-  ) as DownstreamChapterDocument;
-  return await getQueryDoc(chapterRef, chapterSchema);
-}
-
-async function remove(id: string) {
-  const chapterRef = doc(
-    db,
-    CHAPTERS_COLLECTION,
-    id
-  ) as UpstreamChapterDocument;
-  await deleteDoc(chapterRef);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const chapterRef =
+      serverCollection<ChapterData>(CHAPTERS_COLLECTION).doc(id);
+    await chapterRef.delete();
+  });
 
 export const chapter = createBuilder(
   {

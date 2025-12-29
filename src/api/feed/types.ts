@@ -10,7 +10,7 @@ import type {
   createFeedSchema,
   updateFeedSchema,
 } from "./schema";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 
 export type Feed = z.infer<typeof feedSchema>;
 export type FeedData = z.infer<typeof feedDataSchema>;

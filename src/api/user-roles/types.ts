@@ -5,8 +5,13 @@ import type {
 import type z from "zod";
 
 import type { User } from "../user/types";
-import type { createUserRoleSchema, userRoleDataSchema, userRoleFormSchema, userRoleSchema } from "./schema";
-import type { Variables } from "@/client/core-query";
+import type {
+  createUserRoleSchema,
+  userRoleDataSchema,
+  userRoleFormSchema,
+  userRoleSchema,
+} from "./schema";
+import type { Variables } from "@/client/types";
 
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserRoleData = z.infer<typeof userRoleDataSchema>;
@@ -16,8 +21,7 @@ export type CreateUserRoleData = z.infer<typeof createUserRoleSchema>;
 export type UpstreamUserRoleCollection =
   CollectionReference<CreateUserRoleData>;
 export type UpstreamUserRoleDocument = DocumentReference<CreateUserRoleData>;
-export type DownstreamUserRoleCollection =
-  CollectionReference<UserRole>;
+export type DownstreamUserRoleCollection = CollectionReference<UserRole>;
 export type DownstreamUserRoleDocument = DocumentReference<UserRole>;
 
 export type ListUserRoleVariables = Variables<UserRole>;

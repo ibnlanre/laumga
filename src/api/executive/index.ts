@@ -1,110 +1,109 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
 
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { record } from "@/utils/record";
+import { serverRecord } from "@/utils/server-record";
 import {
-  EXECUTIVE_TENURES_COLLECTION,
-  executiveTenureSchema,
-} from "@/api/executive-tenure/schema";
-import type { UpstreamExecutiveTenureDocument } from "@/api/executive-tenure/types";
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
   EXECUTIVES_COLLECTION,
-  createExecutiveSchema,
   executiveSchema,
+  createExecutiveSchema,
   updateExecutiveSchema,
 } from "./schema";
 import type {
-  CreateExecutiveVariables,
-  UpdateExecutiveVariables,
-  ListExecutiveVariables,
-  UpstreamExecutiveCollection,
-  UpstreamExecutiveDocument,
-  DownstreamExecutiveCollection,
-  DownstreamExecutiveDocument,
   CreateExecutiveData,
   UpdateExecutiveData,
+  ExecutiveData,
 } from "./types";
+import { userSchema } from "../user/schema";
+import { EXECUTIVE_TENURES_COLLECTION } from "../executive-tenure/schema";
+import type { ExecutiveTenure } from "../executive-tenure/types";
 
-async function create(variables: CreateExecutiveVariables) {
-  const { data, user } = variables;
-  const validated = createExecutiveSchema.parse(data);
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(executiveSchema))
+  .handler(async ({ data: variables }) => {
+    const executivesRef = serverCollection<ExecutiveData>(
+      EXECUTIVES_COLLECTION
+    );
+    const query = buildServerQuery(executivesRef, variables);
+    return getServerQueryDocs(query, executiveSchema);
+  });
 
-  const tenureRef = doc(
-    db,
-    EXECUTIVE_TENURES_COLLECTION,
-    validated.tenureId
-  ) as UpstreamExecutiveTenureDocument;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const executiveRef = serverCollection<ExecutiveData>(
+      EXECUTIVES_COLLECTION
+    ).doc(id);
+    return getServerQueryDoc(executiveRef, executiveSchema);
+  });
 
-  const ref = await getQueryDoc(tenureRef, executiveTenureSchema);
-  if (!ref) throw new Error("Selected tenure does not exist");
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createExecutiveSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const validated = createExecutiveSchema.parse(data);
 
-  const executivesRef = collection(
-    db,
-    EXECUTIVES_COLLECTION
-  ) as UpstreamExecutiveCollection;
+    const tenureRef = serverCollection<ExecutiveTenure>(
+      EXECUTIVE_TENURES_COLLECTION
+    ).doc(validated.tenureId);
+    const tenureSnapshot = await tenureRef.get();
+    if (!tenureSnapshot.exists)
+      throw new Error("Selected tenure does not exist");
 
-  const executiveData: CreateExecutiveData = {
-    ...validated,
-    created: record(user),
-    updated: record(user),
-  };
+    const executivesRef = serverCollection<ExecutiveData>(
+      EXECUTIVES_COLLECTION
+    );
 
-  await addDoc(executivesRef, executiveData);
-}
+    const executiveData: CreateExecutiveData = {
+      ...validated,
+      created: serverRecord(user),
+    };
 
-async function update(variables: UpdateExecutiveVariables) {
-  const { id, data, user } = variables;
-  const validated = updateExecutiveSchema.parse(data);
+    await executivesRef.add(executiveData);
+  });
 
-  const executiveRef = doc(
-    db,
-    EXECUTIVES_COLLECTION,
-    id
-  ) as UpstreamExecutiveDocument;
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateExecutiveSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const validated = updateExecutiveSchema.parse(data);
+    const executiveRef = serverCollection<ExecutiveData>(
+      EXECUTIVES_COLLECTION
+    ).doc(id);
 
-  const updateData: UpdateExecutiveData = {
-    ...validated,
-    updated: record(user),
-  };
+    const updateData: UpdateExecutiveData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-  await updateDoc(executiveRef, updateData);
-}
+    await executiveRef.update(updateData);
+  });
 
-async function list(variables?: ListExecutiveVariables) {
-  const executivesRef = collection(
-    db,
-    EXECUTIVES_COLLECTION
-  ) as DownstreamExecutiveCollection;
-
-  const executivesQuery = buildQuery(executivesRef, variables);
-  return await getQueryDocs(executivesQuery, executiveSchema);
-}
-
-async function get(id: string) {
-  const executiveRef = doc(
-    db,
-    EXECUTIVES_COLLECTION,
-    id
-  ) as DownstreamExecutiveDocument;
-  return await getQueryDoc(executiveRef, executiveSchema);
-}
-
-async function remove(id: string) {
-  const executiveRef = doc(
-    db,
-    EXECUTIVES_COLLECTION,
-    id
-  ) as UpstreamExecutiveDocument;
-  await deleteDoc(executiveRef);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const executiveRef = serverCollection<ExecutiveData>(
+      EXECUTIVES_COLLECTION
+    ).doc(id);
+    await executiveRef.delete();
+  });
 
 export const executive = createBuilder(
   {

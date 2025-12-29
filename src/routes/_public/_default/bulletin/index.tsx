@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { Fragment, useState } from "react";
 import { Search, ArrowRight, Loader2, BookOpen } from "lucide-react";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { type Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import { useDebouncedValue } from "@mantine/hooks";
 import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
@@ -20,7 +19,7 @@ const bulletinSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_public/_default/bulletin/")({
-  validateSearch: zodValidator(bulletinSearchSchema),
+  validateSearch: bulletinSearchSchema,
   component: RouteComponent,
 });
 
@@ -240,7 +239,7 @@ function RouteComponent() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                     {(debouncedSearch ? displayArticles : gridArticles)?.map(
-                      (article: any) => (
+                      (article) => (
                         <Link
                           key={article.id}
                           to="/bulletin/$article"
@@ -264,11 +263,11 @@ function RouteComponent() {
                             <h3 className="font-display text-xl font-medium text-deep-forest grow line-clamp-2">
                               {article.title}
                             </h3>
-                            <p className="text-sm text-gray-500 mt-2">
-                              {formatDate(
-                                article.publishedAt || article.createdAt
-                              )}
-                            </p>
+                            {article.published && (
+                              <p className="text-sm text-gray-500 mt-2">
+                                {formatDate(article.published.at)}
+                              </p>
+                            )}
                           </div>
                         </Link>
                       )
@@ -297,21 +296,19 @@ function RouteComponent() {
                     <ul className="space-y-4">
                       {/* Placeholder for trending - could be fetched or just static for now if no API */}
                       {articles && articles.length > 0 ? (
-                        articles
-                          ?.slice(0, 3)
-                          .map((article: any, index: number) => (
-                            <li
-                              key={article.id}
-                              className="flex items-start gap-4"
-                            >
-                              <span className="font-display text-4xl font-bold text-vibrant-lime leading-none">
-                                {index + 1}
-                              </span>
-                              <p className="font-body text-sm font-medium leading-tight text-deep-forest/80 hover:text-deep-forest transition cursor-pointer line-clamp-2">
-                                {article.title}
-                              </p>
-                            </li>
-                          ))
+                        articles?.slice(0, 3).map((article, index) => (
+                          <li
+                            key={article.id}
+                            className="flex items-start gap-4"
+                          >
+                            <span className="font-display text-4xl font-bold text-vibrant-lime leading-none">
+                              {index + 1}
+                            </span>
+                            <p className="font-body text-sm font-medium leading-tight text-deep-forest/80 hover:text-deep-forest transition cursor-pointer line-clamp-2">
+                              {article.title}
+                            </p>
+                          </li>
+                        ))
                       ) : (
                         <p className="text-sm text-gray-500">
                           No trending articles yet.

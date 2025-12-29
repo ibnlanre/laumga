@@ -1,27 +1,29 @@
-import { addDoc, collection } from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
 import { createBuilder } from "@ibnlanre/builder";
 
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDocs } from "@/client/core-query";
+import {
+  buildServerQuery,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
 import { createFeedSchema, FEED_COLLECTION, feedSchema } from "./schema";
-import type {
-  CreateFeedVariables,
-  DownstreamFeedCollection,
-  ListFeedVariables,
-  UpstreamFeedCollection,
-} from "./types";
+import type { CreateFeedData, FeedData } from "./types";
+import { createVariablesSchema } from "@/client/schema";
 
-async function list(variables?: ListFeedVariables) {
-  const feedRef = collection(db, FEED_COLLECTION) as DownstreamFeedCollection;
-  const feedQuery = buildQuery(feedRef, variables);
-  return await getQueryDocs(feedQuery, feedSchema);
-}
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(feedSchema))
+  .handler(async ({ data: variables }) => {
+    const feedRef = serverCollection<FeedData>(FEED_COLLECTION);
+    const feedQuery = buildServerQuery(feedRef, variables);
+    return await getServerQueryDocs(feedQuery, feedSchema);
+  });
 
-async function create({ data }: CreateFeedVariables) {
-  const validated = createFeedSchema.parse(data);
-  const feedRef = collection(db, FEED_COLLECTION) as UpstreamFeedCollection;
-  await addDoc(feedRef, validated);
-}
+const create = createServerFn({ method: "POST" })
+  .inputValidator(createFeedSchema)
+  .handler(async ({ data }) => {
+    const feedRef = serverCollection<CreateFeedData>(FEED_COLLECTION);
+    await feedRef.add(data);
+  });
 
 export const feed = createBuilder(
   {

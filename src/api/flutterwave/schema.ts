@@ -1,5 +1,6 @@
 import { isoDateTimeString } from "@/schema/date";
 import { z } from "zod";
+import { mandateFrequencySchema } from "../mandate/schema";
 
 export const flutterwaveBankSchema = z.object({
   label: z.string(),
@@ -66,7 +67,6 @@ export const flutterwaveTokenLifecycleStatusSchema = z.enum([
   "DELETED",
 ]);
 
-
 export const flutterwaveTokenStatusDataSchema = z.object({
   token: z.string().nullable(),
   reference: z.string(),
@@ -97,6 +97,59 @@ export const flutterwaveTokenStatusSchema = z.enum([
   "SUSPENDED",
   "DELETED",
 ]);
+
+export const flutterwaveTransactionSchema = z.object({
+  id: z.number(),
+  tx_ref: z.string(),
+  flw_ref: z.string(),
+  device_fingerprint: z.string().nullable(),
+  amount: z.number(),
+  currency: z.string(),
+  charged_amount: z.number(),
+  app_fee: z.number(),
+  merchant_fee: z.number(),
+  processor_response: z.string(),
+  auth_model: z.string(),
+  ip: z.string(),
+  narration: z.string(),
+  status: z.string(),
+  payment_type: z.string(),
+  created_at: isoDateTimeString,
+  account_id: z.number(),
+  card: z
+    .object({
+      first_6digits: z.string(),
+      last_4digits: z.string(),
+      issuer: z.string(),
+      country: z.string(),
+      type: z.string(),
+      token: z.string(),
+      expiry: z.string(),
+    })
+    .optional(),
+  meta: z.any().nullable(),
+  amount_settled: z.number(),
+  customer: z.object({
+    id: z.number(),
+    name: z.string(),
+    phone_number: z.string().nullable(),
+    email: z.string(),
+    created_at: isoDateTimeString,
+  }),
+});
+
+export const flutterwaveTransactionResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  meta: z.object({
+    page_info: z.object({
+      total: z.number(),
+      current_page: z.number(),
+      total_pages: z.number(),
+    }),
+  }),
+  data: z.array(flutterwaveTransactionSchema),
+});
 
 export const flutterwaveTokenUpdateRequestSchema = z.object({
   status: flutterwaveTokenStatusSchema,
@@ -165,4 +218,172 @@ export const flutterwaveTokenizedChargeResponseSchema = z.object({
   status: z.string(),
   message: z.string(),
   data: flutterwaveTokenizedChargeDataSchema,
+});
+
+export const flutterwavePlanCheckoutCustomerSchema = z.object({
+  email: z.email(),
+  name: z.string().min(1),
+  phoneNumber: z.string().optional().nullable(),
+});
+
+export const flutterwavePlanCheckoutCustomizationSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  logo: z.url().optional(),
+});
+
+export const flutterwavePlanCheckoutRequestSchema = z.object({
+  txRef: z.string(),
+  amount: z.number().positive(),
+  currency: z.string().default("NGN"),
+  redirectUrl: z.url().optional(),
+  paymentPlanId: z.union([z.string(), z.number()]),
+  customer: flutterwavePlanCheckoutCustomerSchema,
+  customizations: flutterwavePlanCheckoutCustomizationSchema.optional(),
+  meta: z.record(z.string(), z.any()).optional(),
+  paymentOptions: z.string().optional().default("card"),
+});
+
+export const flutterwavePlanCheckoutResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.object({
+    link: z.url(),
+  }),
+});
+
+export const flutterwavePaymentPlanSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  amount: z.number().nullable(),
+  interval: z.string(),
+  duration: z.number().nullable().optional(),
+  status: z.string(),
+  currency: z.string(),
+  plan_token: z.string().nullable().optional(),
+  created_at: isoDateTimeString,
+  updated_at: isoDateTimeString.nullable().optional(),
+});
+
+export const flutterwavePaymentPlanListResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.array(flutterwavePaymentPlanSchema),
+  meta: z
+    .object({
+      page_info: z.object({
+        total: z.number(),
+        current_page: z.number(),
+        total_pages: z.number(),
+      }),
+    })
+    .optional(),
+});
+
+export const flutterwavePaymentPlanCreateRequestSchema = z.object({
+  name: z.string().min(1),
+  interval: z.string().min(1),
+  amount: z.number().positive().optional(),
+  currency: z.string().default("NGN"),
+  duration: z.number().int().positive().optional(),
+});
+
+export const flutterwavePaymentPlanCreateResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: flutterwavePaymentPlanSchema,
+});
+
+export const flutterwaveSubscriptionCustomerSchema = z.object({
+  id: z.union([z.number(), z.string()]).nullable().optional(),
+  customer_email: z.string().email().nullable().optional(),
+});
+
+export const flutterwaveSubscriptionPlanSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  amount: z.number().nullable().optional(),
+  interval: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
+});
+
+export const flutterwaveSubscriptionSchema = z.object({
+  id: z.number(),
+  amount: z.number(),
+  status: z.string(),
+  created_at: isoDateTimeString,
+  plan: z.number(),
+  customer: flutterwaveSubscriptionCustomerSchema,
+});
+
+export const flutterwaveSubscriptionListResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: z.array(flutterwaveSubscriptionSchema),
+  meta: z
+    .object({
+      page_info: z.object({
+        total: z.number(),
+        current_page: z.number(),
+        total_pages: z.number(),
+      }),
+    })
+    .optional(),
+});
+
+export const flutterwaveTransactionVerifyDataSchema = z.object({
+  id: z.number(),
+  tx_ref: z.string(),
+  flw_ref: z.string(),
+  device_fingerprint: z.string().nullable(),
+  amount: z.number(),
+  currency: z.string(),
+  charged_amount: z.number(),
+  app_fee: z.number(),
+  merchant_fee: z.number(),
+  processor_response: z.string(),
+  auth_model: z.string(),
+  ip: z.string(),
+  narration: z.string(),
+  status: z.string(),
+  payment_type: z.string(),
+  created_at: isoDateTimeString,
+  account_id: z.number(),
+  card: z
+    .object({
+      first_6digits: z.string(),
+      last_4digits: z.string(),
+      issuer: z.string(),
+      country: z.string(),
+      type: z.string(),
+      token: z.string(),
+      expiry: z.string(),
+    })
+    .optional(),
+  meta: z.object({
+    __CheckoutInitAddress: z.url(),
+    __FingerprintConfidenceScore: z.string(),
+    userId: z.string(),
+    cadence: mandateFrequencySchema,
+    amount: z.string(),
+    paymentPlanId: z.string(),
+    platform: z.string(),
+    subaccount_split: z.string(),
+  }),
+  plan: z.number().optional(),
+  amount_settled: z.number(),
+  customer: z.object({
+    id: z.number(),
+    email: z.string().email(),
+    name: z.string(),
+    phone_number: z.string().nullable(),
+    created_at: isoDateTimeString,
+  }),
+});
+
+export const flutterwaveTransactionVerifyResponseSchema = z.object({
+  status: z.string(),
+  message: z.string(),
+  data: flutterwaveTransactionVerifyDataSchema,
 });

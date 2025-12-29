@@ -73,7 +73,7 @@ export function MandateHeader({ isLanding, className }: MandateHeaderProps) {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 whitespace-nowrap transition-colors ${
+              className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 whitespace-nowrap ${
                 active
                   ? isLanding
                     ? "bg-white/90 text-deep-forest shadow-sm"

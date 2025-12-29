@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { Alert, Button, Image } from "@mantine/core";
 import { Link, useLoaderData } from "@tanstack/react-router";
 import { Download, ExternalLink, Lock, Sparkles } from "lucide-react";
@@ -8,31 +7,33 @@ import * as ReactToPDF from "react-to-pdf";
 
 import { formatDate } from "@/utils/date";
 import { useAuth } from "@/contexts/use-auth";
-import { useGetActiveMandateCertificate } from "@/api/mandate-certificate/handlers";
+import { listGetActiveMandateCertificateOptions } from "@/api/mandate-certificate/options";
 import { LoadingState } from "@/components/loading-state";
 import { useCreateMandateCertificate } from "@/api/mandate-certificate/hooks";
 import { notifications } from "@mantine/notifications";
 import { formatCurrency } from "@/utils/currency";
+import { useQuery } from "@tanstack/react-query";
 
 export function MandateCertificateView() {
   const { user } = useAuth();
-  const { mandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+  const { activeMandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
   const { toPDF, targetRef } = ReactToPDF.usePDF({
     filename: "mandate-certificate.pdf",
     page: { margin: 20 },
   });
 
-  const mandateCertificate = useGetActiveMandateCertificate(mandate?.id);
+  const mandateCertificate = useQuery(
+    listGetActiveMandateCertificateOptions(activeMandate?.id)
+  );
   const createCertificate = useCreateMandateCertificate();
 
   const handleGenerateCertificate = () => {
-    if (!mandate || !user) return;
+    if (!activeMandate || !user) return;
 
     createCertificate.mutate(
-      { mandate, user },
+      { data: { mandate: activeMandate, user } },
       {
         onSuccess: () => {
-          mandateCertificate.refetch();
           notifications.show({
             title: "Certificate generated",
             message: "Your mandate certificate has been successfully created.",
@@ -95,7 +96,7 @@ export function MandateCertificateView() {
   }
 
   if (!mandateCertificate.data) {
-    if (mandate && mandate.flutterwaveStatus === "ACTIVE") {
+    if (activeMandate && activeMandate.status === "active") {
       return (
         <div className="mx-auto w-full max-w-3xl rounded-4xl border border-sage-green/50 bg-white/90 p-10 text-center shadow-[0_40px_120px_rgba(0,35,19,0.08)]">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-mist-green text-deep-forest">
@@ -113,7 +114,7 @@ export function MandateCertificateView() {
             loading={createCertificate.isPending}
             size="lg"
             radius="xl"
-            className="mx-auto mt-6 bg-deep-forest text-white hover:bg-deep-forest/90"
+            className="mx-auto mt-6 bg-deep-forest text-white hover:bg-deep-forest/90 text-sm"
             leftSection={<Sparkles size={16} />}
           >
             Generate Certificate
@@ -135,6 +136,7 @@ export function MandateCertificateView() {
           certificate of mandate. Your certificate will unlock once your first
           mandate is active.
         </p>
+        
         <Button
           component={Link}
           to="/mandate/pledge"

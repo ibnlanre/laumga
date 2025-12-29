@@ -3,8 +3,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Section } from "@/components/section";
 import {
   ArrowRight,
-  Flower2,
-  HardHat,
   Shield,
   HeartHandshake,
   GraduationCap,
@@ -25,39 +23,6 @@ const mandateTiers = [
     name: "Supporter",
     amount: "₦5,000",
     cadence: "/month",
-    impact: "Keep a Muslim student enrolled when fees spike mid-semester.",
-    icon: Flower2,
-    features: ["Quarterly impact brief", "Community voting rights"],
-    search: { tier: "supporter", amount: 5000 },
-  },
-  {
-    id: "builder",
-    name: "Builder",
-    amount: "₦10,000",
-    cadence: "/month",
-    impact: "Fund rapid-response welfare cases across zones.",
-    icon: HardHat,
-    features: ["Monthly field stories", "Priority event invites"],
-    search: { tier: "builder", amount: 10000 },
-  },
-  {
-    id: "guardian",
-    name: "Guardian",
-    amount: "₦25,000",
-    cadence: "/month",
-    impact: "Underwrite an entire initiative from start to finish.",
-    icon: Shield,
-    features: ["Executive briefings", "Seat on mandate council"],
-    search: { tier: "guardian", amount: 25000 },
-  },
-] as const;
-
-const newMandateTiers = [
-  {
-    id: "supporter",
-    name: "Supporter",
-    amount: "₦5,000",
-    cadence: "/month",
     impact:
       "Help sustain students and community programs through consistent giving.",
     features: [
@@ -66,7 +31,7 @@ const newMandateTiers = [
       "Participation in community polls",
       "Monthly bulletin access",
     ],
-    search: { tier: "supporter", amount: 5000 },
+    search: { amount: 5000 },
   },
   {
     id: "builder",
@@ -80,7 +45,7 @@ const newMandateTiers = [
       "Direct updates on funded initiatives",
       "Recognition as a sustaining contributor",
     ],
-    search: { tier: "builder", amount: 10000 },
+    search: { amount: 10000 },
   },
   {
     id: "guardian",
@@ -94,7 +59,7 @@ const newMandateTiers = [
       "Closer insight into program direction",
       "Quarterly impact updates",
     ],
-    search: { tier: "guardian", amount: 25000 },
+    search: { amount: 25000 },
   },
 ] as const;
 
@@ -353,7 +318,7 @@ function TierSection() {
           </div>
 
           <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {newMandateTiers.map((tier) => (
+            {mandateTiers.map((tier) => (
               <div
                 key={tier.id}
                 className={clsx(

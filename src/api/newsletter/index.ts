@@ -1,164 +1,174 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  increment,
-  updateDoc,
-} from "firebase/firestore";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
 
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { record } from "@/utils/record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 import {
   NEWSLETTER_ISSUES_COLLECTION,
   createIssueSchema,
   issueSchema,
 } from "./schema";
-import type {
-  CreateIssueData,
-  CreateIssueVariables,
-  DownstreamIssueCollection,
-  DownstreamIssueDocument,
-  ListIssueVariables,
-  UpdateIssueData,
-  UpdateIssueVariables,
-  UpstreamIssueCollection,
-  UpstreamIssueDocument,
-} from "./types";
+import type { CreateIssueData, IssueData, UpdateIssueData } from "./types";
+import { userSchema } from "../user/schema";
+import { createVariablesSchema } from "@/client/schema";
 
-async function create(variables: CreateIssueVariables) {
-  const { data, user } = variables;
-  const validated = createIssueSchema.parse(data);
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      data: createIssueSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { data: issueData, user } = data;
+    const validated = createIssueSchema.parse(issueData);
 
-  const issuesRef = collection(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION
-  ) as UpstreamIssueCollection;
+    const issuesRef = serverCollection<CreateIssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    );
 
-  const issueData: CreateIssueData = {
-    ...validated,
-    created: record(user),
-    updated: record(user),
-  };
+    const newIssueData: CreateIssueData = {
+      ...validated,
+      created: serverRecord(user),
+    };
 
-  if (validated.status === "published") {
-    issueData.published = record(user);
-  }
+    if (validated.status === "published") {
+      newIssueData.published = serverRecord(user);
+    }
 
-  await addDoc(issuesRef, issueData);
-}
-
-async function update(variables: UpdateIssueVariables) {
-  const { id, data, user } = variables;
-  const validated = createIssueSchema.parse(data);
-
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as UpstreamIssueDocument;
-
-  const updatedData: UpdateIssueData = {
-    ...validated,
-    updated: record(user),
-  };
-
-  if (validated.status === "published" && !validated.published) {
-    updatedData.published = record(user);
-  }
-
-  if (validated.status === "archived" && !validated.archived) {
-    updatedData.archived = record(user);
-  }
-
-  await updateDoc(issueRef, updatedData);
-}
-
-async function list(variables?: ListIssueVariables) {
-  const issuesRef = collection(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION
-  ) as DownstreamIssueCollection;
-
-  const issuesQuery = buildQuery(issuesRef, variables);
-  return await getQueryDocs(issuesQuery, issueSchema);
-}
-
-async function get(id: string) {
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as DownstreamIssueDocument;
-
-  return await getQueryDoc(issueRef, issueSchema);
-}
-
-async function remove(id: string) {
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as UpstreamIssueDocument;
-
-  await deleteDoc(issueRef);
-}
-
-async function download(id: string) {
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as UpstreamIssueDocument;
-
-  await updateDoc(issueRef, {
-    downloadCount: increment(1),
+    await issuesRef.add(newIssueData);
   });
 
-  return await getQueryDoc(issueRef, issueSchema);
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: createIssueSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { id, data: issueData, user } = data;
+    const validated = createIssueSchema.parse(issueData);
 
-async function publish(variables: UpdateIssueVariables) {
-  const { id, data, user } = variables;
-  const validated = createIssueSchema.parse(data);
+    const issueRef = serverCollection<UpdateIssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
 
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as UpstreamIssueDocument;
+    const updatedData: UpdateIssueData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-  const updatedData: UpdateIssueData = {
-    ...validated,
-    status: "published",
-    published: record(user),
-    updated: record(user),
-  };
+    if (validated.status === "published" && !validated.published) {
+      updatedData.published = serverRecord(user);
+    }
 
-  await updateDoc(issueRef, updatedData);
-}
+    if (validated.status === "archived" && !validated.archived) {
+      updatedData.archived = serverRecord(user);
+    }
 
-async function archive(variables: UpdateIssueVariables) {
-  const { id, data, user } = variables;
-  const validated = createIssueSchema.parse(data);
+    await issueRef.update(updatedData);
+  });
 
-  const issueRef = doc(
-    db,
-    NEWSLETTER_ISSUES_COLLECTION,
-    id
-  ) as UpstreamIssueDocument;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(issueSchema))
+  .handler(async ({ data: variables }) => {
+    const issuesRef = serverCollection<IssueData>(NEWSLETTER_ISSUES_COLLECTION);
+    const issuesQuery = buildServerQuery(issuesRef, variables);
+    return await getServerQueryDocs(issuesQuery, issueSchema);
+  });
 
-  const updatedData: UpdateIssueData = {
-    ...validated,
-    status: "archived",
-    archived: record(user),
-    updated: record(user),
-  };
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const issueRef = serverCollection<IssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
+    return await getServerQueryDoc(issueRef, issueSchema);
+  });
 
-  await updateDoc(issueRef, updatedData);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const issueRef = serverCollection<IssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
+    await issueRef.delete();
+  });
+
+const download = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const issueRef = serverCollection<IssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
+
+    await issueRef.update({
+      downloadCount: FieldValue.increment(1),
+    });
+
+    return await getServerQueryDoc(issueRef, issueSchema);
+  });
+
+const publish = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: createIssueSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { id, data: issueData, user } = data;
+    const validated = createIssueSchema.parse(issueData);
+
+    const issueRef = serverCollection<UpdateIssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
+
+    const updatedData: UpdateIssueData = {
+      ...validated,
+      status: "published",
+      published: serverRecord(user),
+      updated: serverRecord(user),
+    };
+
+    await issueRef.update(updatedData);
+  });
+
+const archive = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: createIssueSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { id, data: issueData, user } = data;
+    const validated = createIssueSchema.parse(issueData);
+
+    const issueRef = serverCollection<UpdateIssueData>(
+      NEWSLETTER_ISSUES_COLLECTION
+    ).doc(id);
+
+    const updatedData: UpdateIssueData = {
+      ...validated,
+      status: "archived",
+      archived: serverRecord(user),
+      updated: serverRecord(user),
+    };
+
+    await issueRef.update(updatedData);
+  });
 
 export const newsletter = createBuilder(
   {

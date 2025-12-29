@@ -1,18 +1,14 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
 
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 
 import {
   ROLES_COLLECTION,
@@ -20,92 +16,104 @@ import {
   roleSchema,
   updateRoleSchema,
 } from "./schema";
-import type {
-  CreateRoleVariables,
-  DownstreamRoleCollection,
-  DownstreamRoleDocument,
-  ListRoleVariables,
-  UpdateRoleVariables,
-  UpstreamRoleCollection,
-  UpstreamRoleDocument,
-} from "./types";
+import type { CreateRoleData, RoleData } from "./types";
+import { userSchema } from "../user/schema";
+import { createVariablesSchema } from "@/client/schema";
 
-async function ensureUniqueRoleName(
-  rolesRef: UpstreamRoleCollection,
-  name: string,
-  excludeId?: string
-) {
-  const nameQuery = query(rolesRef, where("name", "==", name));
-  const snapshot = await getDocs(nameQuery);
+const ensureUniqueRoleName = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      name: z.string(),
+      excludeId: z.string().optional(),
+    })
+  )
+  .handler(async ({ data: { name, excludeId } }) => {
+    const rolesRef = serverCollection<RoleData>(ROLES_COLLECTION);
+    const snapshot = await rolesRef.where("name", "==", name).get();
 
-  const hasConflict = snapshot.docs.some((doc) => doc.id !== excludeId);
+    const hasConflict = snapshot.docs.some((doc) => doc.id !== excludeId);
 
-  if (hasConflict) {
-    throw new Error("A role with this name already exists");
-  }
-}
-
-async function list(variables?: ListRoleVariables) {
-  const rolesRef = collection(db, ROLES_COLLECTION) as DownstreamRoleCollection;
-  const rolesQuery = buildQuery(rolesRef, variables);
-  return await getQueryDocs(rolesQuery, roleSchema);
-}
-
-async function get(id: string) {
-  const roleRef = doc(db, ROLES_COLLECTION, id) as DownstreamRoleDocument;
-  return await getQueryDoc(roleRef, roleSchema);
-}
-
-async function create(variables: CreateRoleVariables) {
-  const { user, data } = variables;
-
-  const rolesRef = collection(db, ROLES_COLLECTION) as UpstreamRoleCollection;
-  await ensureUniqueRoleName(rolesRef, data.name);
-
-  const payload = createRoleSchema.parse({
-    ...data,
-    created: record(user),
-    updated: record(user),
+    if (hasConflict) {
+      throw new Error("A role with this name already exists");
+    }
   });
 
-  await addDoc(rolesRef, payload);
-}
-
-async function update(variables: UpdateRoleVariables) {
-  const { id, data, user } = variables;
-
-  const rolesRef = collection(db, ROLES_COLLECTION) as UpstreamRoleCollection;
-  const roleRef = doc(db, ROLES_COLLECTION, id) as UpstreamRoleDocument;
-
-  if (typeof data.name === "string") {
-    await ensureUniqueRoleName(rolesRef, data.name, id);
-  }
-
-  const validated = updateRoleSchema.parse(data);
-
-  await updateDoc(roleRef, {
-    ...validated,
-    updated: record(user),
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(roleSchema))
+  .handler(async ({ data: variables }) => {
+    const rolesRef = serverCollection<RoleData>(ROLES_COLLECTION);
+    const rolesQuery = buildServerQuery(rolesRef, variables);
+    return await getServerQueryDocs(rolesQuery, roleSchema);
   });
-}
 
-async function remove(id: string) {
-  const roleRef = doc(db, ROLES_COLLECTION, id) as UpstreamRoleDocument;
-  await deleteDoc(roleRef);
-}
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const roleRef = serverCollection<RoleData>(ROLES_COLLECTION).doc(id);
+    return await getServerQueryDoc(roleRef, roleSchema);
+  });
 
-async function getByName(name: string) {
-  const rolesRef = collection(db, ROLES_COLLECTION) as DownstreamRoleCollection;
-  const nameQuery = query(rolesRef, where("name", "==", name));
-  const snapshot = await getDocs(nameQuery);
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      data: createRoleSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { data, user } }) => {
+    await ensureUniqueRoleName({ data: { name: data.name } });
 
-  if (snapshot.empty) {
-    return null;
-  }
+    const rolesRef = serverCollection<CreateRoleData>(ROLES_COLLECTION);
+    const payload = createRoleSchema.parse({
+      ...data,
+      created: serverRecord(user),
+    });
 
-  const roleDoc = snapshot.docs[0];
-  return roleSchema.parse({ id: roleDoc.id, ...roleDoc.data() });
-}
+    await rolesRef.add(payload);
+  });
+
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: updateRoleSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    if (typeof data.name === "string") {
+      await ensureUniqueRoleName({ data: { name: data.name, excludeId: id } });
+    }
+
+    const roleRef = serverCollection<RoleData>(ROLES_COLLECTION).doc(id);
+    const validated = updateRoleSchema.parse(data);
+
+    await roleRef.update({
+      ...validated,
+      updated: serverRecord(user),
+    });
+  });
+
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data: { id } }) => {
+    const roleRef = serverCollection<RoleData>(ROLES_COLLECTION).doc(id);
+    await roleRef.delete();
+  });
+
+const getByName = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: name }) => {
+    const rolesRef = serverCollection<RoleData>(ROLES_COLLECTION);
+    const snapshot = await rolesRef.where("name", "==", name).get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const roleDoc = snapshot.docs[0];
+    return roleSchema.parse({ id: roleDoc.id, ...roleDoc.data() });
+  });
 
 export const role = createBuilder(
   {

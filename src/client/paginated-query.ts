@@ -14,7 +14,8 @@ import {
   query,
   startAfter,
 } from "firebase/firestore";
-import { buildQuery, type Variables, type SortBy } from "./core-query";
+import { buildQuery } from "./core-query/client";
+import type { SortBy, Variables } from "./types";
 
 /**
  * Pagination cursor - can be serialized/deserialized for API transmission
@@ -46,8 +47,9 @@ export interface PaginationResponse<DocumentType extends DocumentData> {
 /**
  * Options for pagination
  */
-export interface PaginatedVariables<DocumentType extends DocumentData>
-  extends Variables<DocumentType> {
+export interface PaginatedVariables<
+  DocumentType extends DocumentData,
+> extends Variables<DocumentType> {
   pageSize?: number;
   afterCursor?: PaginationCursor<DocumentType> | null;
   beforeCursor?: PaginationCursor<DocumentType> | null;

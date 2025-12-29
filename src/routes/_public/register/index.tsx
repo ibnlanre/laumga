@@ -8,12 +8,10 @@ import {
   FileInput,
   Button,
   Stack,
-  Loader,
-  Alert,
-  PasswordInput,
+  Loader, PasswordInput,
   Text,
   Avatar,
-  Textarea,
+  Textarea
 } from "@mantine/core";
 import {
   ArrowLeft,
@@ -49,7 +47,8 @@ import {
   locationDetailsSchema,
   personalDetailsSchema,
 } from "@/api/registration/schema";
-import { useChapterByState } from "@/api/chapter/handlers";
+import { useQuery } from "@tanstack/react-query";
+import { listChapterOptions } from "@/api/chapter/options";
 import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/register/")({
@@ -346,7 +345,13 @@ function LocationDetailsStep() {
     originStateOptions.length || isLoadingOriginStates;
   const hasResidenceStateSelect =
     residenceStateOptions.length || isLoadingResidenceStates;
-  const { data: chapter } = useChapterByState(form.values.stateOfResidence);
+  const { data: chapter } = useQuery({
+    ...listChapterOptions(),
+    select: (data) =>
+      data.find(
+        ({ state }) => state === form.values.stateOfResidence
+      ),
+  });
 
   const isNigeriaResidence = form.values.countryOfResidence === "Nigeria";
 
@@ -478,19 +483,6 @@ function LocationDetailsStep() {
             )}
           </div>
         </div>
-
-        {chapter && isNigeriaResidence && (
-          <Alert
-            title="Chapter Assignment"
-            icon={<MapPin size={16} />}
-            variant="light"
-            color="green"
-          >
-            Based on your residence, you will be assigned to the{" "}
-            <strong>{chapter.name}</strong>. You can change this later in your
-            profile.
-          </Alert>
-        )}
 
         <Textarea
           label="Residential Address"
@@ -640,10 +632,8 @@ function ReviewPanel() {
     credentials,
     closeReviewPanel,
     goToStep,
-    reset,
   } = useRegistration();
 
-  const { data: chapter } = useChapterByState(locationDetails.stateOfResidence);
   const { mutate, isPending } = useCreateUser();
   const navigate = useNavigate();
 
@@ -657,41 +647,58 @@ function ReviewPanel() {
       { data },
       {
         onSuccess() {
+          const salutation = data.title?.trim()
+            ? `${data.title.trim()} `
+            : data.gender === "male"
+              ? "Bro. "
+              : "Sis. ";
+
           modals.open({
-            title: (
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-6 w-6 text-vibrant-lime" />
-                <Text size="xl" fw={700} className="text-deep-forest">
-                  Welcome Home,{" "}
-                  {data.title || data.gender === "male" ? "Bro. " : "Sis. "}
-                  {data.firstName}!
-                </Text>
-              </div>
-            ),
-            children: (
-              <div className="text-center py-4">
-                <Text size="md" c="dimmed" mb="xl">
-                  You're good to go. Head to the mandate console to activate
-                  your pledge and explore the dashboard.
-                </Text>
-                <Button
-                  fullWidth
-                  autoContrast
-                  variant="outline"
-                  size="lg"
-                  onClick={() => {
-                    modals.closeAll();
-                    navigate({ to: "/mandate" });
-                  }}
-                >
-                  Go to Mandate
-                </Button>
-              </div>
-            ),
+            padding: 0,
+            radius: "xl",
             centered: true,
             withCloseButton: false,
             closeOnClickOutside: false,
             closeOnEscape: false,
+            children: (
+              <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div className="bg-linear-to-r from-deep-forest via-institutional-green to-vibrant-lime px-6 py-5 text-white">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-2xl bg-white/20 p-3 shadow-inner">
+                      <CheckCircle className="h-8 w-8 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.35em] text-white/70">
+                        Registration complete
+                      </p>
+                      <p className="font-serif text-2xl font-semibold leading-snug">
+                        Welcome home, {salutation}
+                        {data.firstName}!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6 px-8 py-8 text-center">
+                  <Text size="lg" c="dimmed">
+                    You're good to go. Head to the login page to access your
+                    account and explore the dashboard.
+                  </Text>
+                  <Button
+                    size="lg"
+                    radius="xl"
+                    className="bg-institutional-green text-white font-semibold shadow-lg transition hover:brightness-110"
+                    fullWidth
+                    onClick={() => {
+                      modals.closeAll();
+                      navigate({ to: "/login" });
+                    }}
+                  >
+                    Go to Login
+                  </Button>
+                </div>
+              </div>
+            ),
           });
         },
       }
@@ -841,9 +848,6 @@ function ReviewPanel() {
               <div>
                 {locationDetails.countryOfResidence === "Nigeria" ? (
                   <>
-                    <p className="font-semibold text-deep-forest">
-                      Registered under the {chapter?.name || "Chapter"}.
-                    </p>
                     <p className="text-sm text-gray-600">
                       Based on residence in {locationDetails.stateOfResidence},
                       Nigeria.

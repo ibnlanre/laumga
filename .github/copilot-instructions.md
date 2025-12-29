@@ -58,10 +58,11 @@ Utilize the `@ibnlanre/builder` library for all API interactions to maintain con
   - `schema.ts`: Zod schemas (upstream payloads employ `FieldValue` for log entries; downstream conversions transform timestamps to `Date`).
   - `types.ts`: Strict Firestore generics and `Variables` helpers.
   - `index.ts`: CRUD operations and builder integration. Limit to CRUD functions (like `create`, `update`, `get`, `list`, `remove`) and export a single `module` object via `createBuilder`.
-  - `hooks.ts`: React Query bindings.
-- For intricate workflows, incorporate `handlers.ts` to assemble base hooks (e.g., for slug validation or publish/archive operations), preserving declarative views. `handlers.ts` should **only** contain hooks, and not direct Firestore calls.
+  - `options.ts`: TanStack Query options definitions using `queryOptions` and `useServerFn`.
+  - `hooks.ts`: React Query bindings (custom hooks that use the options).
+- For intricate workflows, incorporate `options.ts` to define query options. Use `useServerFn` to wrap builder methods (`module.$use.method`) and `queryOptions` to define the query key (`module.method.$get`) and function. This enables consistent data fetching on both server and client.
 - Ensure every `create`/`update` mutation accepts a `{ user, data }` structure, performs schema validation, and applies audit fields using `record(user)`. Integrate schemas based on `dateSchema`/`fieldValueSchema` (refer to `src/schema/date.ts`) to store `FieldValue` timestamps upstream and return `Date` objects downstream.
-- Keep `index.ts` lean: **only** wire `create`, `update`, `list`, `get`, `remove`. Delegate specialized filters (e.g., state-based chapters, publish/archive, member counts) to `handlers.ts`, where `Variables<T>` configurations can be prebuilt and `list`/`update` primitives reused.
+- Keep `index.ts` lean: **only** wire `create`, `update`, `list`, `get`, `remove`. Delegate specialized filters (e.g., state-based chapters, publish/archive, member counts) to `options.ts`, where `Variables<T>` configurations can be prebuilt.
 - In derived hooks, persist use of builder-generated keys (`module.method.$use(params)`) for `queryKey` and `queryFn`, even for narrowed list queries via `filterBy`, `sortBy`, `limit`, etc. Refrain from creating custom endpoints for single-record fetches when a filtered `list` is adequate.
 - When a workflow touches ancillary collections (e.g., event registrations), create a separate module directory under the api folder for it (e.g., `event-registration/`). The core builder still exposes only CRUD, while handlers coordinate multi-collection logic and reuse base hooks for data hydration.
 - Enforce uniqueness (e.g., `slug`) in `create` handlers through Firestore queries prior to insertions.
@@ -91,6 +92,8 @@ Utilize the `@ibnlanre/builder` library for all API interactions to maintain con
 - Proper typing eliminates the need for casting data, reducing runtime errors from type mismatches.
 - For `updateDoc`, pass data directly or use `UpdateData<T>` for the variable type to ensure correct Firestore interpretation.
 - For `setDoc` or `addDoc`, pass data directly or use `WithFieldValue<T>` for the variable type to ensure correct Firestore interpretation.
+- **Indexes:** Manage Firestore indexes in `firestore.indexes.json`. Complex queries (e.g., equality filter + sort on different fields) require composite indexes.
+- **Timestamps:** Use `src/schema/date.ts` for date/timestamp validation. This ensures compatibility between Firebase Admin (Server) and Firebase Web (Client) SDKs, which use different Timestamp classes.
 
 ## Code Conventions
 
@@ -131,6 +134,8 @@ Utilize the `@ibnlanre/builder` library for all API interactions to maintain con
 - Instead of `children: ReactNode;`, use `PropsWithChildren` for component props.
 
 ## Key Files & Examples
+
+Query Options:\*\* `src/api/article/options.ts` (pattern for server/client data fetching)
 
 - **Route Pattern:** `src/routes/_public/index.tsx`
 - **Hooks with Builder Keys:** `src/services/hooks.ts`

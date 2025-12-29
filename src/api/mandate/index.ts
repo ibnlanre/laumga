@@ -1,214 +1,188 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
 
-import { db } from "@/services/firebase";
-import { record } from "@/utils/record";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
 
 import {
   MANDATES_COLLECTION,
   createMandateSchema,
   mandateSchema,
+  updateMandateSchema,
 } from "./schema";
-import type {
-  CreateMandateData,
-  CreateMandateVariables,
-  UpdateMandateVariables,
-  MandateCollection,
-  MandateDocument,
-  ListMandateVariables,
-} from "./types";
+import type { CreateMandateData, Mandate } from "./types";
 import { determineTier } from "./utils";
-import { addMinutes, isAfter } from "date-fns";
 import { flutterwave } from "../flutterwave";
+import { userSchema, USERS_COLLECTION } from "../user/schema";
+import type { User } from "../user/types";
 
-function isStale(createdAt: Date) {
-  return isAfter(new Date(), addMinutes(createdAt, 10));
-}
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(mandateSchema))
+  .handler(async ({ data: variables }) => {
+    const mandatesRef = serverCollection<Mandate>(MANDATES_COLLECTION);
+    const query = buildServerQuery(mandatesRef, variables);
+    const mandates = await getServerQueryDocs(query, mandateSchema);
 
-function mandateRef(mandateId: string) {
-  return doc(db, MANDATES_COLLECTION, mandateId) as MandateDocument;
-}
+    const userIds = [...new Set(mandates.map((m) => m.userId))];
 
-async function create(variables: CreateMandateVariables) {
-  const { user, data } = variables;
+    if (userIds.length === 0) return mandates;
 
-  const tokenResponse = await flutterwave.$use.account.tokenize({
-    data: {
-      email: user.email,
-      amount: data.amount,
-      address: user.address,
-      phone_number: user.phoneNumber,
-      account_bank: data.bankCode,
-      account_number: data.accountNumber,
-      start_date: data.startDate,
-      end_date: data.endDate!,
-      narration: `LAUMGA Foundation ${data.frequency} contribution`,
-    },
+    const usersRef = serverCollection<User>(USERS_COLLECTION);
+    const userDocs = await Promise.all(
+      userIds.map((id) => usersRef.doc(id).get())
+    );
+
+    const userMap = new Map(
+      userDocs
+        .filter((doc) => doc.exists)
+        .map((doc) => [doc.id, userSchema.parse({ id: doc.id, ...doc.data() })])
+    );
+
+    return mandates.map((m) => ({
+      ...m,
+      user: userMap.get(m.userId),
+    }));
   });
 
-  const validated = createMandateSchema.parse(data);
-  const docRef = mandateRef(user.id);
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(id);
+    const mandate = await getServerQueryDoc(ref, mandateSchema);
 
-  const mandateData: CreateMandateData = {
-    userId: user.id,
-    amount: validated.amount,
-    frequency: validated.frequency,
-    tier: determineTier(validated.amount),
-    startDate: validated.startDate,
-    endDate: validated.endDate,
-    flutterwaveReference: tokenResponse.data.reference,
-    flutterwaveAccountId: tokenResponse.data.account_id,
-    flutterwaveCustomerId: tokenResponse.data.customer_id,
-    flutterwaveStatus: tokenResponse.data.status,
-    flutterwaveAccountToken: null,
-    flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
-    flutterwaveProcessorResponse: tokenResponse.data.processor_response,
-    flutterwaveEffectiveDate: null,
-    created: record(user),
-    updated: record(user),
-  };
+    if (!mandate) return null;
 
-  await setDoc(docRef, mandateData);
-}
-
-async function update(variables: UpdateMandateVariables) {
-  const { user, data } = variables;
-
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  await updateDoc(ref, { ...data, updated: record(user) });
-}
-
-async function get(id: string) {
-  const ref = mandateRef(id);
-  const mandate = await getQueryDoc(ref, mandateSchema);
-
-  if (!mandate) return null;
-
-  const account = await flutterwave.$use.account.status({
-    data: mandate.flutterwaveReference!,
+    return mandate;
   });
 
-  if (account.data.status === "PENDING") {
-    if (isStale(new Date(account.data.created_at))) {
-      await deleteDoc(ref);
-      return null;
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createMandateSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const docRef = serverCollection<CreateMandateData>(MANDATES_COLLECTION).doc(
+      user.id
+    );
+
+    const snapshot = await docRef.get();
+
+    if (snapshot.exists) {
+      throw new Error("Mandate already exists for this user");
     }
-  }
 
-  if (account.data.status !== mandate.flutterwaveStatus) {
-    mandate.flutterwaveStatus = account.data.status;
-    mandate.flutterwaveProcessorResponse = account.data.processor_response;
-    mandate.flutterwaveAccountToken = account.data.token;
-    mandate.flutterwaveEffectiveDate = account.data.active_on;
-
-    await updateDoc(ref, mandate);
-  }
-
-  return mandate;
-}
-
-async function pause(variables: UpdateMandateVariables) {
-  const { user } = variables;
-
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  const response = await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "SUSPENDED" },
-    },
+    await docRef.set({
+      userId: user.id,
+      amount: data.amount,
+      frequency: data.frequency,
+      tier: determineTier(data.amount),
+      status: "active",
+      paymentPlanId: data.paymentPlanId,
+      subscriptionId: data.subscriptionId,
+      customerEmail: data.customerEmail,
+      created: serverRecord(user),
+      updated: null,
+    });
   });
 
-  await updateDoc(ref, {
-    flutterwaveStatus: response.data.status,
-    flutterwaveProcessorResponse: response.data.processor_response,
-    updated: record(user),
-  });
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: updateMandateSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
 
-async function cancel(variables: UpdateMandateVariables) {
-  const { user } = variables;
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
 
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
-
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
-
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "DELETED" },
-    },
+    await ref.update({ ...data, updated: serverRecord(user) });
   });
 
-  await deleteDoc(ref);
-}
+const pause = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
 
-async function reinstate(variables: UpdateMandateVariables) {
-  const { user } = variables;
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
 
-  const ref = mandateRef(user.id);
-  const snapshot = await getDoc(ref);
+    const mandate = snapshot.data();
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
+    }
 
-  if (!snapshot.exists()) {
-    throw new Error("Mandate not found");
-  }
+    await flutterwave.$use.subscription.cancel({
+      data: mandate.subscriptionId,
+    });
 
-  const mandate = snapshot.data();
-  if (!mandate.flutterwaveReference) {
-    throw new Error("Mandate has no Flutterwave reference");
-  }
-
-  const response = await flutterwave.$use.account.update({
-    data: {
-      reference: mandate.flutterwaveReference,
-      payload: { status: "ACTIVE" },
-    },
+    await ref.update({
+      status: "paused",
+      updated: serverRecord(user),
+    });
   });
 
-  await updateDoc(ref, {
-    flutterwaveStatus: response.data.status,
-    flutterwaveProcessorResponse: response.data.processor_response,
-    updated: record(user),
-  });
-}
+const cancel = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
 
-async function list(variables?: ListMandateVariables) {
-  const mandatesRef = collection(db, MANDATES_COLLECTION) as MandateCollection;
-  const mandatesQuery = buildQuery(mandatesRef, variables);
-  return await getQueryDocs(mandatesQuery, mandateSchema);
-}
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    const mandate = snapshot.data();
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
+    }
+
+    await flutterwave.$use.subscription.cancel({
+      data: mandate.subscriptionId,
+    });
+
+    await ref.delete();
+  });
+
+const reinstate = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ user: userSchema }))
+  .handler(async ({ data: { user } }) => {
+    const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(user.id);
+    const snapshot = await ref.get();
+
+    if (!snapshot.exists) {
+      throw new Error("Mandate not found");
+    }
+
+    const mandate = snapshot.data();
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
+    }
+
+    await flutterwave.$use.subscription.activate({
+      data: mandate.subscriptionId,
+    });
+
+    await ref.update({
+      status: "active",
+      updated: serverRecord(user),
+    });
+  });
 
 export const mandate = createBuilder(
   {

@@ -1,17 +1,16 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { deleteObject, ref } from "firebase/storage";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
 import prettyBytes from "pretty-bytes";
 
-import { db, storage } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
-import { record } from "@/utils/record";
+import { storage } from "@/services/firebase-admin";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 import {
   MEDIA_COLLECTION,
   createMediaSchema,
@@ -20,87 +19,103 @@ import {
 } from "./schema";
 import type {
   CreateMediaData,
-  CreateMediaVariables,
-  DownstreamMediaCollection,
-  DownstreamMediaDocument,
   ListMediaVariables,
-  UpdateMediaVariables,
-  UpstreamMediaCollection,
-  UpstreamMediaDocument,
+  MediaData,
+  UpdateMediaData,
 } from "./types";
+import { userSchema } from "../user/schema";
+import { createVariablesSchema } from "@/client/schema";
 
-async function list(variables?: ListMediaVariables) {
-  const mediaRef = collection(
-    db,
-    MEDIA_COLLECTION
-  ) as DownstreamMediaCollection;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(mediaSchema))
+  .handler(async ({ data: variables }) => {
+    const mediaRef = serverCollection<MediaData>(MEDIA_COLLECTION);
+    const mediaQuery = buildServerQuery(mediaRef, variables);
+    return await getServerQueryDocs(mediaQuery, mediaSchema);
+  });
 
-  const mediaQuery = buildQuery(mediaRef, variables);
-  return await getQueryDocs(mediaQuery, mediaSchema);
-}
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const mediaRef = serverCollection<MediaData>(MEDIA_COLLECTION).doc(id);
+    return await getServerQueryDoc(mediaRef, mediaSchema);
+  });
 
-async function get(id: string) {
-  const mediaRef = doc(db, MEDIA_COLLECTION, id) as DownstreamMediaDocument;
-
-  return await getQueryDoc(mediaRef, mediaSchema);
-}
-
-export function getFeaturedMedia() {
-  const mediaRef = collection(
-    db,
-    MEDIA_COLLECTION
-  ) as DownstreamMediaCollection;
-
+const getFeaturedMedia = createServerFn({ method: "GET" }).handler(async () => {
+  const mediaRef = serverCollection<MediaData>(MEDIA_COLLECTION);
   const variables: ListMediaVariables = {
     filterBy: [{ field: "isFeatured", operator: "==", value: true }],
-    sortBy: [{ field: "uploaded", value: "desc" }],
+    sortBy: [{ field: "uploaded", direction: "desc" }],
   };
+  const mediaQuery = buildServerQuery(mediaRef, variables);
+  return getServerQueryDocs(mediaQuery, mediaSchema);
+});
 
-  const mediaQuery = buildQuery(mediaRef, variables);
-  return getQueryDocs(mediaQuery, mediaSchema);
-}
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      data: createMediaSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { user, data: mediaData } = data;
 
-async function create(variables: CreateMediaVariables) {
-  const { user, data } = variables;
+    const validated = createMediaSchema.parse(mediaData);
+    const mediaRef = serverCollection<CreateMediaData>(MEDIA_COLLECTION);
 
-  const validated = createMediaSchema.parse(data);
-  const mediaRef = collection(db, MEDIA_COLLECTION) as UpstreamMediaCollection;
+    const newMediaData: CreateMediaData = createMediaSchema.parse({
+      ...validated,
+      uploaded: serverRecord(user),
+      size: prettyBytes(parseInt(validated.size || "0", 10)),
+    });
 
-  const mediaData: CreateMediaData = createMediaSchema.parse({
-    ...validated,
-    uploaded: record(user),
-    size: prettyBytes(parseInt(validated.size || "0", 10)),
+    await mediaRef.add(newMediaData);
   });
 
-  await addDoc(mediaRef, mediaData);
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: updateMediaSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data }) => {
+    const { id, data: updateData } = data;
 
-async function update(variables: UpdateMediaVariables) {
-  const { id, data } = variables;
-  const validated = updateMediaSchema.parse(data);
+    const validated = updateMediaSchema.parse(updateData);
+    const mediaRef =
+      serverCollection<UpdateMediaData>(MEDIA_COLLECTION).doc(id);
 
-  const mediaRef = doc(db, MEDIA_COLLECTION, id) as UpstreamMediaDocument;
-
-  await updateDoc(mediaRef, {
-    ...validated,
+    await mediaRef.update({
+      ...validated,
+    });
   });
-}
 
-async function remove(id: string) {
-  const mediaRef = doc(db, MEDIA_COLLECTION, id) as DownstreamMediaDocument;
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const mediaRef = serverCollection<MediaData>(MEDIA_COLLECTION).doc(id);
+    const media = await getServerQueryDoc(mediaRef, mediaSchema);
+    if (!media) return;
 
-  const media = await getQueryDoc(mediaRef, mediaSchema);
-  if (!media) return;
-
-  await deleteStorageObject(media.url);
-  await deleteDoc(mediaRef);
-}
+    await deleteStorageObject(media.url);
+    await mediaRef.delete();
+  });
 
 async function deleteStorageObject(url: string) {
   if (!url) return;
-
-  const storageRef = ref(storage, url);
-  await deleteObject(storageRef);
+  try {
+    const bucket = storage.bucket();
+    const urlObj = new URL(url);
+    const path = decodeURIComponent(urlObj.pathname.split("/o/")[1]).split(
+      "?"
+    )[0];
+    await bucket.file(path).delete();
+  } catch (error) {
+    console.error("Error deleting file:", error);
+  }
 }
 
 export const media = createBuilder(

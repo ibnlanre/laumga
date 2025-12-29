@@ -1,199 +1,180 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
+
+import { serverRecord } from "@/utils/server-record";
 import {
-  collection,
-  doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  query,
-  where,
-  serverTimestamp,
-  type DocumentReference,
-  deleteDoc,
-  increment,
-} from "firebase/firestore";
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
-  createArticleSchema,
-  updateArticleSchema,
   ARTICLES_COLLECTION,
   articleSchema,
-} from "@/api/article/schema";
+  createArticleSchema,
+  updateArticleSchema,
+} from "./schema";
 import type {
-  CreateArticleVariables,
+  ArticleData,
   CreateArticleData,
   UpdateArticleData,
-  UpstreamArticleCollection,
-  UpstreamArticleDocument,
-  Article,
-  UpdateArticleVariables,
-  DownstreamArticleCollection,
-  DownstreamArticleDocument,
-  ListArticleVariables,
-  PublishArticleVariables,
-  ArchiveArticleVariables,
 } from "./types";
-import { createBuilder } from "@ibnlanre/builder";
-import { record } from "@/utils/record";
+import { userSchema } from "../user/schema";
 
-async function create(variables: CreateArticleVariables) {
-  const { user, data } = variables;
-
-  const validated = createArticleSchema.parse(data);
-  const articlesRef = collection(
-    db,
-    ARTICLES_COLLECTION
-  ) as UpstreamArticleCollection;
-
-  const existingQuery = query(articlesRef, where("slug", "==", validated.slug));
-  const existingSnapshot = await getDocs(existingQuery);
-
-  if (!existingSnapshot.empty) {
-    throw new Error("An article with this slug already exists");
-  }
-
-  const articleData: CreateArticleData = {
-    ...validated,
-    created: record(user),
-  };
-
-  if (validated.status === "published") {
-    articleData.published = record(user);
-  }
-
-  await addDoc(articlesRef, articleData);
-}
-
-async function update(variables: UpdateArticleVariables) {
-  const { id, data, user } = variables;
-  const validated = updateArticleSchema.parse(data);
-
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    id
-  ) as UpstreamArticleDocument;
-
-  const updateData: UpdateArticleData = {
-    ...validated,
-    updated: {
-      at: serverTimestamp(),
-      by: user.id,
-      name: user.fullName,
-      photoUrl: user.photoUrl,
-    },
-  };
-
-  if (validated.status === "published" && !validated.published) {
-    updateData.published = record(user);
-  }
-
-  if (validated.status === "archived" && !validated.archived) {
-    updateData.archived = record(user);
-  }
-
-  await updateDoc(articleRef, updateData);
-}
-
-async function list(variables?: ListArticleVariables) {
-  const articlesRef = collection(
-    db,
-    ARTICLES_COLLECTION
-  ) as DownstreamArticleCollection;
-  const articlesQuery = buildQuery(articlesRef, variables);
-  return await getQueryDocs(articlesQuery, articleSchema);
-}
-
-async function get(id: string) {
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    id
-  ) as DownstreamArticleDocument;
-  return await getQueryDoc(articleRef, articleSchema);
-}
-
-async function remove(id: string) {
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    id
-  ) as DocumentReference<Article>;
-  await deleteDoc(articleRef);
-}
-
-async function publish(variables: PublishArticleVariables) {
-  const { id, user } = variables;
-
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    id
-  ) as UpstreamArticleDocument;
-
-  await updateDoc(articleRef, {
-    status: "published",
-    published: record(user),
-    updated: record(user),
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(articleSchema))
+  .handler(async ({ data: variables }) => {
+    const articlesRef = serverCollection<ArticleData>(ARTICLES_COLLECTION);
+    const query = buildServerQuery(articlesRef, variables);
+    return getServerQueryDocs(query, articleSchema);
   });
-}
 
-async function archive(variables: ArchiveArticleVariables) {
-  const { id, user } = variables;
-
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    id
-  ) as UpstreamArticleDocument;
-
-  await updateDoc(articleRef, {
-    status: "archived",
-    archived: record(user),
-    updated: record(user),
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(id);
+    return getServerQueryDoc(articleRef, articleSchema);
   });
-}
 
-async function related(articleId: string) {
-  const articlesRef = collection(
-    db,
-    ARTICLES_COLLECTION
-  ) as DownstreamArticleCollection;
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createArticleSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const articlesRef = serverCollection<ArticleData>(ARTICLES_COLLECTION);
 
-  const relatedArticlesQuery = query(articlesRef, where("id", "!=", articleId));
+    const existingSnapshot = await articlesRef
+      .where("slug", "==", data.slug)
+      .get();
 
-  return await getQueryDocs(relatedArticlesQuery, articleSchema);
-}
+    if (!existingSnapshot.empty) {
+      throw new Error("An article with this slug already exists");
+    }
 
-async function getArticleBySlug(slug: string) {
-  const articlesRef = collection(
-    db,
-    ARTICLES_COLLECTION
-  ) as DownstreamArticleCollection;
+    const articleData: CreateArticleData = {
+      ...data,
+      created: serverRecord(user),
+    };
 
-  const slugQuery = query(articlesRef, where("slug", "==", slug));
+    if (data.status === "published") {
+      articleData.published = serverRecord(user);
+    }
 
-  return await getQueryDocs(slugQuery, articleSchema).then((articles) =>
-    articles.length > 0 ? articles[0] : null
-  );
-}
-
-async function incrementViewCount(articleId: string) {
-  const articleRef = doc(
-    db,
-    ARTICLES_COLLECTION,
-    articleId
-  ) as UpstreamArticleDocument;
-
-  const article = await get(articleId);
-  if (!article) {
-    throw new Error("Article not found");
-  }
-
-  await updateDoc(articleRef, {
-    viewCount: increment(1),
+    await articlesRef.add(articleData);
   });
-}
+
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateArticleSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(id);
+
+    const updateData: UpdateArticleData = {
+      ...data,
+      updated: serverRecord(user),
+    };
+
+    if (data.status === "published" && !data.published) {
+      updateData.published = serverRecord(user);
+    }
+
+    if (data.status === "archived" && !data.archived) {
+      updateData.archived = serverRecord(user);
+    }
+
+    await articleRef.update(updateData);
+  });
+
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(id);
+    await articleRef.delete();
+  });
+
+const publish = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { id, user } }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(id);
+
+    await articleRef.update({
+      status: "published",
+      published: serverRecord(user),
+      updated: serverRecord(user),
+    });
+  });
+
+const archive = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { id, user } }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(id);
+
+    await articleRef.update({
+      status: "archived",
+      archived: serverRecord(user),
+      updated: serverRecord(user),
+    });
+  });
+
+const related = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: articleId }) => {
+    const articlesRef = serverCollection<ArticleData>(ARTICLES_COLLECTION);
+    const query = articlesRef.where("id", "!=", articleId);
+    return getServerQueryDocs(query, articleSchema);
+  });
+
+const getArticleBySlug = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: slug }) => {
+    const articlesRef = serverCollection<ArticleData>(ARTICLES_COLLECTION);
+    const query = articlesRef.where("slug", "==", slug);
+    const articles = await getServerQueryDocs(query, articleSchema);
+    return articles.length > 0 ? articles[0] : null;
+  });
+
+const incrementViewCount = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: articleId }) => {
+    const articleRef =
+      serverCollection<ArticleData>(ARTICLES_COLLECTION).doc(articleId);
+
+    const article = await articleRef.get();
+    if (!article.exists) {
+      throw new Error("Article not found");
+    }
+
+    await articleRef.update({
+      viewCount: FieldValue.increment(1),
+    });
+  });
 
 export const article = createBuilder(
   {

@@ -20,7 +20,7 @@ interface NameFields {
   lastName?: string;
 }
 
-const createFullName = <T extends NameFields>(data: T) => {
+export const createFullName = <T extends NameFields>(data: T) => {
   if (data.fullName) return data;
 
   const { firstName, lastName } = data;
@@ -30,10 +30,7 @@ const createFullName = <T extends NameFields>(data: T) => {
     .join(" ")
     .trim();
 
-  return {
-    ...data,
-    fullName,
-  };
+  return { ...data, fullName };
 };
 
 export const userProfileSchema = registrationSchema.extend({

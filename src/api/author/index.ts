@@ -1,121 +1,113 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { createBuilder } from "@ibnlanre/builder";
+
+import { serverRecord } from "@/utils/server-record";
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-  type DocumentReference,
-} from "firebase/firestore";
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+
 import {
   AUTHORS_COLLECTION,
   authorSchema,
   createAuthorSchema,
   updateAuthorSchema,
 } from "@/api/author/schema";
-import type {
-  Author,
-  ListAuthorVariables,
-  CreateAuthorData,
-  CreateAuthorVariables,
-  DownstreamAuthorCollection,
-  DownstreamAuthorDocument,
-  UpdateAuthorData,
-  UpdateAuthorVariables,
-  UpstreamAuthorCollection,
-  UpstreamAuthorDocument,
-} from "./types";
-import { createBuilder } from "@ibnlanre/builder";
-import { record } from "@/utils/record";
+import type { AuthorData, CreateAuthorData, UpdateAuthorData } from "./types";
+import { userSchema } from "../user/schema";
 
-async function create(variables: CreateAuthorVariables) {
-  const { user, data } = variables;
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(authorSchema))
+  .handler(async ({ data: variables }) => {
+    const authorsRef = serverCollection<AuthorData>(AUTHORS_COLLECTION);
+    const query = buildServerQuery(authorsRef, variables);
+    return getServerQueryDocs(query, authorSchema);
+  });
 
-  const validated = createAuthorSchema.parse(data);
-  const authorsRef = collection(
-    db,
-    AUTHORS_COLLECTION
-  ) as UpstreamAuthorCollection;
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const authorRef = serverCollection<AuthorData>(AUTHORS_COLLECTION).doc(id);
+    return getServerQueryDoc(authorRef, authorSchema);
+  });
 
-  const existingQuery = query(
-    authorsRef,
-    where("fullName", "==", validated.fullName)
-  );
-  const existingSnapshot = await getDocs(existingQuery);
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createAuthorSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const validated = createAuthorSchema.parse(data);
+    const authorsRef = serverCollection<AuthorData>(AUTHORS_COLLECTION);
 
-  if (!existingSnapshot.empty) {
-    throw new Error("An author with this name already exists");
-  }
+    const existingSnapshot = await authorsRef
+      .where("fullName", "==", validated.fullName)
+      .get();
 
-  const authorData: CreateAuthorData = {
-    ...validated,
-    created: record(user),
-  };
+    if (!existingSnapshot.empty) {
+      throw new Error("An author with this name already exists");
+    }
 
-  if (validated.status === "published") {
-    authorData.published = record(user);
-  }
+    const authorData: CreateAuthorData = {
+      ...validated,
+      created: serverRecord(user),
+    };
 
-  await addDoc(authorsRef, authorData);
-}
+    if (validated.status === "published") {
+      authorData.published = serverRecord(user);
+    }
 
-async function update(variables: UpdateAuthorVariables) {
-  const { id, data, user } = variables;
-  const validated = updateAuthorSchema.parse(data);
+    await authorsRef.add(authorData);
+  });
 
-  const authorRef = doc(db, AUTHORS_COLLECTION, id) as UpstreamAuthorDocument;
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateAuthorSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const validated = updateAuthorSchema.parse(data);
+    const authorRef = serverCollection<AuthorData>(AUTHORS_COLLECTION).doc(id);
 
-  const updateData: UpdateAuthorData = {
-    ...validated,
-    updated: record(user),
-  };
+    const updateData: UpdateAuthorData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-  if (validated.status === "published" && !validated.published) {
-    updateData.published = record(user);
-  }
+    if (validated.status === "published" && !validated.published) {
+      updateData.published = serverRecord(user);
+    }
 
-  if (validated.status === "archived" && !validated.archived) {
-    updateData.archived = record(user);
-  }
+    if (validated.status === "archived" && !validated.archived) {
+      updateData.archived = serverRecord(user);
+    }
 
-  await updateDoc(authorRef, updateData);
-}
+    await authorRef.update(updateData);
+  });
 
-async function list(variables?: ListAuthorVariables) {
-  const authorsRef = collection(
-    db,
-    AUTHORS_COLLECTION
-  ) as DownstreamAuthorCollection;
-
-  const authorsQuery = buildQuery(authorsRef, variables);
-  return await getQueryDocs(authorsQuery, authorSchema);
-}
-
-async function get(id: string) {
-  const authorRef = doc(db, AUTHORS_COLLECTION, id) as DownstreamAuthorDocument;
-  return await getQueryDoc(authorRef, authorSchema);
-}
-
-async function remove(id: string) {
-  const authorRef = doc(
-    db,
-    AUTHORS_COLLECTION,
-    id
-  ) as DocumentReference<Author>;
-  await deleteDoc(authorRef);
-}
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const authorRef = serverCollection<AuthorData>(AUTHORS_COLLECTION).doc(id);
+    await authorRef.delete();
+  });
 
 export const author = createBuilder(
   {
-    remove,
     create,
     update,
     list,
     get,
+    remove,
   },
   { prefix: [AUTHORS_COLLECTION] }
 );

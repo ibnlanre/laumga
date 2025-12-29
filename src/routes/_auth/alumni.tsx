@@ -38,7 +38,7 @@ function RouteComponent() {
 
   const { data: tenures = [], isLoading: isTenuresLoading } = useQuery(
     listExecutiveTenureOptions({
-      sortBy: [{ field: "year", value: "desc" }],
+      sortBy: [{ field: "year", direction: "desc" }],
     })
   );
 
@@ -63,8 +63,8 @@ function RouteComponent() {
     ...listExecutiveOptions({
       filterBy: [{ field: "tenureId", operator: "==", value: activeTenureId }],
       sortBy: [
-        { field: "tier", value: "asc" },
-        { field: "role", value: "asc" },
+        { field: "tier", direction: "asc" },
+        { field: "role", direction: "asc" },
       ],
     }),
     enabled: !!activeTenureId,

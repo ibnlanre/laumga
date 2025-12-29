@@ -17,37 +17,37 @@ import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
 import { PageLoader } from "@/components/page-loader";
-import { getUserOptions } from "@/api/user/options";
-import { permissionQueryOptions } from "@/api/user-roles/options";
 import { firebase } from "@/api/firebase";
+
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { userRole } from "@/api/user-roles";
+import { user } from "@/api/user";
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const session = await firebase.$use.getSession();
+    return await firebase.$use.getSession();
+  },
+  loader: async ({ context }) => {
+    const { uid } = context;
 
-    if (!session?.userId) {
-      return { currentUser: null, permissions: [], isAuthenticated: false };
-    }
+    if (!uid) return { currentUser: null, permissions: [] };
 
-    const currentUser = await queryClient.ensureQueryData(
-      getUserOptions(session.userId)
-    );
+    const currentUser = await queryClient.ensureQueryData({
+      queryKey: user.get.$get({ data: uid }),
+      queryFn: () => user.$use.get({ data: uid! }),
+    });
 
     if (!currentUser) {
       await firebase.$use.logoutUser();
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
-    const permissions = await queryClient.ensureQueryData(
-      permissionQueryOptions(session.userId)
-    );
+    const permissions = await queryClient.ensureQueryData({
+      queryKey: userRole.getUserPermissions.$get({ data: uid }),
+      queryFn: () => userRole.$use.getUserPermissions({ data: uid! }),
+    });
 
-    return {
-      isAuthenticated: !!currentUser,
-      currentUser,
-      permissions,
-      isOwner: false,
-    };
+    return { currentUser, permissions };
   },
   head: () => ({
     meta: [
@@ -182,7 +182,7 @@ const theme = createTheme({
 });
 
 function RootDocument({ children }: PropsWithChildren) {
-  const { currentUser, permissions } = Route.useRouteContext();
+  const { currentUser, permissions } = Route.useLoaderData();
 
   return (
     <html lang="en" {...mantineHtmlProps} className="overscroll-none">
@@ -198,6 +198,8 @@ function RootDocument({ children }: PropsWithChildren) {
               <ModalsProvider>{children}</ModalsProvider>
             </MantineProvider>
           </AuthProvider>
+
+          <ReactQueryDevtools initialIsOpen />
         </QueryClientProvider>
 
         <Scripts />

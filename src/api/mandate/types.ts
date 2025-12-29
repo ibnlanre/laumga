@@ -11,9 +11,10 @@ import type {
   mandateDataSchema,
   mandateFrequencySchema,
   mandateTierSchema,
+  mandateStatusSchema,
   updateMandateSchema,
 } from "./schema";
-import type { Variables } from "@/client/core-query";
+import type { Variables } from "@/client/types";
 import type { User } from "../user/types";
 
 export type Mandate = z.infer<typeof mandateSchema>;
@@ -25,6 +26,7 @@ export type UpdateMandate = z.infer<typeof updateMandateSchema>;
 
 export type MandateTier = z.infer<typeof mandateTierSchema>;
 export type MandateFrequency = z.infer<typeof mandateFrequencySchema>;
+export type MandateStatus = z.infer<typeof mandateStatusSchema>;
 
 export type MandateCollection = CollectionReference<CreateMandateData>;
 export type MandateDocument = DocumentReference<CreateMandateData>;

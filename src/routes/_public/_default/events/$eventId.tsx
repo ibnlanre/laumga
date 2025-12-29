@@ -82,13 +82,15 @@ function EventDetailPage() {
     }
 
     await registerMutation.mutateAsync({
-      user,
       data: {
-        eventId: event.id,
-        email: user.email,
-        attending: "yes",
-        registered: null,
-        updated: null,
+        user,
+        data: {
+          eventId: event.id,
+          email: user.email,
+          attending: "yes",
+          registered: null,
+          updated: null,
+        },
       },
     });
 

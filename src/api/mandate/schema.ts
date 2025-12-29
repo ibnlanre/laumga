@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import { dateSchema, fieldValueSchema, isoDateTimeString } from "@/schema/date";
-import { flutterwaveMandateConsentSchema, flutterwaveStatusSchema } from "../flutterwave/schema";
+import { dateSchema, fieldValueSchema } from "@/schema/date";
 
 export const MANDATES_COLLECTION = "mandates";
 
@@ -13,11 +12,16 @@ export const mandateTierSchema = z.enum([
 ]);
 
 export const mandateFrequencySchema = z.enum([
+  "hourly",
   "daily",
   "weekly",
   "monthly",
+  "quarterly",
+  "bi-annually",
   "yearly",
 ]);
+
+export const mandateStatusSchema = z.enum(["active", "cancelled", "paused"]);
 
 const mandateAmountSchema = z
   .number()
@@ -27,29 +31,16 @@ const mandateAmountSchema = z
 export const createMandateSchema = z.object({
   amount: mandateAmountSchema,
   frequency: mandateFrequencySchema.default("monthly"),
-  startDate: isoDateTimeString.min(1, "Start date is required"),
-  endDate: isoDateTimeString.nullable().default(null),
-  bankCode: z.string().min(3, "Bank is required"),
-  accountNumber: z.string().length(10, "Account number must be 10 digits"),
+  paymentPlanId: z.union([z.string(), z.number()]),
+  subscriptionId: z.number().nullable().default(null),
+  customerEmail: z.email(),
 });
 
-const mandateFormSchema = createMandateSchema
-  .omit({
-    bankCode: true,
-    accountNumber: true,
-  })
-  .extend({
-    userId: z.string(),
-    tier: mandateTierSchema,
-    flutterwaveReference: z.string().nullable().default(null),
-    flutterwaveAccountId: z.union([z.number(), z.string()]),
-    flutterwaveCustomerId: z.union([z.number(), z.string()]),
-    flutterwaveAccountToken: z.string().nullable().default(null),
-    flutterwaveEffectiveDate: isoDateTimeString.nullable().default(null),
-    flutterwaveMandateConsent: flutterwaveMandateConsentSchema.nullable().default(null),
-    flutterwaveProcessorResponse: z.string().nullable().default(null),
-    flutterwaveStatus: flutterwaveStatusSchema,
-  });
+const mandateFormSchema = createMandateSchema.extend({
+  userId: z.string(),
+  tier: mandateTierSchema,
+  status: mandateStatusSchema.default("active"),
+});
 
 export const mandateDataSchema = mandateFormSchema.extend({
   created: dateSchema,
@@ -65,4 +56,6 @@ export const mandateSchema = mandateDataSchema.extend({
   id: z.string(),
 });
 
-export const updateMandateSchema = mandateSchema.partial();
+export const updateMandateSchema = mandateSchema.partial().extend({
+  status: mandateStatusSchema.optional(),
+});

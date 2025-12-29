@@ -14,7 +14,7 @@ import type {
   updateMandateCertificateDataSchema,
 } from "./schema";
 
-export type MandateCertificateRecord = z.infer<
+export type MandateCertificateData = z.infer<
   typeof mandateCertificateDataSchema
 >;
 export type MandateCertificate = z.infer<typeof mandateCertificateSchema>;
@@ -24,11 +24,9 @@ export type CreateMandateCertificateData = z.infer<
 export type UpdateMandateCertificateData = z.infer<typeof updateMandateCertificateDataSchema>;
 
 export type MandateCertificatesCollection =
-  CollectionReference<MandateCertificateRecord>;
+  CollectionReference<MandateCertificateData>;
 export type MandateCertificateDocument =
-  DocumentReference<MandateCertificateRecord>;
-
-export type MandateCertificatePayload = MandateCertificate;
+  DocumentReference<MandateCertificateData>;
 
 export interface CreateMandateCertificateVariables {
   mandate: Mandate;

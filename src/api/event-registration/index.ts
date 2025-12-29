@@ -1,174 +1,184 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  increment,
-  query,
-  updateDoc,
-  where,
-  writeBatch,
-} from "firebase/firestore";
-import { db } from "@/services/firebase";
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
+
+import { serverRecord } from "@/utils/server-record";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { createVariablesSchema } from "@/client/schema";
+import { db } from "@/services/firebase-admin";
+
 import {
   EVENT_REGISTRATIONS_COLLECTION,
   eventRegistrationSchema,
+  createEventRegistrationSchema,
   updateEventRegistrationSchema,
 } from "./schema";
 import type {
-  CreateEventRegistrationVariables,
-  UpdateEventRegistrationVariables,
-  UpstreamEventRegistrationCollection,
-  UpstreamEventRegistrationDocument,
-  DownstreamEventRegistrationCollection,
-  DownstreamEventRegistrationDocument,
-  ListEventRegistrationVariables,
   CreateEventRegistrationData,
+  EventRegistrationData,
   UpdateEventRegistrationData,
 } from "./types";
-import { record } from "@/utils/record";
+import { userSchema } from "../user/schema";
 import { EVENTS_COLLECTION, eventSchema } from "../event/schema";
-import type { DownstreamEventDocument } from "../event/types";
+import type { Event, EventData } from "../event/types";
 
-export async function create(variables: CreateEventRegistrationVariables) {
-  const { data, user } = variables;
-  const validated = eventRegistrationSchema.parse(data);
-
-  const registrationRef = collection(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION
-  ) as UpstreamEventRegistrationCollection;
-
-  const existingQuery = query(
-    registrationRef,
-    where("eventId", "==", validated.eventId),
-    where("email", "==", validated.email)
-  );
-  const existingSnapshot = await getDocs(existingQuery);
-
-  if (!existingSnapshot.empty) {
-    throw new Error("Already registered for this event");
-  }
-
-  const eventRef = doc(
-    db,
-    EVENTS_COLLECTION,
-    validated.eventId
-  ) as DownstreamEventDocument;
-  const eventSnapshot = await getDoc(eventRef);
-
-  if (!eventSnapshot.exists()) {
-    throw new Error("Event not found");
-  }
-
-  const event = eventSchema.parse({
-    id: eventSnapshot.id,
-    ...eventSnapshot.data(),
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(eventRegistrationSchema))
+  .handler(async ({ data: variables }) => {
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    );
+    const query = buildServerQuery(registrationRef, variables);
+    return getServerQueryDocs(query, eventRegistrationSchema);
   });
 
-  if (event.maxAttendees && event.currentAttendees >= event.maxAttendees) {
-    throw new Error("Event is full");
-  }
-
-  const registrationData: CreateEventRegistrationData = {
-    ...validated,
-    registered: record(user),
-    updated: record(user),
-  };
-
-  const batch = writeBatch(db);
-
-  batch.set(doc(registrationRef), registrationData);
-  batch.update(eventRef, {
-    currentAttendees: increment(1),
-    updated: record(user),
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    ).doc(id);
+    return getServerQueryDoc(registrationRef, eventRegistrationSchema);
   });
 
-  await batch.commit();
-}
+const create = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      user: userSchema,
+      data: createEventRegistrationSchema,
+    })
+  )
+  .handler(async ({ data: { user, data } }) => {
+    const validated = eventRegistrationSchema.parse(data);
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    );
 
-async function update(variables: UpdateEventRegistrationVariables) {
-  const { id, data, user } = variables;
-  const validated = updateEventRegistrationSchema.parse(data);
+    const existingSnapshot = await registrationRef
+      .where("eventId", "==", validated.eventId)
+      .where("email", "==", validated.email)
+      .get();
 
-  const registrationRef = doc(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION,
-    id
-  ) as UpstreamEventRegistrationDocument;
+    if (!existingSnapshot.empty) {
+      throw new Error("Already registered for this event");
+    }
 
-  const updateData: UpdateEventRegistrationData = {
-    ...validated,
-    updated: record(user),
-  };
+    const eventRef = serverCollection<EventData>(EVENTS_COLLECTION).doc(
+      validated.eventId
+    );
+    const eventSnapshot = await eventRef.get();
 
-  await updateDoc(registrationRef, updateData);
-}
+    if (!eventSnapshot.exists) {
+      throw new Error("Event not found");
+    }
 
-async function list(variables?: ListEventRegistrationVariables) {
-  const registrationRef = collection(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION
-  ) as DownstreamEventRegistrationCollection;
-  const registrationsQuery = buildQuery(registrationRef, variables);
-  return await getQueryDocs(registrationsQuery, eventRegistrationSchema);
-}
+    const event = eventSchema.parse({
+      id: eventSnapshot.id,
+      ...eventSnapshot.data(),
+    });
 
-async function get(id: string) {
-  const registrationRef = doc(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION,
-    id
-  ) as DownstreamEventRegistrationDocument;
-  return await getQueryDoc(registrationRef, eventRegistrationSchema);
-}
+    if (event.maxAttendees && event.currentAttendees >= event.maxAttendees) {
+      throw new Error("Event is full");
+    }
 
-async function remove(id: string) {
-  const registrationRef = doc(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION,
-    id
-  ) as UpstreamEventRegistrationDocument;
+    const registrationData: CreateEventRegistrationData = {
+      ...validated,
+      registered: serverRecord(user),
+      updated: serverRecord(user),
+    };
 
-  const data = await getQueryDoc(registrationRef, eventRegistrationSchema);
-  if (!data) throw new Error("Event registration not found");
+    const batch = db.batch();
+    const newRegistrationRef = registrationRef.doc();
 
-  const eventRef = doc(
-    db,
-    EVENTS_COLLECTION,
-    data.eventId
-  ) as UpstreamEventRegistrationDocument;
+    batch.set(newRegistrationRef, registrationData);
+    batch.update(eventRef, {
+      currentAttendees: FieldValue.increment(1),
+      updated: serverRecord(user),
+    });
 
-  const batch = writeBatch(db);
-
-  batch.delete(registrationRef);
-  batch.update(eventRef, {
-    currentAttendees: increment(-1),
+    await batch.commit();
   });
 
-  await batch.commit();
-}
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      user: userSchema,
+      data: updateEventRegistrationSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const validated = updateEventRegistrationSchema.parse(data);
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    ).doc(id);
 
-async function isUserRegisteredForEvent(eventId?: string, userId?: string) {
-  if (!eventId || !userId) {
-    throw new Error("Event ID and User ID are required");
-  }
+    const updateData: UpdateEventRegistrationData = {
+      ...validated,
+      updated: serverRecord(user),
+    };
 
-  const registrationRef = collection(
-    db,
-    EVENT_REGISTRATIONS_COLLECTION
-  ) as DownstreamEventRegistrationCollection;
+    await registrationRef.update(updateData);
+  });
 
-  const registrationsQuery = query(
-    registrationRef,
-    where("eventId", "==", eventId),
-    where("email", "==", userId)
-  );
+const remove = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: id }) => {
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    ).doc(id);
 
-  return await getDocs(registrationsQuery).then((snapshot) => !snapshot.empty);
-}
+    const snapshot = await registrationRef.get();
+    if (!snapshot.exists) throw new Error("Event registration not found");
+
+    const data = eventRegistrationSchema.parse({
+      id: snapshot.id,
+      ...snapshot.data(),
+    });
+
+    const eventRef = serverCollection<Event>(EVENTS_COLLECTION).doc(
+      data.eventId
+    );
+
+    const batch = db.batch();
+
+    batch.delete(registrationRef);
+    batch.update(eventRef, {
+      currentAttendees: FieldValue.increment(-1),
+    });
+
+    await batch.commit();
+  });
+
+const isUserRegisteredForEvent = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      eventId: z.string().optional(),
+      userId: z.string().optional(),
+    })
+  )
+  .handler(async ({ data: { eventId, userId } }) => {
+    if (!eventId || !userId) {
+      throw new Error("Event ID and User ID are required");
+    }
+
+    const registrationRef = serverCollection<EventRegistrationData>(
+      EVENT_REGISTRATIONS_COLLECTION
+    );
+
+    const snapshot = await registrationRef
+      .where("eventId", "==", eventId)
+      .where("email", "==", userId) // TODO: Fix userId to email or adjust schema
+      .get();
+
+    return !snapshot.empty;
+  });
 
 export const eventRegistration = createBuilder(
   {

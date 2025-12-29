@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { Eye, Check, X, Ban, RefreshCw, Shield } from "lucide-react";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import { formatDate } from "@/utils/date";
 import type { ApprovalStatus, User } from "@/api/user/types";
@@ -160,15 +160,17 @@ function UserManagement() {
         </Group>
       ),
     }),
-  ] as ColumnDef<User>[];
+  ];
 
-  const handleStatusChange = async (newStatus: ApprovalStatus) => {
+  const handleStatusChange = async (status: ApprovalStatus) => {
     if (!selectedUser) return;
 
     await updateUserMutation.mutateAsync({
-      user: selectedUser,
-      data: { status: newStatus },
-      id: selectedUser.id,
+      data: {
+        data: { status },
+        id: selectedUser.id,
+        user: selectedUser,
+      },
     });
   };
 
@@ -242,11 +244,13 @@ interface UserDetailsContentProps {
 function UserDetailsContent({ user }: UserDetailsContentProps) {
   const updateUserMutation = useUpdateUser();
 
-  const handleStatusChange = async (newStatus: ApprovalStatus) => {
+  const handleStatusChange = async (status: ApprovalStatus) => {
     await updateUserMutation.mutateAsync({
-      user,
-      data: { status: newStatus },
-      id: user.id,
+      data: {
+        user,
+        data: { status },
+        id: user.id,
+      },
     });
 
     modals.closeAll();

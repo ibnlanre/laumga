@@ -3,7 +3,11 @@ import { Button, Skeleton } from "@mantine/core";
 import { Share2, Clock, Calendar, Eye, Facebook, Twitter } from "lucide-react";
 import { formatDate } from "@/utils/date";
 import { notifications } from "@mantine/notifications";
-import { useGetArticleBySlug, useGetRelatedArticles } from "@/api/article/handlers";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getArticleBySlugOptions,
+  getRelatedArticlesOptions,
+} from "@/api/article/options";
 
 export const Route = createFileRoute("/_public/_default/bulletin/$article")({
   component: RouteComponent,
@@ -12,11 +16,14 @@ export const Route = createFileRoute("/_public/_default/bulletin/$article")({
 function RouteComponent() {
   const { article: articleSlug } = Route.useParams();
 
-  const { data: article, isLoading } = useGetArticleBySlug(articleSlug);
-  const { data: relatedArticles = [] } = useGetRelatedArticles(article?.id);
+  const { data: article, isLoading } = useQuery(
+    getArticleBySlugOptions(articleSlug)
+  );
+  const { data: relatedArticles = [] } = useQuery(
+    getRelatedArticlesOptions(article?.id)
+  );
 
   const handleShare = async () => {
-
     const url = window.location.href;
     const title = article?.title ?? "";
 

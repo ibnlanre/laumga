@@ -1,44 +1,36 @@
 import { createServerFn } from "@tanstack/react-start";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { useAppSession } from "./hooks";
 import { auth } from "@/services/firebase-admin";
 import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
 
 const loginUser = createServerFn({ method: "POST" })
-  .inputValidator(zodValidator(z.object({ idToken: z.string() })))
+  .inputValidator(z.object({ idToken: z.string(), user: z.any() }))
   .handler(async ({ data }) => {
-    const { idToken } = data;
+    const { idToken, user } = data;
     const session = await useAppSession();
 
     try {
-      const decodedToken = await auth.verifyIdToken(idToken);
-
-      await session.update({
-        userId: decodedToken.uid,
-        email: decodedToken.email || "",
-      });
+      await auth.verifyIdToken(idToken);
+      await session.update({ ...user, isAuthenticated: true });
     } catch (error) {
+      console.error("[Server] Error in loginUser:", error);
       throw new Error("Invalid ID token");
     }
   });
 
-const logoutUser = createServerFn({ method: "POST" }).handler(
-  async () => {
-    const session = await useAppSession();
-    await session.clear();
-  }
-);
+const logoutUser = createServerFn({ method: "POST" }).handler(async () => {
+  const session = await useAppSession();
+  await session.clear();
+});
 
-const getSession = createServerFn({ method: "GET" }).handler(
-  async () => {
-    const session = await useAppSession();
-    return session.data;
-  }
-);
+const getSession = createServerFn({ method: "GET" }).handler(async () => {
+  const session = await useAppSession();
+  return session.data;
+});
 
 export const firebase = createBuilder({
   loginUser,
   logoutUser,
   getSession,
-})
+});

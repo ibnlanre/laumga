@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_auth/mandate/_layout/")({
 });
 
 function RouteComponent() {
-  const { mandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+  const { activeMandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
 
   const heroHighlights = [
     {
@@ -85,7 +85,7 @@ function RouteComponent() {
       caption: "Keep a student on campus.",
       icon: Flower2,
       accent: "from-sage-green/50 via-mist-green/40 to-transparent",
-      search: { tier: "supporter", amount: 5000 },
+      search: { amount: 5000 },
       perks: ["Quarterly impact brief", "Community voting rights"],
     },
     {
@@ -94,7 +94,7 @@ function RouteComponent() {
       caption: "Fund welfare emergencies.",
       icon: HardHat,
       accent: "from-vibrant-lime/40 via-white to-transparent",
-      search: { tier: "builder", amount: 10000 },
+      search: { amount: 10000 },
       perks: ["Monthly field stories", "Priority event invites"],
     },
     {
@@ -103,7 +103,7 @@ function RouteComponent() {
       caption: "Underwrite an entire initiative.",
       icon: Shield,
       accent: "from-deep-forest/40 via-institutional-green/30 to-transparent",
-      search: { tier: "guardian", amount: 25000 },
+      search: { amount: 25000 },
       perks: ["Executive briefings", "Seat on mandate council"],
     },
   ] as const;
@@ -171,10 +171,10 @@ function RouteComponent() {
               relief, and community-led ventures with disciplined transparency.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              {!mandate && (
+              {!activeMandate && (
                 <Link
                   to="/mandate/pledge"
-                  search={{ tier: "supporter", amount: 5000 }}
+                  search={{ amount: 5000 }}
                   className="rounded-full bg-vibrant-lime px-6 py-3 text-sm font-semibold uppercase tracking-wide text-deep-forest transition hover:bg-white"
                 >
                   Start a Mandate

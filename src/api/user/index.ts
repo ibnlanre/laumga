@@ -1,3 +1,5 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
 import {
   browserLocalPersistence,
@@ -8,97 +10,113 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updateCurrentUser,
   type AuthProvider,
 } from "firebase/auth";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { auth, db } from "@/services/firebase";
+import { auth } from "@/services/firebase";
 
-import { buildQuery, getQueryDoc, getQueryDocs } from "@/client/core-query";
+import { createVariablesSchema } from "@/client/schema";
 
 import {
   USERS_COLLECTION,
   userSchema,
-  createUserSchema,
   updateUserSchema,
+  userDataSchema,
+  createFullName,
 } from "./schema";
 import type {
+  User,
   ConfirmPasswordResetVariables,
-  CreateUserData,
   CreateUserVariables,
-  DownstreamUserCollection,
-  DownstreamUserDocument,
-  ListUserVariables,
   LoginVariables,
   ResetPasswordVariables,
-  UpdateUserVariables,
-  UpstreamUserCollection,
-  UpstreamUserDocument,
 } from "./types";
-import { record } from "@/utils/record";
 import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
 import { tryCatch } from "@/utils/try-catch";
 import { firebase } from "@/api/firebase";
+import {
+  buildServerQuery,
+  getServerQueryDoc,
+  getServerQueryDocs,
+  serverCollection,
+} from "@/client/core-query/server";
+import { serverRecord } from "@/utils/server-record";
 
-async function list(variables?: ListUserVariables) {
-  const result = await tryCatch(async () => {
-    const usersRef = collection(
-      db,
-      USERS_COLLECTION
-    ) as DownstreamUserCollection;
-
-    const usersQuery = buildQuery(usersRef, variables);
-    return await getQueryDocs(usersQuery, userSchema);
+const list = createServerFn({ method: "GET" })
+  .inputValidator(createVariablesSchema(userSchema))
+  .handler(async ({ data: variables }) => {
+    const usersRef = serverCollection<User>(USERS_COLLECTION);
+    const query = buildServerQuery(usersRef, variables);
+    return getServerQueryDocs(query, userSchema);
   });
 
-  if (!result.success) {
-    const message = getFirebaseErrorMessage(
-      result.error,
-      "Couldn't load users. Please try again."
-    );
-    throw new Error(message);
-  }
-
-  return result.data;
-}
-
-const get = async (userId: string | null) => {
-  if (!userId) return null;
-
-  const result = await tryCatch(async () => {
-    const userRef = doc(db, USERS_COLLECTION, userId) as DownstreamUserDocument;
-    return await getQueryDoc(userRef, userSchema);
+const get = createServerFn({ method: "GET" })
+  .inputValidator(z.string())
+  .handler(async ({ data: userId }) => {
+    const docRef = serverCollection<User>(USERS_COLLECTION).doc(userId);
+    return getServerQueryDoc(docRef, userSchema);
   });
 
-  if (!result.success) {
-    const message = getFirebaseErrorMessage(
-      result.error,
-      "Couldn't load that user. Please try again."
-    );
-    throw new Error(message);
-  }
+const update = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: updateUserSchema,
+      user: userSchema,
+    })
+  )
+  .handler(async ({ data: { id, data, user } }) => {
+    const docRef = serverCollection<User>(USERS_COLLECTION).doc(id);
+    const updateData = { ...data, updated: serverRecord(user) };
+    await docRef.update(updateData);
+  });
 
-  return result.data;
-};
+const checkEmail = createServerFn({ method: "POST" })
+  .inputValidator(z.string())
+  .handler(async ({ data: email }) => {
+    const usersRef = serverCollection<User>(USERS_COLLECTION);
+    const snapshot = await usersRef.where("email", "==", email).get();
+    return !snapshot.empty;
+  });
+
+const createUserDoc = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      data: userDataSchema.transform(createFullName),
+    })
+  )
+  .handler(async ({ data: { id, data } }) => {
+    const userRef = serverCollection<User>(USERS_COLLECTION).doc(id);
+    const userData = await userRef.get();
+
+    if (userData.exists) {
+      throw new Error("User already exists");
+    }
+
+    const user = { id: userRef.id, ...data };
+    const payload = { ...user, created: serverRecord(user) };
+
+    if (auth.currentUser) {
+      updateCurrentUser(auth, {
+        ...auth.currentUser,
+        displayName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        photoURL: data.photoUrl,
+      });
+    }
+
+    await userRef.set(payload);
+  });
 
 async function create(variables: CreateUserVariables) {
   const { data } = variables;
   const { password, confirmPassword: _, ...profile } = data;
 
   const result = await tryCatch(async () => {
-    const usersRef = collection(db, USERS_COLLECTION) as UpstreamUserCollection;
-    const duplicateQuery = query(usersRef, where("email", "==", profile.email));
-    const duplicateSnapshot = await getDocs(duplicateQuery);
+    const emailExists = await checkEmail({ data: profile.email });
 
-    if (!duplicateSnapshot.empty) {
+    if (emailExists) {
       throw new Error("Email is already registered. Please sign in instead.");
     }
 
@@ -110,23 +128,7 @@ async function create(variables: CreateUserVariables) {
     );
 
     const userId = credential.user.uid;
-    const userRef = doc(db, USERS_COLLECTION, userId) as UpstreamUserDocument;
-    const userData = await getDoc(userRef);
-
-    if (userData.exists()) {
-      throw new Error("User already exists");
-    }
-
-    const validated = createUserSchema.parse(profile);
-    const user = { id: userRef.id, ...validated };
-
-    const payload: CreateUserData = {
-      ...validated,
-      created: record(user),
-      updated: record(user),
-    };
-
-    await setDoc(userRef, payload);
+    await createUserDoc({ data: { id: userId, data: profile } });
   });
 
   if (!result.success) {
@@ -140,43 +142,22 @@ async function create(variables: CreateUserVariables) {
   }
 }
 
-async function update(variables: UpdateUserVariables) {
-  const { id, data, user } = variables;
-  const result = await tryCatch(async () => {
-    const userRef = doc(db, USERS_COLLECTION, id) as UpstreamUserDocument;
-    const validated = updateUserSchema.parse(data);
-
-    const updateData = {
-      ...validated,
-      updated: record(user),
-    };
-
-    await updateDoc(userRef, updateData);
-  });
-
-  if (!result.success) {
-    const message = getFirebaseErrorMessage(
-      result.error,
-      "Couldn't update the user. Please try again."
-    );
-    throw new Error(message);
-  }
-}
-
 async function login(variables: LoginVariables) {
   const { email, password, rememberMe } = variables;
 
   const result = await tryCatch(async () => {
     if (rememberMe) await setPersistence(auth, browserLocalPersistence);
+
     const credential = await signInWithEmailAndPassword(auth, email, password);
-
     const idToken = await credential.user.getIdToken();
-    await firebase.$use.loginUser({ data: { idToken } });
+    const user = credential.user.toJSON();
 
-    return credential.user;
+    await firebase.$use.loginUser({ data: { idToken, user } });
+    return user;
   });
 
   if (!result.success) {
+    console.error("[Client] Login failed:", result.error);
     const message = getFirebaseErrorMessage(
       result.error,
       "Couldn't sign you in. Please try again."
@@ -190,12 +171,13 @@ async function login(variables: LoginVariables) {
 async function loginWithProvider(provider: AuthProvider) {
   const result = await tryCatch(async () => {
     await setPersistence(auth, browserLocalPersistence);
+
     const credential = await signInWithPopup(auth, provider);
-
     const idToken = await credential.user.getIdToken();
-    await firebase.$use.loginUser({ data: { idToken } });
+    const user = credential.user.toJSON();
 
-    return credential.user;
+    await firebase.$use.loginUser({ data: { idToken, user } });
+    return user;
   });
 
   if (!result.success) {

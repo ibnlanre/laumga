@@ -18,7 +18,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminRolesRouteImport } from './routes/admin/roles'
-import { Route as AdminPaymentPartnersRouteImport } from './routes/admin/payment-partners'
 import { Route as AdminMandatesRouteImport } from './routes/admin/mandates'
 import { Route as AdminGalleryRouteImport } from './routes/admin/gallery'
 import { Route as AdminEventsRouteImport } from './routes/admin/events'
@@ -27,11 +26,13 @@ import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
 import { Route as AdminAlertsRouteImport } from './routes/admin/alerts'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
+import { Route as PublicPledgeRouteImport } from './routes/_public/pledge'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
 import { Route as AuthAlumniRouteImport } from './routes/_auth/alumni'
 import { Route as PublicRegisterIndexRouteImport } from './routes/_public/register/index'
+import { Route as PublicDefaultUserGuideRouteImport } from './routes/_public/_default/user-guide'
 import { Route as PublicDefaultNewsletterRouteImport } from './routes/_public/_default/newsletter'
 import { Route as PublicDefaultMembershipRouteImport } from './routes/_public/_default/membership'
 import { Route as PublicDefaultEventsRouteImport } from './routes/_public/_default/events'
@@ -44,7 +45,6 @@ import { Route as PublicDefaultEventsEventIdRouteImport } from './routes/_public
 import { Route as PublicDefaultBulletinArticleRouteImport } from './routes/_public/_default/bulletin/$article'
 import { Route as AuthMandateLayoutPledgeRouteImport } from './routes/_auth/mandate/_layout.pledge'
 import { Route as AuthMandateLayoutDashboardRouteImport } from './routes/_auth/mandate/_layout.dashboard'
-import { Route as AuthMandateLayoutCustomerRouteImport } from './routes/_auth/mandate/_layout.customer'
 import { Route as AuthMandateLayoutCertificateRouteImport } from './routes/_auth/mandate/_layout.certificate'
 
 const AuthMandateRouteImport = createFileRoute('/_auth/mandate')()
@@ -87,11 +87,6 @@ const AdminRolesRoute = AdminRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminPaymentPartnersRoute = AdminPaymentPartnersRouteImport.update({
-  id: '/payment-partners',
-  path: '/payment-partners',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminMandatesRoute = AdminMandatesRouteImport.update({
   id: '/mandates',
   path: '/mandates',
@@ -132,6 +127,11 @@ const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicPledgeRoute = PublicPledgeRouteImport.update({
+  id: '/pledge',
+  path: '/pledge',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -155,6 +155,11 @@ const AuthAlumniRoute = AuthAlumniRouteImport.update({
 const PublicRegisterIndexRoute = PublicRegisterIndexRouteImport.update({
   id: '/register/',
   path: '/register/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicDefaultUserGuideRoute = PublicDefaultUserGuideRouteImport.update({
+  id: '/_default/user-guide',
+  path: '/user-guide',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicDefaultNewsletterRoute = PublicDefaultNewsletterRouteImport.update({
@@ -220,12 +225,6 @@ const AuthMandateLayoutDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AuthMandateLayoutRoute,
   } as any)
-const AuthMandateLayoutCustomerRoute =
-  AuthMandateLayoutCustomerRouteImport.update({
-    id: '/customer',
-    path: '/customer',
-    getParentRoute: () => AuthMandateLayoutRoute,
-  } as any)
 const AuthMandateLayoutCertificateRoute =
   AuthMandateLayoutCertificateRouteImport.update({
     id: '/certificate',
@@ -239,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/pledge': typeof PublicPledgeRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -247,7 +247,6 @@ export interface FileRoutesByFullPath {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
@@ -258,9 +257,9 @@ export interface FileRoutesByFullPath {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
+  '/user-guide': typeof PublicDefaultUserGuideRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/mandate/customer': typeof AuthMandateLayoutCustomerRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/mandate/pledge': typeof AuthMandateLayoutPledgeRoute
   '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -273,6 +272,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/pledge': typeof PublicPledgeRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -281,7 +281,6 @@ export interface FileRoutesByTo {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/': typeof PublicIndexRoute
@@ -292,9 +291,9 @@ export interface FileRoutesByTo {
   '/events': typeof PublicDefaultEventsRouteWithChildren
   '/membership': typeof PublicDefaultMembershipRoute
   '/newsletter': typeof PublicDefaultNewsletterRoute
+  '/user-guide': typeof PublicDefaultUserGuideRoute
   '/register': typeof PublicRegisterIndexRoute
   '/mandate/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/mandate/customer': typeof AuthMandateLayoutCustomerRoute
   '/mandate/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/mandate/pledge': typeof AuthMandateLayoutPledgeRoute
   '/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -310,6 +309,7 @@ export interface FileRoutesById {
   '/_auth/gallery': typeof AuthGalleryRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
+  '/_public/pledge': typeof PublicPledgeRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -318,7 +318,6 @@ export interface FileRoutesById {
   '/admin/events': typeof AdminEventsRoute
   '/admin/gallery': typeof AdminGalleryRoute
   '/admin/mandates': typeof AdminMandatesRoute
-  '/admin/payment-partners': typeof AdminPaymentPartnersRoute
   '/admin/roles': typeof AdminRolesRoute
   '/admin/users': typeof AdminUsersRoute
   '/_public/': typeof PublicIndexRoute
@@ -330,9 +329,9 @@ export interface FileRoutesById {
   '/_public/_default/events': typeof PublicDefaultEventsRouteWithChildren
   '/_public/_default/membership': typeof PublicDefaultMembershipRoute
   '/_public/_default/newsletter': typeof PublicDefaultNewsletterRoute
+  '/_public/_default/user-guide': typeof PublicDefaultUserGuideRoute
   '/_public/register/': typeof PublicRegisterIndexRoute
   '/_auth/mandate/_layout/certificate': typeof AuthMandateLayoutCertificateRoute
-  '/_auth/mandate/_layout/customer': typeof AuthMandateLayoutCustomerRoute
   '/_auth/mandate/_layout/dashboard': typeof AuthMandateLayoutDashboardRoute
   '/_auth/mandate/_layout/pledge': typeof AuthMandateLayoutPledgeRoute
   '/_public/_default/bulletin/$article': typeof PublicDefaultBulletinArticleRoute
@@ -348,6 +347,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/pledge'
     | '/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -356,7 +356,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/'
@@ -367,9 +366,9 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
+    | '/user-guide'
     | '/register'
     | '/mandate/certificate'
-    | '/mandate/customer'
     | '/mandate/dashboard'
     | '/mandate/pledge'
     | '/bulletin/$article'
@@ -382,6 +381,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/pledge'
     | '/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -390,7 +390,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/'
@@ -401,9 +400,9 @@ export interface FileRouteTypes {
     | '/events'
     | '/membership'
     | '/newsletter'
+    | '/user-guide'
     | '/register'
     | '/mandate/certificate'
-    | '/mandate/customer'
     | '/mandate/dashboard'
     | '/mandate/pledge'
     | '/bulletin/$article'
@@ -418,6 +417,7 @@ export interface FileRouteTypes {
     | '/_auth/gallery'
     | '/_public/forgot-password'
     | '/_public/login'
+    | '/_public/pledge'
     | '/_public/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -426,7 +426,6 @@ export interface FileRouteTypes {
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/mandates'
-    | '/admin/payment-partners'
     | '/admin/roles'
     | '/admin/users'
     | '/_public/'
@@ -438,9 +437,9 @@ export interface FileRouteTypes {
     | '/_public/_default/events'
     | '/_public/_default/membership'
     | '/_public/_default/newsletter'
+    | '/_public/_default/user-guide'
     | '/_public/register/'
     | '/_auth/mandate/_layout/certificate'
-    | '/_auth/mandate/_layout/customer'
     | '/_auth/mandate/_layout/dashboard'
     | '/_auth/mandate/_layout/pledge'
     | '/_public/_default/bulletin/$article'
@@ -513,13 +512,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRolesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/payment-partners': {
-      id: '/admin/payment-partners'
-      path: '/payment-partners'
-      fullPath: '/admin/payment-partners'
-      preLoaderRoute: typeof AdminPaymentPartnersRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/mandates': {
       id: '/admin/mandates'
       path: '/mandates'
@@ -576,6 +568,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicResetPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/pledge': {
+      id: '/_public/pledge'
+      path: '/pledge'
+      fullPath: '/pledge'
+      preLoaderRoute: typeof PublicPledgeRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/login': {
       id: '/_public/login'
       path: '/login'
@@ -609,6 +608,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof PublicRegisterIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/_default/user-guide': {
+      id: '/_public/_default/user-guide'
+      path: '/user-guide'
+      fullPath: '/user-guide'
+      preLoaderRoute: typeof PublicDefaultUserGuideRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/_default/newsletter': {
@@ -695,13 +701,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthMandateLayoutDashboardRouteImport
       parentRoute: typeof AuthMandateLayoutRoute
     }
-    '/_auth/mandate/_layout/customer': {
-      id: '/_auth/mandate/_layout/customer'
-      path: '/customer'
-      fullPath: '/mandate/customer'
-      preLoaderRoute: typeof AuthMandateLayoutCustomerRouteImport
-      parentRoute: typeof AuthMandateLayoutRoute
-    }
     '/_auth/mandate/_layout/certificate': {
       id: '/_auth/mandate/_layout/certificate'
       path: '/certificate'
@@ -714,7 +713,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthMandateLayoutRouteChildren {
   AuthMandateLayoutCertificateRoute: typeof AuthMandateLayoutCertificateRoute
-  AuthMandateLayoutCustomerRoute: typeof AuthMandateLayoutCustomerRoute
   AuthMandateLayoutDashboardRoute: typeof AuthMandateLayoutDashboardRoute
   AuthMandateLayoutPledgeRoute: typeof AuthMandateLayoutPledgeRoute
   AuthMandateLayoutIndexRoute: typeof AuthMandateLayoutIndexRoute
@@ -722,7 +720,6 @@ interface AuthMandateLayoutRouteChildren {
 
 const AuthMandateLayoutRouteChildren: AuthMandateLayoutRouteChildren = {
   AuthMandateLayoutCertificateRoute: AuthMandateLayoutCertificateRoute,
-  AuthMandateLayoutCustomerRoute: AuthMandateLayoutCustomerRoute,
   AuthMandateLayoutDashboardRoute: AuthMandateLayoutDashboardRoute,
   AuthMandateLayoutPledgeRoute: AuthMandateLayoutPledgeRoute,
   AuthMandateLayoutIndexRoute: AuthMandateLayoutIndexRoute,
@@ -771,6 +768,7 @@ const PublicDefaultEventsRouteWithChildren =
 interface PublicRouteChildren {
   PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
+  PublicPledgeRoute: typeof PublicPledgeRoute
   PublicResetPasswordRoute: typeof PublicResetPasswordRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicDefaultAboutUsRoute: typeof PublicDefaultAboutUsRoute
@@ -778,6 +776,7 @@ interface PublicRouteChildren {
   PublicDefaultEventsRoute: typeof PublicDefaultEventsRouteWithChildren
   PublicDefaultMembershipRoute: typeof PublicDefaultMembershipRoute
   PublicDefaultNewsletterRoute: typeof PublicDefaultNewsletterRoute
+  PublicDefaultUserGuideRoute: typeof PublicDefaultUserGuideRoute
   PublicRegisterIndexRoute: typeof PublicRegisterIndexRoute
   PublicDefaultBulletinArticleRoute: typeof PublicDefaultBulletinArticleRoute
   PublicDefaultBulletinIndexRoute: typeof PublicDefaultBulletinIndexRoute
@@ -786,6 +785,7 @@ interface PublicRouteChildren {
 const PublicRouteChildren: PublicRouteChildren = {
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
+  PublicPledgeRoute: PublicPledgeRoute,
   PublicResetPasswordRoute: PublicResetPasswordRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicDefaultAboutUsRoute: PublicDefaultAboutUsRoute,
@@ -793,6 +793,7 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicDefaultEventsRoute: PublicDefaultEventsRouteWithChildren,
   PublicDefaultMembershipRoute: PublicDefaultMembershipRoute,
   PublicDefaultNewsletterRoute: PublicDefaultNewsletterRoute,
+  PublicDefaultUserGuideRoute: PublicDefaultUserGuideRoute,
   PublicRegisterIndexRoute: PublicRegisterIndexRoute,
   PublicDefaultBulletinArticleRoute: PublicDefaultBulletinArticleRoute,
   PublicDefaultBulletinIndexRoute: PublicDefaultBulletinIndexRoute,
@@ -809,7 +810,6 @@ interface AdminRouteChildren {
   AdminEventsRoute: typeof AdminEventsRoute
   AdminGalleryRoute: typeof AdminGalleryRoute
   AdminMandatesRoute: typeof AdminMandatesRoute
-  AdminPaymentPartnersRoute: typeof AdminPaymentPartnersRoute
   AdminRolesRoute: typeof AdminRolesRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -823,7 +823,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEventsRoute: AdminEventsRoute,
   AdminGalleryRoute: AdminGalleryRoute,
   AdminMandatesRoute: AdminMandatesRoute,
-  AdminPaymentPartnersRoute: AdminPaymentPartnersRoute,
   AdminRolesRoute: AdminRolesRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

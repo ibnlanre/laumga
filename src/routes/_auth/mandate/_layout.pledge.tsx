@@ -1,25 +1,122 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod/v4";
-import { zodValidator } from "@tanstack/zod-adapter";
 
-import { MandatePledgeForm } from "@/layouts/mandate/pledge-form";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { Stack } from "@mantine/core";
+import { queryClient } from "@/routing/query-client";
+import { flutterwave } from "@/api/flutterwave";
+import type {
+  FlutterwavePaymentPlan,
+  FlutterwavePaymentPlanListResponse,
+  FlutterwaveTransactionVerifyResponse,
+} from "@/api/flutterwave/types";
+import type { GetNextPageParamFunction } from "@tanstack/react-query";
+import { PaymentPlanForm } from "@/layouts/mandate/payment-plan-form";
+import { useAuth } from "@/contexts/use-auth";
+import { useLayoutEffect } from "@tanstack/react-router";
+import { useCreateMandate } from "@/api/mandate/hooks";
 
-const pledgeSearchSchema = z
+const mandateSearchSchema = z
   .object({
-    tier: z.enum(["supporter", "builder", "guardian", "custom"]),
     amount: z.number(),
+    status: z.string(),
+    transaction_id: z.number(),
+    tx_ref: z.string(),
   })
   .partial();
 
+interface LoaderData {
+  paymentPlans: FlutterwavePaymentPlan[];
+  verification: FlutterwaveTransactionVerifyResponse | null;
+}
+
+const getNextPageParam: GetNextPageParamFunction<
+  number,
+  FlutterwavePaymentPlanListResponse
+> = (lastPage, allPages) => {
+  const { total_pages = 1, current_page = allPages.length } = {
+    ...lastPage.meta?.page_info,
+  };
+
+  if (current_page < total_pages) return allPages.length + 1;
+};
+
 export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
-  validateSearch: zodValidator(pledgeSearchSchema),
+  validateSearch: mandateSearchSchema,
+  loaderDeps: ({ search }) => ({
+    txRef: search.tx_ref,
+    subscriptionId: search.transaction_id,
+    status: search.status,
+  }),
+  loader: async ({ context, deps }): Promise<LoaderData> => {
+    const { isAuthenticated } = context;
+
+    if (!isAuthenticated) return { paymentPlans: [], verification: null };
+
+    const planResponse = await queryClient.ensureInfiniteQueryData({
+      queryKey: flutterwave.paymentPlan.list.$get({ status: "active" }),
+      initialPageParam: 1,
+      queryFn: () =>
+        flutterwave.$use.paymentPlan.list({
+          data: { status: "active" },
+        }),
+      getNextPageParam,
+      staleTime: Infinity,
+    });
+
+    const paymentPlans = planResponse.pages.flatMap(({ data }) => data);
+    if (!deps.txRef) return { paymentPlans, verification: null };
+
+    const verification = await flutterwave.$use.transaction.verify({
+      data: deps.txRef,
+    });
+
+    if (
+      verification.data.status !== deps.status ||
+      verification.data.tx_ref !== deps.txRef ||
+      verification.data.id !== deps.subscriptionId
+    ) {
+      return { paymentPlans, verification: null };
+    }
+
+    return { paymentPlans, verification };
+  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { tier, amount } = Route.useSearch();
+  const { user } = useAuth();
+  const { amount } = Route.useSearch();
+  const { paymentPlans, verification } = Route.useLoaderData();
+
+  const createMandate = useCreateMandate();
+  const navigate = Route.useNavigate();
+
+  useLayoutEffect(() => {
+    if (!user || !verification) return;
+
+    const { amount, meta, id } = verification.data;
+
+    createMandate.mutate(
+      {
+        data: {
+          user,
+          data: {
+            amount,
+            customerEmail: user.email,
+            frequency: meta.cadence,
+            paymentPlanId: meta.paymentPlanId,
+            subscriptionId: id,
+          },
+        },
+      },
+      {
+        onSettled() {
+          navigate({ to: "/mandate/pledge" });
+        },
+      }
+    );
+  }, [verification, user]);
 
   return (
     <div className="relative flex-1 w-full bg-linear-to-b spacey-10 from-mist-green via-white to-sage-green/40 text-deep-forest pt-6 sm:pt-8 pb-10 sm:pb-12">
@@ -34,7 +131,7 @@ function RouteComponent() {
 
       <Stack gap={40} className="relative">
         <MandateHeader />
-        <MandatePledgeForm tier={tier} amount={amount} />
+        <PaymentPlanForm amount={amount} paymentPlans={paymentPlans} />
       </Stack>
     </div>
   );

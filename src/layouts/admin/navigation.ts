@@ -7,7 +7,6 @@ import {
   Images,
   LayoutGrid,
   LineChart,
-  Link2,
   Newspaper,
   ShieldCheck,
   Users,
@@ -83,13 +82,6 @@ export const adminNavGroups: AdminNavGroup[] = [
         icon: Wallet,
         match: (pathname, search) =>
           pathname === "/admin/mandates" && search?.view === "transactions",
-      },
-      {
-        label: "Payment Partners",
-        to: "/admin/payment-partners",
-        description: "Mono accounts",
-        icon: Link2,
-        match: matchPath("/admin/payment-partners"),
       },
     ],
   },

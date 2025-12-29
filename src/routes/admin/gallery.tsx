@@ -1,85 +1,100 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { createColumnHelper } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Card,
-  Title,
-  Text,
+  ActionIcon,
   Badge,
   Button,
+  Card,
   Group,
-  Stack,
-  TextInput,
-  Select,
-  SimpleGrid,
-  ActionIcon,
-  Tooltip,
-  Modal,
   Image,
-  Grid,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
 } from "@mantine/core";
-
-import { Search, Eye, Check, X, Trash2, ImageIcon } from "lucide-react";
-import { formatDate } from "@/utils/date";
+import { useForm } from "@mantine/form";
+import { modals } from "@mantine/modals";
+import { zod4Resolver } from "mantine-form-zod-resolver";
+import { Eye, Search, Star, Trash2, Upload } from "lucide-react";
+import { z } from "zod";
 
 import { PageLoader } from "@/components/page-loader";
+import { DataTable } from "@/components/data-table";
+import { ImageUpload } from "@/components/image-upload";
 import { useAuth } from "@/contexts/use-auth";
-import type { Media } from "@/api/media/types";
-import { MEDIA_CATEGORIES } from "@/api/media/schema";
 import { listMediaOptions } from "@/api/media/options";
-import { useQuery } from "@tanstack/react-query";
-import { useRemoveMedia, useUpdateMedia } from "@/api/media/hooks";
+import {
+  useCreateMedia,
+  useRemoveMedia,
+  useUpdateMedia,
+} from "@/api/media/hooks";
+import type { CreateMediaData, Media } from "@/api/media/types";
+import { MEDIA_CATEGORIES, mediaFormSchema } from "@/api/media/schema";
+import { upload } from "@/api/upload";
+import { formatDate } from "@/utils/date";
+import { record } from "@/utils/record";
+import type { User } from "@/api/user/types";
 
-const STATUS_OPTIONS = [
+const CREATE_MEDIA_MODAL_ID = "create-media-modal";
+const MEDIA_DETAILS_MODAL_PREFIX = "media-details-modal";
+
+const MEDIA_STATUS_OPTIONS = [
   { value: "all", label: "All Media" },
   { value: "featured", label: "Featured" },
   { value: "standard", label: "Not Featured" },
-] as const;
+];
 
 const CATEGORY_OPTIONS = MEDIA_CATEGORIES.map((category) => ({
   value: category,
-  label: category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+  label: formatCategoryLabel(category),
 }));
 
-type StatusFilter = (typeof STATUS_OPTIONS)[number]["value"];
+const gallerySearchSchema = z.object({
+  status: z.enum(["all", "featured", "standard"]).optional(),
+});
+
+type MediaFormValues = z.infer<typeof mediaFormSchema>;
+type StatusFilter = (typeof MEDIA_STATUS_OPTIONS)[number]["value"];
 
 const isValidStatusFilter = (value: unknown): value is StatusFilter =>
-  STATUS_OPTIONS.some((option) => option.value === value);
+  typeof value === "string" &&
+  MEDIA_STATUS_OPTIONS.some((option) => option.value === value);
 
 export const Route = createFileRoute("/admin/gallery")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    status: isValidStatusFilter(search.status) ? search.status : undefined,
-  }),
+  validateSearch: zodValidator(gallerySearchSchema),
   component: GalleryAdmin,
 });
 
 function GalleryAdmin() {
+  const { user } = useAuth();
   const { status } = Route.useSearch();
-  const [searchQuery, setSearchQuery] = useState("");
   const initialStatus: StatusFilter =
     status && isValidStatusFilter(status) ? status : "all";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialStatus);
-  const [selectedItem, setSelectedItem] = useState<Media | null>(null);
-  const [detailsOpened, setDetailsOpened] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { user } = useAuth();
-  const actor = user;
+  const { data: mediaItems = [], isLoading } = useQuery(listMediaOptions());
+  const createMedia = useCreateMedia();
+  const updateMedia = useUpdateMedia();
+  const removeMedia = useRemoveMedia();
 
-  const { data: items = [], isLoading } = useQuery(listMediaOptions());
-  const { mutateAsync: updateMedia, isPending: isUpdatingMedia } =
-    useUpdateMedia();
-  const { mutateAsync: removeMedia, isPending: isRemovingMedia } =
-    useRemoveMedia();
+  const columnHelper = createColumnHelper<Media>();
 
-  const filteredItems = useMemo(() => {
+  const filteredMedia = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return items.filter((item) => {
+    return mediaItems.filter((item) => {
       const matchesSearch =
         !normalizedQuery ||
-        [item.fileName, item.caption ?? "", item.libraryId ?? ""].some(
-          (field) => field.toLowerCase().includes(normalizedQuery)
-        );
+        [item.fileName, item.caption ?? "", item.libraryId ?? ""]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(normalizedQuery));
 
       const matchesStatus =
         statusFilter === "all"
@@ -90,50 +105,224 @@ function GalleryAdmin() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [items, searchQuery, statusFilter]);
+  }, [mediaItems, searchQuery, statusFilter]);
 
   const featuredCount = useMemo(
-    () => items.filter((item) => item.isFeatured).length,
-    [items]
+    () => mediaItems.filter((item) => item.isFeatured).length,
+    [mediaItems]
   );
 
-  const viewItemDetails = (item: Media) => {
-    setSelectedItem(item);
-    setSelectedCategory(item.category ?? null);
-    setDetailsOpened(true);
+  const closeModal = (id?: string) => {
+    if (id) {
+      modals.close(id);
+    }
   };
 
-  const handleStatusToggle = async (itemId: string, makeFeatured: boolean) => {
-    if (!actor) return;
+  const handleCreateMedia = async (values: MediaFormValues) => {
+    if (!user) return;
 
-    await updateMedia({
-      id: itemId,
-      data: { isFeatured: makeFeatured },
-      user: actor,
+    await createMedia.mutateAsync({
+      data: {
+        user,
+        data: buildCreatePayload(values, user),
+      },
     });
 
-    setDetailsOpened(false);
+    closeModal(CREATE_MEDIA_MODAL_ID);
   };
 
-  const handleCategoryChange = async (category: string | null) => {
-    if (!actor || !selectedItem) return;
+  const handleToggleFeatured = async (media: Media, modalId?: string) => {
+    if (!user) return;
 
-    await updateMedia({
-      id: selectedItem.id,
-      data: { category: category as (typeof MEDIA_CATEGORIES)[number] },
-      user: actor,
+    await updateMedia.mutateAsync({
+      data: {
+        id: media.id,
+        data: { isFeatured: !media.isFeatured },
+        user,
+      },
     });
 
-    setSelectedCategory(category);
+    closeModal(modalId);
   };
 
-  const handleDelete = async (itemId: string) => {
-    if (!confirm("Are you sure you want to delete this photo?") || !actor)
-      return;
+  const handleCategoryChange = async (
+    media: Media,
+    category: Media["category"] | null
+  ) => {
+    if (!user) return;
 
-    await removeMedia(itemId);
-    setDetailsOpened(false);
+    await updateMedia.mutateAsync({
+      data: {
+        id: media.id,
+        data: { category },
+        user,
+      },
+    });
   };
+
+  const handleDelete = async (media: Media, modalId?: string) => {
+    await removeMedia.mutateAsync({ data: media.id });
+    closeModal(modalId);
+  };
+
+  const confirmDeleteMedia = (media: Media, modalId?: string) => {
+    modals.openConfirmModal({
+      title: `Delete ${media.fileName}?`,
+      children: (
+        <Text size="sm">
+          This photo will be removed from the gallery and cannot be restored.
+        </Text>
+      ),
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red", loading: removeMedia.isPending },
+      onConfirm: () => handleDelete(media, modalId),
+    });
+  };
+
+  const openCreateModal = () => {
+    modals.open({
+      modalId: CREATE_MEDIA_MODAL_ID,
+      title: <Title order={3}>Upload photo</Title>,
+      radius: "lg",
+      size: "lg",
+      children: (
+        <MediaForm
+          submitting={createMedia.isPending}
+          onSubmit={handleCreateMedia}
+          onCancel={() => closeModal(CREATE_MEDIA_MODAL_ID)}
+        />
+      ),
+    });
+  };
+
+  const openMediaDetails = (media: Media) => {
+    const modalId = `${MEDIA_DETAILS_MODAL_PREFIX}-${media.id}`;
+
+    modals.open({
+      modalId,
+      title: <Title order={3}>{media.caption || media.fileName}</Title>,
+      radius: "lg",
+      size: "xl",
+      children: (
+        <MediaDetails
+          media={media}
+          actionPending={updateMedia.isPending}
+          deletePending={removeMedia.isPending}
+          onToggleFeatured={() => handleToggleFeatured(media, modalId)}
+          onCategoryChange={(category) => handleCategoryChange(media, category)}
+          onDelete={() => confirmDeleteMedia(media, modalId)}
+        />
+      ),
+    });
+  };
+
+  const columns = [
+    columnHelper.display({
+      id: "preview",
+      header: "Preview",
+      cell: (info) => (
+        <Image
+          src={info.row.original.url}
+          alt={info.row.original.caption || info.row.original.fileName}
+          radius="md"
+          height={60}
+          width={60}
+          fit="cover"
+        />
+      ),
+    }),
+    columnHelper.accessor("caption", {
+      header: "Photo",
+      cell: (info) => (
+        <Stack gap={0} maw={320}>
+          <Text size="sm" fw={500} lineClamp={1}>
+            {info.getValue() || info.row.original.fileName}
+          </Text>
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {info.row.original.fileName}
+          </Text>
+        </Stack>
+      ),
+    }),
+    columnHelper.accessor("category", {
+      header: "Category",
+      cell: (info) => (
+        <Badge size="sm" variant="light">
+          {info.getValue()
+            ? formatCategoryLabel(info.getValue()!)
+            : "Uncategorized"}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor((row) => (row.isFeatured ? "featured" : "standard"), {
+      id: "status",
+      header: "Status",
+      cell: (info) => (
+        <Badge
+          size="sm"
+          color={info.row.original.isFeatured ? "green" : "gray"}
+          variant="light"
+        >
+          {info.row.original.isFeatured ? "Featured" : "Standard"}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor((row) => row.uploaded?.at ?? null, {
+      id: "uploaded",
+      header: "Uploaded",
+      cell: (info) => (
+        <Text size="sm">
+          {info.getValue()
+            ? formatDate(info.getValue() as Date, "MMM dd, yyyy")
+            : "—"}
+        </Text>
+      ),
+    }),
+    columnHelper.display({
+      id: "actions",
+      header: "Actions",
+      cell: (info) => (
+        <Group gap="xs">
+          <Tooltip label="View details">
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              onClick={() => openMediaDetails(info.row.original)}
+            >
+              <Eye className="size-4" />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip
+            label={
+              info.row.original.isFeatured ? "Remove featured" : "Mark featured"
+            }
+          >
+            <ActionIcon
+              variant="subtle"
+              color={info.row.original.isFeatured ? "orange" : "green"}
+              disabled={updateMedia.isPending}
+              onClick={() => handleToggleFeatured(info.row.original)}
+            >
+              <Star
+                className="size-4"
+                fill={info.row.original.isFeatured ? "currentColor" : "none"}
+              />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              disabled={removeMedia.isPending}
+              onClick={() => confirmDeleteMedia(info.row.original)}
+            >
+              <Trash2 className="size-4" />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    }),
+  ];
 
   if (isLoading) {
     return <PageLoader message="Loading gallery..." />;
@@ -142,273 +331,318 @@ function GalleryAdmin() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <Group justify="space-between">
+        <Group justify="space-between" align="flex-start">
           <div>
             <Title order={2} className="text-deep-forest mb-2">
               Gallery Management
             </Title>
             <Text size="sm" c="dimmed">
-              Moderate and manage photo submissions
+              Moderate and manage all published media assets
             </Text>
           </div>
-          {featuredCount > 0 && (
-            <Badge size="lg" color="green" variant="filled">
-              {featuredCount} featured
-            </Badge>
-          )}
+          <Group>
+            {featuredCount > 0 && (
+              <Badge size="lg" color="green" variant="filled">
+                {featuredCount} featured
+              </Badge>
+            )}
+            <Button
+              leftSection={<Upload className="size-4" />}
+              onClick={openCreateModal}
+            >
+              Upload Photo
+            </Button>
+          </Group>
         </Group>
       </div>
 
-      <Card shadow="sm" p="lg" radius="md" withBorder className="mb-6">
-        <Group justify="space-between" mb="md">
+      <Card withBorder radius="lg" shadow="sm" mb="lg" p="lg">
+        <Group gap="md" align="flex-end" wrap="wrap">
           <TextInput
+            label="Search"
             placeholder="Search photos..."
             leftSection={<Search className="size-4" />}
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1, maxWidth: 400 }}
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+            style={{ minWidth: 260 }}
           />
-
           <Select
-            clearable
-            searchable
-            placeholder="Filter by featured state"
+            label="Status"
+            placeholder="Filter by status"
+            data={MEDIA_STATUS_OPTIONS}
             value={statusFilter}
             onChange={(value) =>
               setStatusFilter((value as StatusFilter) || "all")
             }
-            data={STATUS_OPTIONS}
-            style={{ width: 200 }}
+            style={{ width: 220 }}
+            clearable
           />
         </Group>
-
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <ImageIcon className="size-12 mx-auto mb-4 text-gray-300" />
-            <Text c="dimmed">No photos found</Text>
-          </div>
-        ) : (
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
-            {filteredItems.map((item) => (
-              <Card
-                key={item.id}
-                shadow="sm"
-                padding="xs"
-                radius="md"
-                withBorder
-                className="relative group cursor-pointer hover:shadow-lg transition-shadow"
-              >
-                <Card.Section>
-                  <div className="relative aspect-square">
-                    <Image
-                      src={item.url}
-                      alt={item.caption || item.fileName}
-                      fit="cover"
-                      className="w-full h-full"
-                    />
-                    <Badge
-                      className="absolute top-2 right-2"
-                      size="sm"
-                      color={item.isFeatured ? "green" : "gray"}
-                      variant="filled"
-                    >
-                      {item.isFeatured ? "Featured" : "Standard"}
-                    </Badge>
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Tooltip label="View details">
-                        <ActionIcon
-                          variant="filled"
-                          color="blue"
-                          size="lg"
-                          onClick={() => viewItemDetails(item)}
-                        >
-                          <Eye className="size-4" />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip
-                        label={
-                          item.isFeatured ? "Remove featured" : "Mark featured"
-                        }
-                      >
-                        <ActionIcon
-                          variant="filled"
-                          color={item.isFeatured ? "orange" : "green"}
-                          size="lg"
-                          disabled={!actor || isUpdatingMedia}
-                          onClick={() =>
-                            handleStatusToggle(item.id, !item.isFeatured)
-                          }
-                        >
-                          {item.isFeatured ? (
-                            <X className="size-4" />
-                          ) : (
-                            <Check className="size-4" />
-                          )}
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Delete">
-                        <ActionIcon
-                          variant="filled"
-                          color="red"
-                          size="lg"
-                          disabled={!actor || isRemovingMedia}
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </ActionIcon>
-                      </Tooltip>
-                    </div>
-                  </div>
-                </Card.Section>
-
-                <div className="p-2">
-                  <Text size="sm" fw={500} lineClamp={1}>
-                    {item.caption || item.fileName}
-                  </Text>
-                  <Text size="xs" c="dimmed" lineClamp={1}>
-                    {item.fileName}
-                  </Text>
-                  <Text size="xs" c="dimmed" mt={4}>
-                    {formatDate(item.uploaded?.at, "MMM dd, yyyy") || "—"}
-                  </Text>
-                </div>
-              </Card>
-            ))}
-          </SimpleGrid>
-        )}
       </Card>
 
-      {/* Photo Details Modal */}
-      <Modal
-        opened={detailsOpened}
-        onClose={() => setDetailsOpened(false)}
-        title="Photo Details"
-        size="lg"
-      >
-        {selectedItem && (
-          <Stack gap="md">
-            <div>
-              <Group justify="space-between" mb="md">
-                <Title order={3} lineClamp={2}>
-                  {selectedItem.caption || selectedItem.fileName}
-                </Title>
-                <Badge
-                  size="lg"
-                  color={selectedItem.isFeatured ? "green" : "gray"}
-                  variant="light"
-                >
-                  {selectedItem.isFeatured ? "Featured" : "Standard"}
-                </Badge>
-              </Group>
-            </div>
-
-            <Card shadow="sm" padding="xs" radius="md" withBorder>
-              <Card.Section>
-                <Image
-                  src={selectedItem.url}
-                  alt={selectedItem.caption || selectedItem.fileName}
-                  fit="contain"
-                  className="max-h-96"
-                />
-              </Card.Section>
-            </Card>
-
-            <Grid>
-              <Grid.Col span={12}>
-                <Text size="sm" fw={500} c="dimmed" mb={4}>
-                  Category
-                </Text>
-                <Select
-                  clearable
-                  searchable
-                  placeholder="Select category"
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  data={CATEGORY_OPTIONS}
-                  disabled={!actor || isUpdatingMedia}
-                />
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Library Reference
-                </Text>
-                <Text size="sm">{selectedItem.libraryId || "—"}</Text>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Upload Date
-                </Text>
-                <Text size="sm">
-                  {formatDate(
-                    selectedItem.uploaded?.at,
-                    "MMMM dd, yyyy 'at' hh:mm a"
-                  ) || "—"}
-                </Text>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Uploaded By
-                </Text>
-                <Text size="sm">
-                  {selectedItem.uploaded?.name || "Unknown"}
-                </Text>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <Text size="sm" fw={500} c="dimmed">
-                  File Size
-                </Text>
-                <Text size="sm">{selectedItem.size}</Text>
-              </Grid.Col>
-              <Grid.Col span={12}>
-                <Text size="sm" fw={500} c="dimmed">
-                  Caption
-                </Text>
-                <Text size="sm">
-                  {selectedItem.caption || "No caption provided"}
-                </Text>
-              </Grid.Col>
-            </Grid>
-
-            <div className="mt-4 pt-4 border-t">
-              <Group justify="flex-end" gap="sm">
-                <Button
-                  leftSection={
-                    selectedItem.isFeatured ? (
-                      <X className="size-4" />
-                    ) : (
-                      <Check className="size-4" />
-                    )
-                  }
-                  color={selectedItem.isFeatured ? "orange" : "green"}
-                  variant={selectedItem.isFeatured ? "outline" : "filled"}
-                  onClick={() =>
-                    handleStatusToggle(
-                      selectedItem.id,
-                      !selectedItem.isFeatured
-                    )
-                  }
-                  loading={isUpdatingMedia}
-                  disabled={!actor}
-                >
-                  {selectedItem.isFeatured
-                    ? "Remove Featured"
-                    : "Mark Featured"}
-                </Button>
-                <Button
-                  leftSection={<Trash2 className="size-4" />}
-                  color="red"
-                  variant="outline"
-                  onClick={() => handleDelete(selectedItem.id)}
-                  loading={isRemovingMedia}
-                  disabled={!actor}
-                >
-                  Delete
-                </Button>
-              </Group>
-            </div>
-          </Stack>
-        )}
-      </Modal>
+      <DataTable
+        columns={columns}
+        data={filteredMedia}
+        enableSearch={false}
+        enableFilters={false}
+        enableColumnOrdering
+        enablePagination
+        pageSize={12}
+        loading={isLoading}
+        searchPlaceholder="Search media..."
+      />
     </div>
   );
+}
+
+interface MediaFormProps {
+  submitting: boolean;
+  onSubmit: (values: MediaFormValues) => Promise<void> | void;
+  onCancel: () => void;
+}
+
+function MediaForm({ submitting, onSubmit, onCancel }: MediaFormProps) {
+  const form = useForm<MediaFormValues>({
+    initialValues: getDefaultMediaFormValues(),
+    validate: zod4Resolver(mediaFormSchema),
+  });
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = async (file: File | null) => {
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await upload.$use.galleryImage(file);
+      form.setFieldValue("url", url);
+      form.setFieldValue("fileName", file.name);
+      form.setFieldValue("size", file.size.toString());
+    } catch (error) {
+      console.error("Failed to upload file", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    form.reset();
+    onCancel();
+  };
+
+  return (
+    <form onSubmit={form.onSubmit((values) => onSubmit(values))}>
+      <Stack gap="md">
+        <ImageUpload
+          label="Select photo"
+          value={form.values.url}
+          onChange={handleFileSelect}
+        />
+
+        <TextInput
+          label="Caption"
+          placeholder="Enter caption"
+          {...form.getInputProps("caption")}
+        />
+
+        <Select
+          label="Category"
+          placeholder="Select category"
+          data={CATEGORY_OPTIONS}
+          clearable
+          {...form.getInputProps("category")}
+        />
+
+        <TextInput
+          label="Library ID (optional)"
+          placeholder="Reference ID"
+          {...form.getInputProps("libraryId")}
+        />
+
+        <Switch
+          label="Mark as featured"
+          {...form.getInputProps("isFeatured", { type: "checkbox" })}
+        />
+
+        <Group justify="flex-end" mt="md">
+          <Button
+            type="button"
+            variant="default"
+            onClick={handleCancel}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            loading={submitting || isUploading}
+            disabled={isUploading}
+          >
+            Upload Photo
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+}
+
+interface MediaDetailsProps {
+  media: Media;
+  actionPending: boolean;
+  deletePending: boolean;
+  onToggleFeatured: () => void;
+  onCategoryChange: (category: Media["category"] | null) => void;
+  onDelete: () => void;
+}
+
+function MediaDetails({
+  media,
+  actionPending,
+  deletePending,
+  onToggleFeatured,
+  onCategoryChange,
+  onDelete,
+}: MediaDetailsProps) {
+  const [category, setCategory] = useState<Media["category"] | null>(
+    media.category ?? null
+  );
+  useEffect(() => {
+    setCategory(media.category ?? null);
+  }, [media]);
+
+  return (
+    <Stack gap="lg">
+      <Card withBorder radius="lg" p="sm">
+        <Card.Section>
+          <Image
+            src={media.url}
+            alt={media.caption || media.fileName}
+            fit="contain"
+            height={360}
+          />
+        </Card.Section>
+      </Card>
+
+      <Stack gap="sm">
+        <Group justify="space-between">
+          <div>
+            <Text size="lg" fw={600}>
+              {media.caption || media.fileName}
+            </Text>
+            <Text size="sm" c="dimmed">
+              {media.fileName}
+            </Text>
+          </div>
+          <Badge
+            size="lg"
+            color={media.isFeatured ? "green" : "gray"}
+            variant="light"
+          >
+            {media.isFeatured ? "Featured" : "Standard"}
+          </Badge>
+        </Group>
+
+        <Select
+          label="Category"
+          placeholder="Select category"
+          data={CATEGORY_OPTIONS}
+          clearable
+          value={category}
+          onChange={(value) => {
+            const nextCategory = (value as Media["category"]) || null;
+            setCategory(nextCategory);
+            onCategoryChange(nextCategory);
+          }}
+          disabled={actionPending}
+        />
+
+        <Stack gap={4}>
+          <Text size="sm" fw={500} c="dimmed">
+            Library Reference
+          </Text>
+          <Text size="sm">{media.libraryId || "—"}</Text>
+        </Stack>
+
+        <Stack gap={4}>
+          <Text size="sm" fw={500} c="dimmed">
+            Uploaded
+          </Text>
+          <Text size="sm">
+            {media.uploaded?.at
+              ? formatDate(media.uploaded.at, "MMMM dd, yyyy 'at' hh:mm a")
+              : "—"}
+          </Text>
+        </Stack>
+
+        <Stack gap={4}>
+          <Text size="sm" fw={500} c="dimmed">
+            Uploaded By
+          </Text>
+          <Text size="sm">{media.uploaded?.name || "Unknown"}</Text>
+        </Stack>
+
+        <Stack gap={4}>
+          <Text size="sm" fw={500} c="dimmed">
+            File Size
+          </Text>
+          <Text size="sm">{media.size || "—"}</Text>
+        </Stack>
+      </Stack>
+
+      <Group justify="flex-end" gap="sm">
+        <Button
+          leftSection={<Star className="size-4" />}
+          color={media.isFeatured ? "orange" : "green"}
+          variant={media.isFeatured ? "outline" : "filled"}
+          onClick={onToggleFeatured}
+          loading={actionPending}
+        >
+          {media.isFeatured ? "Remove Featured" : "Mark Featured"}
+        </Button>
+        <Button
+          leftSection={<Trash2 className="size-4" />}
+          color="red"
+          variant="outline"
+          onClick={onDelete}
+          loading={deletePending}
+        >
+          Delete Photo
+        </Button>
+      </Group>
+    </Stack>
+  );
+}
+
+function getDefaultMediaFormValues(): MediaFormValues {
+  return {
+    libraryId: "",
+    url: "",
+    caption: "",
+    category: null,
+    fileName: "",
+    size: "0",
+    isFeatured: false,
+  };
+}
+
+function buildCreatePayload(
+  values: MediaFormValues,
+  user: Pick<User, "id" | "fullName" | "photoUrl">
+): CreateMediaData {
+  return {
+    url: values.url,
+    fileName: values.fileName,
+    caption: values.caption?.trim() || undefined,
+    category: values.category,
+    libraryId: values.libraryId?.trim() || undefined,
+    size: values.size || "0",
+    isFeatured: values.isFeatured,
+    uploaded: record(user),
+  };
+}
+
+function formatCategoryLabel(value: (typeof MEDIA_CATEGORIES)[number]) {
+  return value
+    .split("-")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
 }
