@@ -26,6 +26,7 @@ import { Route as AdminArticlesRouteImport } from './routes/admin/articles'
 import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
 import { Route as AdminAlertsRouteImport } from './routes/admin/alerts'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
+import { Route as PublicPledgeRouteImport } from './routes/_public/pledge'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as AuthGalleryRouteImport } from './routes/_auth/gallery'
@@ -124,6 +125,11 @@ const AdminAlertsRoute = AdminAlertsRouteImport.update({
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPledgeRoute = PublicPledgeRouteImport.update({
+  id: '/pledge',
+  path: '/pledge',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/pledge': typeof PublicPledgeRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -265,6 +272,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof AuthGalleryRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/pledge': typeof PublicPledgeRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/_auth/gallery': typeof AuthGalleryRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
+  '/_public/pledge': typeof PublicPledgeRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
   '/admin/alerts': typeof AdminAlertsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/pledge'
     | '/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/forgot-password'
     | '/login'
+    | '/pledge'
     | '/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -406,6 +417,7 @@ export interface FileRouteTypes {
     | '/_auth/gallery'
     | '/_public/forgot-password'
     | '/_public/login'
+    | '/_public/pledge'
     | '/_public/reset-password'
     | '/admin/alerts'
     | '/admin/approvals'
@@ -554,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof PublicResetPasswordRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/pledge': {
+      id: '/_public/pledge'
+      path: '/pledge'
+      fullPath: '/pledge'
+      preLoaderRoute: typeof PublicPledgeRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/login': {
@@ -749,6 +768,7 @@ const PublicDefaultEventsRouteWithChildren =
 interface PublicRouteChildren {
   PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
+  PublicPledgeRoute: typeof PublicPledgeRoute
   PublicResetPasswordRoute: typeof PublicResetPasswordRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicDefaultAboutUsRoute: typeof PublicDefaultAboutUsRoute
@@ -765,6 +785,7 @@ interface PublicRouteChildren {
 const PublicRouteChildren: PublicRouteChildren = {
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
+  PublicPledgeRoute: PublicPledgeRoute,
   PublicResetPasswordRoute: PublicResetPasswordRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicDefaultAboutUsRoute: PublicDefaultAboutUsRoute,

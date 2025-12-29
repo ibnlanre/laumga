@@ -37,13 +37,20 @@ export const dateSchema = schema
   .nullable()
   .default(null);
 
-const isFieldValue = (val: unknown): val is Firebase.FieldValue => {
-  return val instanceof Firebase.FieldValue;
-};
+const isFieldValue = createIsomorphicFn()
+  .server((val: unknown) => {
+    return val instanceof Admin.FieldValue;
+  })
+  .client((val: unknown) => {
+    return val instanceof Firebase.FieldValue;
+  });
 
 export const fieldValueCodec = z.custom<Firebase.FieldValue>(isFieldValue);
+
 export const fieldValueSchema = schema
-  .extend({ at: fieldValueCodec.nullable().default(null) })
+  .extend({
+    at: fieldValueCodec.nullable().default(null),
+  })
   .nullable()
   .default(null);
 

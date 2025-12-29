@@ -16,22 +16,22 @@ import { useQuery } from "@tanstack/react-query";
 
 export function MandateCertificateView() {
   const { user } = useAuth();
-  const { mandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+  const { activeMandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
   const { toPDF, targetRef } = ReactToPDF.usePDF({
     filename: "mandate-certificate.pdf",
     page: { margin: 20 },
   });
 
   const mandateCertificate = useQuery(
-    listGetActiveMandateCertificateOptions(mandate?.id)
+    listGetActiveMandateCertificateOptions(activeMandate?.id)
   );
   const createCertificate = useCreateMandateCertificate();
 
   const handleGenerateCertificate = () => {
-    if (!mandate || !user) return;
+    if (!activeMandate || !user) return;
 
     createCertificate.mutate(
-      { data: { mandate, user } },
+      { data: { mandate: activeMandate, user } },
       {
         onSuccess: () => {
           notifications.show({
@@ -96,7 +96,7 @@ export function MandateCertificateView() {
   }
 
   if (!mandateCertificate.data) {
-    if (mandate && mandate.flutterwaveStatus === "ACTIVE") {
+    if (activeMandate && activeMandate.status === "active") {
       return (
         <div className="mx-auto w-full max-w-3xl rounded-4xl border border-sage-green/50 bg-white/90 p-10 text-center shadow-[0_40px_120px_rgba(0,35,19,0.08)]">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-mist-green text-deep-forest">
@@ -114,7 +114,7 @@ export function MandateCertificateView() {
             loading={createCertificate.isPending}
             size="lg"
             radius="xl"
-            className="mx-auto mt-6 bg-deep-forest text-white hover:bg-deep-forest/90"
+            className="mx-auto mt-6 bg-deep-forest text-white hover:bg-deep-forest/90 text-sm"
             leftSection={<Sparkles size={16} />}
           >
             Generate Certificate
@@ -136,6 +136,7 @@ export function MandateCertificateView() {
           certificate of mandate. Your certificate will unlock once your first
           mandate is active.
         </p>
+        
         <Button
           component={Link}
           to="/mandate/pledge"

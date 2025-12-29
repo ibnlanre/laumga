@@ -9,14 +9,14 @@ import { mandate } from "@/api/mandate";
 
 export const Route = createFileRoute("/_auth/mandate/_layout")({
   loader: async ({ context }) => {
-    const { userId } = context;
+    const { uid } = context;
 
-    const query = await queryClient.ensureQueryData({
-      queryKey: mandate.get.$get({ data: userId }),
-      queryFn: () => mandate.$use.get({ data: userId! }),
+    const activeMandate = await queryClient.ensureQueryData({
+      queryKey: mandate.get.$get({ data: uid }),
+      queryFn: () => mandate.$use.get({ data: uid! }),
     });
 
-    return { mandate: query };
+    return { activeMandate };
   },
   component: RouteComponent,
 });

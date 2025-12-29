@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updateCurrentUser,
   type AuthProvider,
 } from "firebase/auth";
 import { auth } from "@/services/firebase";
@@ -94,11 +95,16 @@ const createUserDoc = createServerFn({ method: "POST" })
     }
 
     const user = { id: userRef.id, ...data };
+    const payload = { ...user, created: serverRecord(user) };
 
-    const payload = {
-      ...user,
-      created: serverRecord(user),
-    };
+    if (auth.currentUser) {
+      updateCurrentUser(auth, {
+        ...auth.currentUser,
+        displayName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        photoURL: data.photoUrl,
+      });
+    }
 
     await userRef.set(payload);
   });
@@ -135,25 +141,17 @@ async function create(variables: CreateUserVariables) {
 }
 
 async function login(variables: LoginVariables) {
-  console.log("[Client] Starting login flow for:", variables.email);
   const { email, password, rememberMe } = variables;
 
   const result = await tryCatch(async () => {
     if (rememberMe) await setPersistence(auth, browserLocalPersistence);
 
-    console.log("[Client] Calling signInWithEmailAndPassword...");
     const credential = await signInWithEmailAndPassword(auth, email, password);
-    console.log("[Client] Firebase Auth successful. UID:", credential.user.uid);
-
     const idToken = await credential.user.getIdToken();
-    console.log(
-      "[Client] Retrieved ID Token. Calling server session creation..."
-    );
+    const user = credential.user.toJSON();
 
-    await firebase.$use.loginUser({ data: { idToken } });
-    console.log("[Client] Server session created successfully.");
-
-    return credential.user;
+    await firebase.$use.loginUser({ data: { idToken, user } });
+    return user;
   });
 
   if (!result.success) {
@@ -171,12 +169,13 @@ async function login(variables: LoginVariables) {
 async function loginWithProvider(provider: AuthProvider) {
   const result = await tryCatch(async () => {
     await setPersistence(auth, browserLocalPersistence);
+
     const credential = await signInWithPopup(auth, provider);
-
     const idToken = await credential.user.getIdToken();
-    await firebase.$use.loginUser({ data: { idToken } });
+    const user = credential.user.toJSON();
 
-    return credential.user;
+    await firebase.$use.loginUser({ data: { idToken, user } });
+    return user;
   });
 
   if (!result.success) {

@@ -18,11 +18,7 @@ import { useMemo } from "react";
 import { DataTable } from "@/components/data-table";
 import { PageLoader } from "@/components/page-loader";
 import type { Mandate } from "@/api/mandate/types";
-import type {
-  FlutterwaveStatus,
-  FlutterwaveTransaction,
-} from "@/api/flutterwave/types";
-import { flutterwaveStatusSchema } from "@/api/flutterwave/schema";
+import type { FlutterwaveTransaction } from "@/api/flutterwave/types";
 import {
   usePauseMandate,
   useReinstateMandate,
@@ -34,29 +30,24 @@ import { useAuth } from "@/contexts/use-auth";
 import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminStatCard } from "@/components/admin/stat-card";
-import z from "zod";
 import { listTransactionOptions } from "@/api/flutterwave/options";
 import { createColumnHelper } from "@tanstack/react-table";
 import { formatDate } from "@/utils/date";
 import clsx from "clsx";
 import { Activity } from "lucide-react";
+import type { MandateStatus } from "@/api/mandate/types";
 
 export const Route = createFileRoute("/admin/mandates")({
-  validateSearch: z.object({
-    status: flutterwaveStatusSchema.optional(),
-  }),
   component: MandatesAdmin,
 });
 
-const getStatusColor = (status: FlutterwaveStatus) => {
+const getStatusColor = (status: MandateStatus | string) => {
   switch (status) {
-    case "PENDING":
-      return "blue";
-    case "ACTIVE":
+    case "active":
       return "green";
-    case "SUSPENDED":
+    case "paused":
       return "orange";
-    case "DELETED":
+    case "cancelled":
       return "red";
     default:
       return "gray";
@@ -87,7 +78,7 @@ function MandatesAdmin() {
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
 
-  const handlePauseMandate = ({ tier, flutterwaveReference }: Mandate) => {
+  const handlePauseMandate = ({ tier, subscriptionId }: Mandate) => {
     modals.openConfirmModal({
       title: "Pause Mandate",
       children: (
@@ -97,14 +88,14 @@ function MandatesAdmin() {
       ),
       labels: { confirm: "Pause", cancel: "Cancel" },
       onConfirm: () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user || !subscriptionId) return;
 
         pauseMutation.mutate({ data: { user } });
       },
     });
   };
 
-  const handleResumeMandate = ({ tier, flutterwaveReference }: Mandate) => {
+  const handleResumeMandate = ({ tier, subscriptionId }: Mandate) => {
     modals.openConfirmModal({
       title: "Resume Mandate",
       children: (
@@ -115,14 +106,14 @@ function MandatesAdmin() {
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
       onConfirm: () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user || !subscriptionId) return;
 
         reinstateMutation.mutate({ data: { user } });
       },
     });
   };
 
-  const handleCancelMandate = ({ tier, flutterwaveReference }: Mandate) => {
+  const handleCancelMandate = ({ tier, subscriptionId }: Mandate) => {
     modals.openConfirmModal({
       title: "Cancel Mandate",
       children: (
@@ -134,7 +125,7 @@ function MandatesAdmin() {
       labels: { confirm: "Cancel", cancel: "Back" },
       confirmProps: { color: "red" },
       onConfirm: () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user || !subscriptionId) return;
 
         cancelMutation.mutate({ data: { user } });
       },
@@ -178,23 +169,23 @@ function MandatesAdmin() {
         </Group>
       ),
     }),
-    columnHelper.accessor("flutterwaveStatus", {
+    columnHelper.accessor("status", {
       header: "Status",
       cell: ({ row }) => (
         <Badge
-          color={getStatusColor(row.original.flutterwaveStatus)}
+          color={getStatusColor(row.original.status)}
           variant="light"
           className="capitalize"
         >
-          {row.original.flutterwaveStatus}
+          {row.original.status}
         </Badge>
       ),
     }),
-    columnHelper.accessor("flutterwaveReference", {
-      header: "Reference",
+    columnHelper.accessor("subscriptionId", {
+      header: "Subscription ID",
       cell: ({ row }) => (
         <Text size="sm" ff="monospace">
-          {row.original.flutterwaveReference}
+          {row.original.subscriptionId}
         </Text>
       ),
     }),
@@ -234,7 +225,7 @@ function MandatesAdmin() {
             </ActionIcon>
           </Tooltip>
 
-          {row.original.flutterwaveStatus === "ACTIVE" && (
+          {row.original.status === "active" && (
             <Tooltip label="Pause mandate">
               <ActionIcon
                 variant="light"
@@ -246,7 +237,7 @@ function MandatesAdmin() {
             </Tooltip>
           )}
 
-          {row.original.flutterwaveStatus === "SUSPENDED" && (
+          {row.original.status === "paused" && (
             <Tooltip label="Resume mandate">
               <ActionIcon
                 variant="light"
@@ -258,9 +249,7 @@ function MandatesAdmin() {
             </Tooltip>
           )}
 
-          {["INITIATED", "ACTIVE", "SUSPENDED"].includes(
-            row.original.flutterwaveStatus
-          ) && (
+          {["active", "paused"].includes(row.original.status) && (
             <Tooltip label="Cancel mandate">
               <ActionIcon
                 variant="light"
@@ -277,12 +266,8 @@ function MandatesAdmin() {
   ];
 
   const stats = useMemo(() => {
-    const active = mandates.filter(
-      ({ flutterwaveStatus }) => flutterwaveStatus === "ACTIVE"
-    );
-    const paused = mandates.filter(
-      ({ flutterwaveStatus }) => flutterwaveStatus === "SUSPENDED"
-    );
+    const active = mandates.filter(({ status }) => status === "active");
+    const paused = mandates.filter(({ status }) => status === "paused");
     const totalPledged = mandates.reduce(
       (acc, { amount = 0 }) => acc + amount,
       0
@@ -439,12 +424,12 @@ function MandateDetailsContent({ mandate }: MandateDetailsContentProps) {
               Status
             </Text>
             <Badge
-              color={getStatusColor(mandate.flutterwaveStatus)}
+              color={getStatusColor(mandate.status)}
               variant="light"
               size="lg"
               className="capitalize"
             >
-              {mandate.flutterwaveStatus}
+              {mandate.status}
             </Badge>
           </div>
         </Grid.Col>
@@ -463,20 +448,20 @@ function MandateDetailsContent({ mandate }: MandateDetailsContentProps) {
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <div>
             <Text size="sm" c="dimmed" mb="xs">
-              Frequency
+              Subscription ID
             </Text>
-            <Text fw={600} className="capitalize">
-              {mandate.frequency}
+            <Text fw={600} ff="monospace">
+              {mandate.subscriptionId}
             </Text>
           </div>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <div>
             <Text size="sm" c="dimmed" mb="xs">
-              Reference
+              Payment Plan ID
             </Text>
             <Text fw={600} ff="monospace">
-              {mandate.flutterwaveReference}
+              {mandate.paymentPlanId}
             </Text>
           </div>
         </Grid.Col>
@@ -486,21 +471,9 @@ function MandateDetailsContent({ mandate }: MandateDetailsContentProps) {
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <div>
             <Text size="sm" c="dimmed" mb="xs">
-              Flutterwave Account ID
+              Customer Email
             </Text>
-            <Text fw={600} ff="monospace">
-              {mandate.flutterwaveAccountId}
-            </Text>
-          </div>
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 6 }}>
-          <div>
-            <Text size="sm" c="dimmed" mb="xs">
-              Flutterwave Customer ID
-            </Text>
-            <Text fw={600} ff="monospace">
-              {mandate.flutterwaveCustomerId}
-            </Text>
+            <Text fw={600}>{mandate.customerEmail}</Text>
           </div>
         </Grid.Col>
       </Grid>

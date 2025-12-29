@@ -49,3 +49,25 @@ export function useTokenizedFlutterwaveCharge() {
     },
   });
 }
+
+export function useCreateFlutterwavePlanCheckout() {
+  return useMutation({
+    mutationKey: flutterwave.payment.planCheckout.$get(),
+    mutationFn: useServerFn(flutterwave.$use.payment.planCheckout),
+    meta: {
+      errorMessage: "Unable to start secure checkout. Please try again.",
+      successMessage: "Secure checkout ready.",
+    },
+  });
+}
+
+export function useCreateFlutterwavePaymentPlan() {
+  return useMutation({
+    mutationKey: flutterwave.paymentPlan.create.$get(),
+    mutationFn: useServerFn(flutterwave.$use.paymentPlan.create),
+    meta: {
+      errorMessage: "Unable to prepare subscription plan. Please try again.",
+      successMessage: "Subscription plan ready.",
+    },
+  });
+}

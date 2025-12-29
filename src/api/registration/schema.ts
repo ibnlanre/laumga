@@ -121,25 +121,13 @@ export const departmentsByFaculty: Record<string, string[]> = {
   ],
 };
 
-function isValidDepartmentForFaculty(
-  data: z.infer<typeof personalDetailsSchema>
-): boolean {
-  const { faculty, department } = data;
-  if (typeof faculty !== "string" || !faculties.includes(faculty)) {
-    return false;
-  }
-
-  const departments = departmentsByFaculty[faculty];
-  return departments ? departments.includes(department ?? "") : false;
-}
-
 export const personalDetailsSchema = z.object({
-  title: z.string().optional(),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  middleName: z.string().optional().default(""),
-  maidenName: z.string().optional().default(""),
-  nickname: z.string().optional().default(""),
+  title: z.string().trim().optional(),
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  middleName: z.string().trim().optional().default(""),
+  maidenName: z.string().trim().optional().default(""),
+  nickname: z.string().trim().optional().default(""),
   gender: z.enum(["male", "female"], { message: "Gender is required" }),
   photoUrl: z.string().nullable().default(null),
   dateOfBirth: isoDateTimeString.nullable().default(null),

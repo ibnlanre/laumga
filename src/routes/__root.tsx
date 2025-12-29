@@ -25,21 +25,16 @@ import { user } from "@/api/user";
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    const { userId } = await firebase.$use.getSession();
-
-    if (!userId) return { isAuthenticated: false };
-    return { isAuthenticated: true, userId };
+    return await firebase.$use.getSession();
   },
   loader: async ({ context }) => {
-    const { isAuthenticated, userId } = context;
+    const { uid } = context;
 
-    if (!isAuthenticated || !userId) {
-      return { currentUser: null, permissions: [], isAuthenticated: false };
-    }
+    if (!uid) return { currentUser: null, permissions: [] };
 
     const currentUser = await queryClient.ensureQueryData({
-      queryKey: user.get.$get({ data: userId }),
-      queryFn: () => user.$use.get({ data: userId! }),
+      queryKey: user.get.$get({ data: uid }),
+      queryFn: () => user.$use.get({ data: uid! }),
     });
 
     if (!currentUser) {
@@ -48,8 +43,8 @@ export const Route = createRootRoute({
     }
 
     const permissions = await queryClient.ensureQueryData({
-      queryKey: userRole.getUserPermissions.$get({ data: userId }),
-      queryFn: () => userRole.$use.getUserPermissions({ data: userId! }),
+      queryKey: userRole.getUserPermissions.$get({ data: uid }),
+      queryFn: () => userRole.$use.getUserPermissions({ data: uid! }),
     });
 
     return { currentUser, permissions };

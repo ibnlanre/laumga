@@ -20,22 +20,6 @@ export const listChapterOptions = (variables?: ListChapterVariables) => {
   });
 };
 
-export const getChapterByStateOptions = (state?: string) => {
-  const list = useServerFn(chapter.$use.list);
-  return queryOptions({
-    queryKey: chapter.list.$get({ data: { state } }),
-    queryFn: () =>
-      list({
-        data: {
-          filterBy: [{ field: "state", operator: "==", value: state }],
-          sortBy: [{ field: "name", direction: "asc" }],
-        },
-      }),
-    enabled: !!state,
-    select: (data) => data[0],
-  });
-};
-
 export const listChaptersByRegionOptions = (region?: ChapterRegion) => {
   const list = useServerFn(chapter.$use.list);
   return queryOptions({

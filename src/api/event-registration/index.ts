@@ -174,7 +174,7 @@ const isUserRegisteredForEvent = createServerFn({ method: "GET" })
 
     const snapshot = await registrationRef
       .where("eventId", "==", eventId)
-      .where("email", "==", userId)
+      .where("email", "==", userId) // TODO: Fix userId to email or adjust schema
       .get();
 
     return !snapshot.empty;

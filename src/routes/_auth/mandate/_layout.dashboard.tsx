@@ -1,4 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useLoaderData,
+  useNavigate,
+} from "@tanstack/react-router";
 import {
   AlertCircle,
   CalendarClock,
@@ -12,66 +17,18 @@ import { Button, Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 
 import { LoadingState } from "@/components/loading-state";
-import { DataTable } from "@/components/data-table";
 import { MandateHeader } from "@/layouts/mandate/header";
 import { useAuth } from "@/contexts/use-auth";
-import { formatDate } from "@/utils/date";
 import { EmptyState } from "@/components/empty-state";
 import {
   usePauseMandate,
   useReinstateMandate,
   useCancelMandate,
 } from "@/api/mandate/hooks";
-import { getMandateOptions } from "@/api/mandate/options";
 import { listFeedOptions } from "@/api/feed/options";
 import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/utils/currency";
-import { capitalize } from "inflection";
 import { Section } from "@/components/section";
-import clsx from "clsx";
-import type { FlutterwaveTransaction } from "@/api/flutterwave/types";
-import { listTransactionOptions } from "@/api/flutterwave/options";
-import { createColumnHelper } from "@tanstack/react-table";
-
-const tierScale = [
-  { tier: "supporter", amount: 50000 },
-  { tier: "builder", amount: 100000 },
-  { tier: "guardian", amount: 250000 },
-] as const;
-
-const columnHelper = createColumnHelper<FlutterwaveTransaction>();
-
-const columns = [
-  columnHelper.accessor("created_at", {
-    header: "Date",
-    cell: (info) => formatDate(info.getValue()),
-  }),
-  columnHelper.accessor("status", {
-    header: "Status",
-    cell: (info) => (
-      <span
-        className={clsx(
-          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-          info.getValue() === "successful"
-            ? "bg-green-100 text-green-800"
-            : "bg-red-100 text-red-800"
-        )}
-      >
-        {info.getValue()}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("amount", {
-    header: "Amount",
-    cell: (info) => formatCurrency(info.getValue()),
-  }),
-  columnHelper.accessor("narration", {
-    header: "Narration",
-    cell: (info) => (
-      <span className="text-sm text-gray-500">{info.getValue()}</span>
-    ),
-  }),
-];
 
 export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
   component: RouteComponent,
@@ -79,6 +36,9 @@ export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
 
 function RouteComponent() {
   const { user } = useAuth();
+  const { activeMandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+
+  const navigate = useNavigate({ from: "/mandate/dashboard" });
 
   const {
     data: feedData = [],
@@ -86,21 +46,6 @@ function RouteComponent() {
     isError: feedError,
   } = useQuery(listFeedOptions());
 
-  const { data: activeMandate, isLoading: mandateLoading } = useQuery(
-    getMandateOptions(user?.id)
-  );
-
-  const { data: transactionsResponse, isLoading: transactionsLoading } =
-    useQuery(
-      listTransactionOptions({
-        customer_email: user?.email,
-        status: "successful",
-      })
-    );
-
-  const transactions = transactionsResponse?.data || [];
-
-  // const updateFlutterwaveAccount = useUpdateFlutterwaveAccount();
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
   const cancelMutation = useCancelMandate();
@@ -110,27 +55,28 @@ function RouteComponent() {
   const {
     amount = 0,
     frequency = "monthly",
-    flutterwaveStatus = "No mandate yet",
+    status = "No mandate yet",
     tier = "unassigned",
-    flutterwaveReference = "",
   } = { ...activeMandate };
-
-  const { percent: tierProgress, label: tierProgressLabel } = amount
-    ? getNextTierMeta(amount)
-    : { percent: 0, label: "Progress to next tier" };
 
   const handlePauseMandate = () => {
     modals.openConfirmModal({
       title: "Pause Your Mandate",
+      centered: true,
+      radius: "xl",
+      padding: "xl",
+      withCloseButton: false,
       children: (
-        <Text size="sm">
-          Pause your <span className="capitalize">{tier}</span> mandate? You can
-          resume it anytime.
+        <Text c="dimmed">
+          Your <span className="capitalize font-semibold">{tier}</span> mandate
+          will be paused. You can resume it anytime from your dashboard.
         </Text>
       ),
       labels: { confirm: "Pause", cancel: "Cancel" },
+      confirmProps: { color: "dark", size: "md", radius: "xl" },
+      cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user) return;
 
         await pauseMutation.mutateAsync({ data: { user } });
       },
@@ -140,15 +86,21 @@ function RouteComponent() {
   const handleResumeMandate = () => {
     modals.openConfirmModal({
       title: "Resume Your Mandate",
+      centered: true,
+      radius: "xl",
+      padding: "xl",
+      withCloseButton: false,
       children: (
-        <Text size="sm">
-          Resume your <span className="capitalize">{tier}</span> mandate? Debits
-          will resume on schedule.
+        <Text c="dimmed">
+          Your <span className="capitalize font-semibold">{tier}</span> mandate
+          will be reactivated. Debits will resume on schedule.
         </Text>
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
+      confirmProps: { color: "green", size: "md", radius: "xl" },
+      cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user) return;
 
         await reinstateMutation.mutateAsync({ data: { user } });
       },
@@ -158,18 +110,30 @@ function RouteComponent() {
   const handleCancelMandate = () => {
     modals.openConfirmModal({
       title: "Cancel Your Mandate",
+      centered: true,
+      radius: "xl",
+      padding: "xl",
+      withCloseButton: false,
       children: (
-        <Text size="sm">
-          Cancel your <span className="capitalize">{tier}</span> mandate
-          permanently? This action cannot be undone.
-        </Text>
+        <div className="space-y-3">
+          <Text c="dimmed">
+            This will permanently cancel your{" "}
+            <span className="capitalize font-semibold">{tier}</span> mandate and
+            deactivate your Flutterwave subscription.
+          </Text>
+          <Text c="dimmed">
+            You can set up a new mandate afterwards if you wish.
+          </Text>
+        </div>
       ),
-      labels: { confirm: "Cancel", cancel: "Keep It" },
-      confirmProps: { color: "red" },
+      labels: { confirm: "Cancel Mandate", cancel: "Keep It" },
+      confirmProps: { color: "red", size: "md", radius: "xl" },
+      cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
-        if (!user || !flutterwaveReference) return;
+        if (!user) return;
 
         await cancelMutation.mutateAsync({ data: { user } });
+        navigate({ to: "/mandate/pledge" });
       },
     });
   };
@@ -204,144 +168,93 @@ function RouteComponent() {
               </div>
             </header>
 
-            <section className="grid gap-6 md:grid-cols-3">
-              {mandateLoading ? (
-                <div className="md:col-span-3">
-                  <LoadingState
-                    type="spinner"
-                    message="Fetching your mandate..."
+            <section>
+              {activeMandate ? (
+                <article className="relative overflow-hidden rounded-3xl border border-sage-green/40 bg-white/90 p-8 shadow-xl">
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-80"
+                    aria-hidden="true"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 20% 20%, rgba(205,229,167,0.35), transparent 55%), radial-gradient(circle at 80% 20%, rgba(141,198,63,0.25), transparent 50%)",
+                    }}
                   />
-                </div>
-              ) : activeMandate ? (
-                <>
-                  <article className="relative overflow-hidden rounded-3xl border border-sage-green/40 bg-white/90 p-6 shadow-xl">
-                    <div
-                      className="pointer-events-none absolute inset-0 opacity-80"
-                      aria-hidden="true"
-                      style={{
-                        backgroundImage:
-                          "radial-gradient(circle at 20% 20%, rgba(205,229,167,0.35), transparent 55%), radial-gradient(circle at 80% 20%, rgba(141,198,63,0.25), transparent 50%)",
-                      }}
-                    />
-                    <div className="relative flex min-h-[220px] flex-col justify-between gap-6">
-                      <div className="flex items-start justify-between text-sm font-medium text-deep-forest/70">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.3em] text-deep-forest/50">
-                            Active Mandate
-                          </p>
-                          <p className="text-lg font-semibold text-deep-forest capitalize">
-                            {tier}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          {flutterwaveStatus === "ACTIVE" && (
-                            <Button
-                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-institutional-green/40"
-                              type="button"
-                              onClick={handlePauseMandate}
-                              aria-label="Pause mandate"
-                              title="Pause mandate"
-                            >
-                              <Pause size={16} />
-                            </Button>
-                          )}
-
-                          {flutterwaveStatus === "SUSPENDED" && (
-                            <Button
-                              className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-vibrant-lime"
-                              type="button"
-                              onClick={handleResumeMandate}
-                              aria-label="Resume mandate"
-                              title="Resume mandate"
-                            >
-                              <Play size={16} />
-                            </Button>
-                          )}
-
-                          <Button
-                            className="rounded-full border border-white/60 bg-white/80 p-2 text-deep-forest/70 transition hover:text-red-600"
-                            type="button"
-                            onClick={handleCancelMandate}
-                            aria-label="Cancel mandate"
-                            title="Cancel mandate"
-                          >
-                            <X size={16} />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-4xl font-bold text-deep-forest">
-                          {formatCurrency(amount)}
-                          <span className="ml-1 text-xl font-medium text-deep-forest/70 capitalize">
-                            / {frequency}
-                          </span>
+                  <div className="relative space-y-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.3em] text-deep-forest/50">
+                          Active Mandate
+                        </p>
+                        <p className="text-2xl font-bold text-deep-forest capitalize mt-2">
+                          {tier}
                         </p>
                       </div>
-                      <p className="flex items-center justify-between text-sm font-medium text-institutional-green">
-                        <span className="inline-flex items-center gap-2 capitalize">
-                          <span className="size-2 rounded-full bg-vibrant-lime" />
-                          {flutterwaveStatus}
-                        </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-vibrant-lime/20 px-4 py-2 text-sm font-medium text-institutional-green capitalize">
+                        <span className="size-2 rounded-full bg-vibrant-lime" />
+                        {status}
+                      </span>
+                    </div>
+
+                    <div className="text-center py-6">
+                      <p className="text-5xl font-bold text-deep-forest">
+                        {formatCurrency(amount)}
+                      </p>
+                      <p className="text-xl font-medium text-deep-forest/70 capitalize mt-2">
+                        per {frequency}
                       </p>
                     </div>
-                  </article>
 
-                  <article className="rounded-3xl border border-sage-green/30 bg-white/90 p-6 shadow-lg">
-                    <div className="flex h-full flex-col gap-5">
-                      <div className="space-y-2">
-                        <div className="h-2.5 w-full rounded-full bg-mist-green/60">
-                          <div
-                            className="h-full rounded-full bg-vibrant-lime transition-all"
-                            style={{ width: `${tierProgress}%` }}
-                          />
-                        </div>
-                        <p className="text-sm text-deep-forest/70">
-                          {tierProgressLabel}
-                        </p>
-                      </div>
+                    <div className="flex flex-wrap gap-3 justify-center pt-4 border-t border-sage-green/30">
+                      {status === "active" && (
+                        <Button
+                          size="lg"
+                          className="inline-flex items-center gap-2 rounded-full border-2 border-deep-forest/20 bg-white text-sm font-semibold text-deep-forest transition hover:bg-deep-forest/5 hover:border-deep-forest/40"
+                          type="button"
+                          onClick={handlePauseMandate}
+                        >
+                          <Pause size={18} />
+                          Pause mandate
+                        </Button>
+                      )}
+
+                      {status === "paused" && (
+                        <Button
+                          size="lg"
+                          className="inline-flex items-center gap-2 rounded-full border-2 border-vibrant-lime bg-vibrant-lime/10 text-sm font-semibold text-institutional-green transition hover:bg-vibrant-lime/20"
+                          type="button"
+                          onClick={handleResumeMandate}
+                        >
+                          <Play size={18} />
+                          Resume mandate
+                        </Button>
+                      )}
+
+                      <Button
+                        size="lg"
+                        className="inline-flex items-center gap-2 rounded-full border-2 border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300"
+                        type="button"
+                        onClick={handleCancelMandate}
+                      >
+                        <X size={18} />
+                        Cancel mandate
+                      </Button>
                     </div>
-                  </article>
-                </>
+                  </div>
+                </article>
               ) : (
-                <div className="md:col-span-3">
-                  <EmptyState
-                    icon={CalendarClock}
-                    title="No active mandate"
-                    message="Once you complete a pledge, your cadence, totals, and history will populate here."
+                <EmptyState
+                  icon={CalendarClock}
+                  title="No active mandate"
+                  message="Once you complete a pledge, your cadence and community activity will populate here."
+                >
+                  <Link
+                    to="/mandate/pledge"
+                    className="inline-flex items-center justify-center rounded-full bg-deep-forest px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-deep-forest/90"
                   >
-                    <Link
-                      to="/mandate/pledge"
-                      className="inline-flex items-center justify-center rounded-full bg-deep-forest px-5 py-2 text-sm font-semibold text-white"
-                    >
-                      Create a mandate
-                    </Link>
-                  </EmptyState>
-                </div>
+                    Create a mandate
+                  </Link>
+                </EmptyState>
               )}
-            </section>
-
-            <section className="rounded-3xl border border-sage-green/40 bg-white/95 p-6 shadow-lg">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
-                    History
-                  </p>
-                  <h2 className="text-2xl font-bold text-deep-forest">
-                    Transaction History
-                  </h2>
-                  <p className="text-sm text-deep-forest/70">
-                    Your recent contributions and charges.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <DataTable
-                  data={transactions}
-                  columns={columns}
-                  loading={transactionsLoading}
-                />
-              </div>
             </section>
 
             <section className="rounded-3xl border border-sage-green/40 bg-white/95 p-6 shadow-lg">
@@ -351,11 +264,10 @@ function RouteComponent() {
                     Community activity
                   </p>
                   <h2 className="text-2xl font-bold text-deep-forest">
-                    Mandate feed
+                    Recent Mandate Activity
                   </h2>
                   <p className="text-sm text-deep-forest/70">
-                    Real-time snapshots when brothers and sisters activate,
-                    upgrade, or register.
+                    Real-time snapshots from your fellow community members.
                   </p>
                 </div>
               </div>
@@ -424,7 +336,7 @@ function RouteComponent() {
                   to="/mandate/pledge"
                   className="rounded-2xl bg-vibrant-lime px-6 py-3 text-base font-semibold text-deep-forest transition hover:opacity-90"
                 >
-                  Increase my mandate
+                  View pledge options
                 </Link>
               </div>
             </section>
@@ -433,18 +345,4 @@ function RouteComponent() {
       </div>
     </div>
   );
-}
-
-function getNextTierMeta(currentAmount: number) {
-  const nextTier = tierScale.find((tier) => tier.amount > currentAmount);
-  if (!nextTier) {
-    return { percent: 100, label: "You are on the highest tier" };
-  }
-
-  const percent = Math.min(
-    100,
-    Math.round((currentAmount / nextTier.amount) * 100)
-  );
-
-  return { percent, label: `Progress to ${capitalize(nextTier.tier)}` };
 }

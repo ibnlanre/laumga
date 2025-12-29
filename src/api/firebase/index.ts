@@ -5,22 +5,14 @@ import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
 
 const loginUser = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ idToken: z.string() }))
+  .inputValidator(z.object({ idToken: z.string(), user: z.any() }))
   .handler(async ({ data }) => {
-    console.log("[Server] loginUser called");
-    const { idToken } = data;
+    const { idToken, user } = data;
     const session = await useAppSession();
 
     try {
-      console.log("[Server] Verifying ID token...");
-      const decodedToken = await auth.verifyIdToken(idToken);
-      console.log("[Server] Token verified for UID:", decodedToken.uid);
-
-      await session.update({
-        userId: decodedToken.uid,
-        email: decodedToken.email || "",
-      });
-      console.log("[Server] Session updated successfully");
+      await auth.verifyIdToken(idToken);
+      await session.update({ ...user, isAuthenticated: true });
     } catch (error) {
       console.error("[Server] Error in loginUser:", error);
       throw new Error("Invalid ID token");

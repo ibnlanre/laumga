@@ -90,17 +90,11 @@ const getActive = createServerFn({ method: "GET" })
   .handler(async ({ data: userId }) => {
     const activeMandate = await mandate.$use.get({ data: userId });
     if (!activeMandate) return null;
-    // Recursively call get (which is a server function)
-    // Since we are in a server function, we can call the handler logic directly if we extracted it,
-    // or call the server function which might do an HTTP request to itself (inefficient but works).
-    // Or better, just use the logic directly here.
+    
     const certificatesRef = serverCollection<MandateCertificateData>(
       MANDATE_CERTIFICATES_COLLECTION
-    ).doc(activeMandate.id); // Mandate ID is User ID usually?
-    // In create, we use user.id as doc ID.
-    // In mandate, doc ID is user.id.
-    // So activeMandate.id is user.id.
-    // So we can just fetch it.
+    ).doc(activeMandate.id);
+
     return await getServerQueryDoc(certificatesRef, mandateCertificateSchema);
   });
 

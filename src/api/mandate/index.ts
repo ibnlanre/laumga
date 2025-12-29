@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createBuilder } from "@ibnlanre/builder";
-import { addMinutes, isAfter } from "date-fns";
 
 import { serverRecord } from "@/utils/server-record";
 import {
@@ -23,10 +22,6 @@ import { determineTier } from "./utils";
 import { flutterwave } from "../flutterwave";
 import { userSchema, USERS_COLLECTION } from "../user/schema";
 import type { User } from "../user/types";
-
-function isStale(createdAt: Date) {
-  return isAfter(new Date(), addMinutes(createdAt, 10));
-}
 
 const list = createServerFn({ method: "GET" })
   .inputValidator(createVariablesSchema(mandateSchema))
@@ -64,26 +59,6 @@ const get = createServerFn({ method: "GET" })
 
     if (!mandate) return null;
 
-    const account = await flutterwave.$use.account.status({
-      data: mandate.flutterwaveReference!,
-    });
-
-    if (account.data.status === "PENDING") {
-      if (isStale(new Date(account.data.created_at))) {
-        await ref.delete();
-        return null;
-      }
-    }
-
-    if (account.data.status !== mandate.flutterwaveStatus) {
-      mandate.flutterwaveStatus = account.data.status;
-      mandate.flutterwaveProcessorResponse = account.data.processor_response;
-      mandate.flutterwaveAccountToken = account.data.token;
-      mandate.flutterwaveEffectiveDate = account.data.active_on;
-
-      await ref.update(mandate);
-    }
-
     return mandate;
   });
 
@@ -95,44 +70,28 @@ const create = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data: { user, data } }) => {
-    const tokenResponse = await flutterwave.$use.account.tokenize({
-      data: {
-        email: user.email,
-        amount: data.amount,
-        address: user.address,
-        phone_number: user.phoneNumber,
-        account_bank: data.bankCode,
-        account_number: data.accountNumber,
-        start_date: data.startDate,
-        end_date: data.endDate!,
-        narration: `LAUMGA Foundation ${data.frequency} contribution`,
-      },
-    });
-
     const docRef = serverCollection<CreateMandateData>(MANDATES_COLLECTION).doc(
       user.id
     );
 
-    const mandateData: CreateMandateData = {
+    const snapshot = await docRef.get();
+
+    if (snapshot.exists) {
+      throw new Error("Mandate already exists for this user");
+    }
+
+    await docRef.set({
       userId: user.id,
       amount: data.amount,
       frequency: data.frequency,
       tier: determineTier(data.amount),
-      startDate: data.startDate,
-      endDate: data.endDate,
-      flutterwaveReference: tokenResponse.data.reference,
-      flutterwaveAccountId: tokenResponse.data.account_id,
-      flutterwaveCustomerId: tokenResponse.data.customer_id,
-      flutterwaveStatus: tokenResponse.data.status,
-      flutterwaveAccountToken: null,
-      flutterwaveMandateConsent: tokenResponse.data.mandate_consent,
-      flutterwaveProcessorResponse: tokenResponse.data.processor_response,
-      flutterwaveEffectiveDate: null,
+      status: "active",
+      paymentPlanId: data.paymentPlanId,
+      subscriptionId: data.subscriptionId,
+      customerEmail: data.customerEmail,
       created: serverRecord(user),
-      updated: serverRecord(user),
-    };
-
-    await docRef.set(mandateData);
+      updated: null,
+    });
   });
 
 const update = createServerFn({ method: "POST" })
@@ -164,20 +123,16 @@ const pause = createServerFn({ method: "POST" })
     }
 
     const mandate = snapshot.data();
-    if (!mandate?.flutterwaveReference) {
-      throw new Error("Mandate has no Flutterwave reference");
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
     }
 
-    const response = await flutterwave.$use.account.update({
-      data: {
-        reference: mandate.flutterwaveReference,
-        payload: { status: "SUSPENDED" },
-      },
+    await flutterwave.$use.subscription.cancel({
+      data: mandate.subscriptionId,
     });
 
     await ref.update({
-      flutterwaveStatus: response.data.status,
-      flutterwaveProcessorResponse: response.data.processor_response,
+      status: "paused",
       updated: serverRecord(user),
     });
   });
@@ -193,15 +148,12 @@ const cancel = createServerFn({ method: "POST" })
     }
 
     const mandate = snapshot.data();
-    if (!mandate?.flutterwaveReference) {
-      throw new Error("Mandate has no Flutterwave reference");
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
     }
 
-    await flutterwave.$use.account.update({
-      data: {
-        reference: mandate.flutterwaveReference,
-        payload: { status: "DELETED" },
-      },
+    await flutterwave.$use.subscription.cancel({
+      data: mandate.subscriptionId,
     });
 
     await ref.delete();
@@ -218,20 +170,16 @@ const reinstate = createServerFn({ method: "POST" })
     }
 
     const mandate = snapshot.data();
-    if (!mandate?.flutterwaveReference) {
-      throw new Error("Mandate has no Flutterwave reference");
+    if (!mandate?.subscriptionId) {
+      throw new Error("Mandate has no subscription ID");
     }
 
-    const response = await flutterwave.$use.account.update({
-      data: {
-        reference: mandate.flutterwaveReference,
-        payload: { status: "ACTIVE" },
-      },
+    await flutterwave.$use.subscription.activate({
+      data: mandate.subscriptionId,
     });
 
     await ref.update({
-      flutterwaveStatus: response.data.status,
-      flutterwaveProcessorResponse: response.data.processor_response,
+      status: "active",
       updated: serverRecord(user),
     });
   });
