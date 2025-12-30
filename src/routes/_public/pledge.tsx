@@ -104,10 +104,10 @@ const frequencySchema = z.enum([
 const publicPledgeSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
   phoneNumber: z.string().min(10, "Valid phone number is required"),
-  email: z.string().email("Valid email is required"),
+  email: z.email("Valid email is required"),
   amount: z.number().min(1000, "Minimum amount is ₦1,000"),
   frequency: frequencySchema,
-  paymentPlanId: z.union([z.string(), z.number()]),
+  paymentPlanId: z.number().nullable().default(null),
 });
 
 type PublicPledgeFormValues = z.infer<typeof publicPledgeSchema>;
@@ -163,7 +163,6 @@ export const Route = createFileRoute("/_public/pledge")({
           data: { status: "active" },
         }),
       getNextPageParam,
-      staleTime: Infinity,
     });
 
     const paymentPlans = planResponse.pages.flatMap(({ data }) => data);
@@ -194,7 +193,7 @@ function RouteComponent() {
       email: "",
       amount: 5000,
       frequency: "monthly",
-      paymentPlanId: paymentPlansByFrequency["monthly"]?.id || 0,
+      paymentPlanId: paymentPlansByFrequency["monthly"].id,
     },
     validate: zod4Resolver(publicPledgeSchema),
   });
@@ -225,7 +224,7 @@ function RouteComponent() {
         meta: {
           cadence: frequency,
           amount,
-          paymentPlanId: String(paymentPlanId),
+          paymentPlanId,
           source: "public_pledge",
         },
         customizations: {

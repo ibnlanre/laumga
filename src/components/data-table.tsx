@@ -21,6 +21,7 @@ import {
   ArrowDown,
   GripVertical,
 } from "lucide-react";
+import { LoadingState } from "./loading-state";
 import {
   flexRender,
   getCoreRowModel,
@@ -276,11 +277,7 @@ export function DataTable<TData>({
   };
 
   if (loading) {
-    return (
-      <Card p="lg" radius="lg" withBorder>
-        <Text>Loading...</Text>
-      </Card>
-    );
+    return <LoadingState type="spinner" message="Loading data..." />;
   }
 
   return (
@@ -328,12 +325,12 @@ export function DataTable<TData>({
                 </Text>
               )}
               {enableColumnVisibility && (
-                <Menu shadow="md" width={200}>
+                <Menu shadow="md" width={200} position="bottom-end">
                   <Menu.Target>
                     <Button
                       leftSection={<Columns size={16} />}
                       size="sm"
-                      variant="subtle"
+                      variant="outline"
                     >
                       Columns
                     </Button>
@@ -378,7 +375,7 @@ export function DataTable<TData>({
           modifiers={[restrictToHorizontalAxis]}
           onDragEnd={handleDragEnd}
         >
-          <Table highlightOnHover striped>
+          <Table highlightOnHover striped verticalSpacing="md">
             <Table.Thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <Table.Tr key={headerGroup.id}>

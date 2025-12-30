@@ -159,21 +159,19 @@ const tokenized = createServerFn({ method: "POST" })
 const transactions = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
-      customer_email: z.string().email(),
-      page: z.number().default(1),
+      customer_email: z.email().optional(),
+      tx_ref: z.string().nullable().optional(),
+      from: z.string().optional(),
+      to: z.string().optional(),
+      currency: z.string().optional(),
       status: z.string().optional(),
+      customer_fullname: z.string().optional(),
+      page: z.number().default(1),
     })
   )
   .handler(async ({ data }) => {
-    const { customer_email, page, status } = data;
     const response = await flutterwaveClient
-      .get<FlutterwaveTransactionResponse>("/v3/transactions", {
-        params: {
-          customer_email,
-          page,
-          status,
-        },
-      })
+      .get<FlutterwaveTransactionResponse>("/v3/transactions", { params: data })
       .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
         const flutterwaveError = error.response?.data;
 
@@ -227,15 +225,19 @@ const paymentPlanCreate = createServerFn({ method: "POST" })
 
     return response.data;
   });
-
+    
 const subscriptionList = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
-      customer_email: z.string().email(),
+      email: z.email(),
       status: z.string().optional(),
       page: z.number().min(1).optional(),
-      from: z.string().optional(),
-      to: z.string().optional(),
+      transaction_id: z.number().optional(),
+      plan: z.string().optional(),
+      subscribed_from: z.string().optional(),
+      subscribed_to: z.string().optional(),
+      next_due_from: z.string().optional(),
+      next_due_to: z.string().optional(),
     })
   )
   .handler(async ({ data }) => {
@@ -384,6 +386,7 @@ export const flutterwave = createBuilder(
       list: subscriptionList,
       cancel: subscriptionCancel,
       activate: subscriptionActivate,
+      get: subscriptionList,
     },
   },
   { prefix: ["flutterwave"] }

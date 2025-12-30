@@ -10,25 +10,21 @@ export const listFlutterwaveBankOptions = () => {
   });
 };
 
-export const listTransactionOptions = (variables: {
+export const listFlutterwaveTransactionOptions = (variables: {
   customer_email?: string;
-  page?: number;
+  tx_ref?: string | null
+  from?: string;
+  to?: string;
+  currency?: string;
   status?: string;
-}) => {
-  const { customer_email, ...properties } = variables;
+  customer_fullname?: string;
+  page?: number;
+} = {}) => {
   const list = useServerFn(flutterwave.$use.transaction.list);
 
   return queryOptions({
     queryKey: flutterwave.transaction.list.$get(variables),
-    queryFn: () => {
-      return list({
-        data: {
-          customer_email: customer_email!,
-          ...properties,
-        },
-      });
-    },
-    enabled: !!customer_email,
+    queryFn: () => list({ data: variables })
   });
 };
 
@@ -48,13 +44,17 @@ export const listFlutterwavePaymentPlanOptions = (variables?: {
 };
 
 export const listFlutterwaveSubscriptionOptions = (variables?: {
-  customer_email?: string;
+  email?: string;
+  transaction_id?: number;
+  plan?: string;
+  subscribed_from?: string;
+  subscribed_to?: string;
+  next_due_from?: string;
+  next_due_to?: string;
   status?: string;
   page?: number;
-  from?: string;
-  to?: string;
 }) => {
-  const { customer_email, ...properties } = { ...variables };
+  const { email, ...properties } = { ...variables };
   const list = useServerFn(flutterwave.$use.subscription.list);
 
   return queryOptions({
@@ -63,10 +63,10 @@ export const listFlutterwaveSubscriptionOptions = (variables?: {
       return list({
         data: {
           ...properties,
-          customer_email: customer_email!,
+          email: email!,
         },
       });
     },
-    enabled: !!variables?.customer_email,
+    enabled: !!variables?.email,
   });
 };

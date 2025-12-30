@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_auth/mandate/_layout")({
   loader: async ({ context }) => {
     const { uid } = context;
 
-    const activeMandate = await queryClient.ensureQueryData({
+    const activeMandate = await queryClient.fetchQuery({
       queryKey: mandate.get.$get({ data: uid }),
       queryFn: () => mandate.$use.get({ data: uid! }),
     });

@@ -32,7 +32,7 @@ export const Route = createRootRoute({
 
     if (!uid) return { currentUser: null, permissions: [] };
 
-    const currentUser = await queryClient.ensureQueryData({
+    const currentUser = await queryClient.fetchQuery({
       queryKey: user.get.$get({ data: uid }),
       queryFn: () => user.$use.get({ data: uid! }),
     });
@@ -42,7 +42,7 @@ export const Route = createRootRoute({
       return { currentUser: null, permissions: [], isAuthenticated: false };
     }
 
-    const permissions = await queryClient.ensureQueryData({
+    const permissions = await queryClient.fetchQuery({
       queryKey: userRole.getUserPermissions.$get({ data: uid }),
       queryFn: () => userRole.$use.getUserPermissions({ data: uid! }),
     });

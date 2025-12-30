@@ -1,3 +1,5 @@
+import { useLocation } from "@tanstack/react-router";
+
 interface AuthSidebarProps {
   title: string;
   description: string;
@@ -11,6 +13,9 @@ export function AuthSidebar({
   backgroundImage,
   bottomContent,
 }: AuthSidebarProps) {
+  const location = useLocation();
+  const isLoginRoute = location.pathname === "/login";
+
   return (
     <div className="absolute inset-0 flex flex-col">
       {/* Background image with overlay */}
@@ -45,6 +50,16 @@ export function AuthSidebar({
         <div className="shrink-0 text-center md:text-left">
           {bottomContent ? (
             bottomContent
+          ) : isLoginRoute ? (
+            <p className="text-white/80 text-sm">
+              New to LAUMGA?
+              <a
+                className="font-semibold text-vibrant-lime underline hover:text-white ml-1"
+                href="/registration"
+              >
+                Create an account.
+              </a>
+            </p>
           ) : (
             <p className="text-white/80 text-sm">
               Already a member?

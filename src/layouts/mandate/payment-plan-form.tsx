@@ -137,7 +137,7 @@ const tierIconWrapperClasses = {
     "flex h-10 w-10 items-center justify-center rounded-2xl border border-deep-forest/20 bg-mist-green/60 text-deep-forest",
 };
 
-const minimumPaymentAmount = 1_000;
+export const minimumPaymentAmount = 1_000;
 
 const paymentFrequencyOptions = [
   { value: "hourly", label: "Hourly" },
@@ -176,7 +176,7 @@ const frequencySchema = z.enum([
 const paymentPlanSchema = z.object({
   amount: z.number().min(minimumPaymentAmount),
   frequency: frequencySchema,
-  paymentPlanId: z.union([z.string(), z.number()]),
+  paymentPlanId: z.number(),
 });
 
 type PaymentPlanFormValues = z.infer<typeof paymentPlanSchema>;
@@ -196,8 +196,8 @@ export function PaymentPlanForm({
   const navigate = useNavigate({ from: "/mandate/pledge" });
   const planCheckout = useCreateFlutterwavePlanCheckout();
 
-  const hasActiveSubscription = activeMandate?.status === "active";
-  const summaryTab = !hasActiveSubscription ? "customer" : "status";
+  const hasActiveSubscription = !!activeMandate;
+  const summaryTab = hasActiveSubscription ? "status" : "customer";
 
   const paymentPlansByFrequency = useMemo(() => {
     return paymentPlans.reduce<Record<string, FlutterwavePaymentPlan>>(
@@ -218,8 +218,9 @@ export function PaymentPlanForm({
     validate: zod4Resolver(paymentPlanSchema),
   });
 
-  pledgeForm.watch("amount", ({ value: amount }) => {
-    navigate({ search: { amount } });
+  pledgeForm.watch("amount", ({ value }) => {
+    const amount = z.coerce.number().min(minimumPaymentAmount).parse(value);
+    navigate({ search: { amount }, replace: true, resetScroll: false });
   });
 
   const handleSubmit = async ({
@@ -231,7 +232,6 @@ export function PaymentPlanForm({
 
     const txRef = `LAUMGA_MANDATE_${user.id}_${Date.now()}`;
     const url = new URL(location.origin + location.pathname);
-    url.searchParams.set("txRef", txRef);
     const redirectUrl = url.toString();
 
     const response = await planCheckout.mutateAsync({
@@ -251,7 +251,7 @@ export function PaymentPlanForm({
           userId: user.id,
           cadence: frequency,
           amount,
-          paymentPlanId: String(paymentPlanId),
+          paymentPlanId,
         },
         customizations: {
           title: `${capitalize(frequency)} pledge`,
@@ -276,6 +276,23 @@ export function PaymentPlanForm({
       ? formatDateTime(activeMandate.created?.at)
       : "Awaiting activation";
 
+    const isPaused = activeMandate.status === "paused";
+
+    const bannerConfig = isPaused
+      ? {
+          color: "amber",
+          icon: AlertCircle,
+          title: "Your mandate is currently paused",
+          description:
+            "You can resume your pledge from the dashboard at any time. To change your amount or frequency, you must first cancel this mandate, then create a new one.",
+        }
+      : {
+          color: "red",
+          icon: AlertCircle,
+          title: "You already have an active mandate",
+          description: `To adjust your pledge, you must first cancel your current ${activeMandate.tier ? capitalize(activeMandate.tier) : "custom"} mandate from the dashboard, then return here to create a new one.`,
+        };
+
     const paymentDetails = [
       { label: "Started", value: createdLabel },
       { label: "Amount", value: amountLabel },
@@ -284,29 +301,48 @@ export function PaymentPlanForm({
 
     return (
       <div className="space-y-8">
-        <section className="space-y-6 rounded-3xl border border-red-200/80 bg-red-50/50 p-6">
+        <section
+          className={`space-y-6 rounded-3xl border p-6 ${
+            isPaused
+              ? "border-amber-200/80 bg-amber-50/50"
+              : "border-red-200/80 bg-red-50/50"
+          }`}
+        >
           <div className="space-y-4">
             <div className="flex gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-700 shrink-0">
-                <AlertCircle size={20} />
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full shrink-0 ${
+                  isPaused
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                <bannerConfig.icon size={20} />
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-semibold text-red-900">
-                  You already have an active mandate
+                <h2
+                  className={`text-xl font-semibold ${
+                    isPaused ? "text-amber-900" : "text-red-900"
+                  }`}
+                >
+                  {bannerConfig.title}
                 </h2>
-                <p className="text-sm text-red-700">
-                  To adjust your pledge, you must first cancel your current{" "}
-                  <span className="capitalize font-semibold">
-                    {activeMandate.tier || "custom"}
-                  </span>{" "}
-                  mandate from the dashboard, then return here to create a new
-                  one.
+                <p
+                  className={`text-sm ${
+                    isPaused ? "text-amber-700" : "text-red-700"
+                  }`}
+                >
+                  {bannerConfig.description}
                 </p>
               </div>
             </div>
             <Link
               to="/mandate/dashboard"
-              className="inline-flex items-center justify-center rounded-full bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700"
+              className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white transition ${
+                isPaused
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
             >
               Go to dashboard
             </Link>

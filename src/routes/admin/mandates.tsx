@@ -30,7 +30,7 @@ import { useAuth } from "@/contexts/use-auth";
 import { formatCurrency } from "@/utils/currency";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { AdminStatCard } from "@/components/admin/stat-card";
-import { listTransactionOptions } from "@/api/flutterwave/options";
+import { listFlutterwaveTransactionOptions } from "@/api/flutterwave/options";
 import { createColumnHelper } from "@tanstack/react-table";
 import { formatDate } from "@/utils/date";
 import clsx from "clsx";
@@ -525,7 +525,7 @@ const transactionColumns = [
 
 function TransactionHistoryModal({ email }: { email: string }) {
   const { data: transactionsResponse, isLoading } = useQuery(
-    listTransactionOptions({
+    listFlutterwaveTransactionOptions({
       customer_email: email,
       status: "successful",
     })

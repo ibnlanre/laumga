@@ -31,7 +31,9 @@ const mandateAmountSchema = z
 export const createMandateSchema = z.object({
   amount: mandateAmountSchema,
   frequency: mandateFrequencySchema.default("monthly"),
-  paymentPlanId: z.union([z.string(), z.number()]),
+  paymentPlanId: z.number().nullable().default(null),
+  transactionId: z.number().nullable().default(null),
+  transactionReference: z.string().nullable().default(null),
   subscriptionId: z.number().nullable().default(null),
   customerEmail: z.email(),
 });

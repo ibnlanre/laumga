@@ -22,6 +22,8 @@ import { determineTier } from "./utils";
 import { flutterwave } from "../flutterwave";
 import { userSchema, USERS_COLLECTION } from "../user/schema";
 import type { User } from "../user/types";
+import { feed } from "../feed";
+import { FieldValue } from "firebase-admin/firestore";
 
 const list = createServerFn({ method: "GET" })
   .inputValidator(createVariablesSchema(mandateSchema))
@@ -87,10 +89,23 @@ const create = createServerFn({ method: "POST" })
       tier: determineTier(data.amount),
       status: "active",
       paymentPlanId: data.paymentPlanId,
+      transactionId: data.transactionId,
+      transactionReference: data.transactionReference,
       subscriptionId: data.subscriptionId,
       customerEmail: data.customerEmail,
       created: serverRecord(user),
       updated: null,
+    });
+
+    await feed.$use.create({
+      data: {
+        location: user.address,
+        timestamp: FieldValue.serverTimestamp(),
+        amount: data.amount,
+        gender: user.gender,
+        userId: user.id,
+        type: "donation",
+      },
     });
   });
 
@@ -152,11 +167,13 @@ const cancel = createServerFn({ method: "POST" })
       throw new Error("Mandate has no subscription ID");
     }
 
-    await flutterwave.$use.subscription.cancel({
-      data: mandate.subscriptionId,
-    });
-
-    await ref.delete();
+    await flutterwave.$use.subscription
+      .cancel({
+        data: mandate.subscriptionId,
+      })
+      .finally(async () => {
+        await ref.delete();
+      });
   });
 
 const reinstate = createServerFn({ method: "POST" })

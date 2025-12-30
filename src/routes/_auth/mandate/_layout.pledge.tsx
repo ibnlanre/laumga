@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod/v4";
 
 import { MandateHeader } from "@/layouts/mandate/header";
@@ -8,17 +8,21 @@ import { flutterwave } from "@/api/flutterwave";
 import type {
   FlutterwavePaymentPlan,
   FlutterwavePaymentPlanListResponse,
+  FlutterwaveSubscriptionListResponse,
   FlutterwaveTransactionVerifyResponse,
 } from "@/api/flutterwave/types";
 import type { GetNextPageParamFunction } from "@tanstack/react-query";
-import { PaymentPlanForm } from "@/layouts/mandate/payment-plan-form";
+import {
+  minimumPaymentAmount,
+  PaymentPlanForm,
+} from "@/layouts/mandate/payment-plan-form";
 import { useAuth } from "@/contexts/use-auth";
 import { useLayoutEffect } from "@tanstack/react-router";
 import { useCreateMandate } from "@/api/mandate/hooks";
 
 const mandateSearchSchema = z
   .object({
-    amount: z.number(),
+    amount: z.coerce.number().default(minimumPaymentAmount),
     status: z.string(),
     transaction_id: z.number(),
     tx_ref: z.string(),
@@ -28,6 +32,7 @@ const mandateSearchSchema = z
 interface LoaderData {
   paymentPlans: FlutterwavePaymentPlan[];
   verification: FlutterwaveTransactionVerifyResponse | null;
+  subscriptionList: FlutterwaveSubscriptionListResponse | null;
 }
 
 const getNextPageParam: GetNextPageParamFunction<
@@ -45,15 +50,17 @@ export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
   validateSearch: mandateSearchSchema,
   loaderDeps: ({ search }) => ({
     txRef: search.tx_ref,
-    subscriptionId: search.transaction_id,
+    transactionId: search.transaction_id,
     status: search.status,
   }),
   loader: async ({ context, deps }): Promise<LoaderData> => {
     const { isAuthenticated } = context;
 
-    if (!isAuthenticated) return { paymentPlans: [], verification: null };
+    if (!isAuthenticated) {
+      return { paymentPlans: [], verification: null, subscriptionList: null };
+    }
 
-    const planResponse = await queryClient.ensureInfiniteQueryData({
+    const planResponse = await queryClient.fetchInfiniteQuery({
       queryKey: flutterwave.paymentPlan.list.$get({ status: "active" }),
       initialPageParam: 1,
       queryFn: () =>
@@ -65,21 +72,35 @@ export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
     });
 
     const paymentPlans = planResponse.pages.flatMap(({ data }) => data);
-    if (!deps.txRef) return { paymentPlans, verification: null };
-
-    const verification = await flutterwave.$use.transaction.verify({
-      data: deps.txRef,
-    });
-
-    if (
-      verification.data.status !== deps.status ||
-      verification.data.tx_ref !== deps.txRef ||
-      verification.data.id !== deps.subscriptionId
-    ) {
-      return { paymentPlans, verification: null };
+    if (!deps.txRef) {
+      return { paymentPlans, verification: null, subscriptionList: null };
     }
 
-    return { paymentPlans, verification };
+    const verification = await flutterwave.$use.transaction
+      .verify({ data: deps.txRef })
+      .catch(() => null);
+
+    if (
+      !verification ||
+      verification.data.status !== deps.status ||
+      verification.data.tx_ref !== deps.txRef ||
+      verification.data.id !== deps.transactionId
+    ) {
+      throw redirect({ to: "/mandate/pledge" });
+    }
+
+    const subscriptionList = await flutterwave.$use.subscription
+      .list({
+        data: {
+          email: verification.data.customer.email,
+          transaction_id: verification.data.id,
+          status: "active",
+        },
+      })
+      .catch(() => null);
+
+    if (!subscriptionList) throw redirect({ to: "/mandate/pledge" });
+    return { paymentPlans, verification, subscriptionList };
   },
   component: RouteComponent,
 });
@@ -87,15 +108,17 @@ export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
 function RouteComponent() {
   const { user } = useAuth();
   const { amount } = Route.useSearch();
-  const { paymentPlans, verification } = Route.useLoaderData();
+  const { paymentPlans, verification, subscriptionList } =
+    Route.useLoaderData();
 
   const createMandate = useCreateMandate();
   const navigate = Route.useNavigate();
 
   useLayoutEffect(() => {
-    if (!user || !verification) return;
+    if (!user || !verification || !subscriptionList) return;
 
     const { amount, meta, id } = verification.data;
+    const subscription = subscriptionList.data[0];
 
     createMandate.mutate(
       {
@@ -106,7 +129,9 @@ function RouteComponent() {
             customerEmail: user.email,
             frequency: meta.cadence,
             paymentPlanId: meta.paymentPlanId,
-            subscriptionId: id,
+            subscriptionId: subscription.id,
+            transactionReference: verification.data.tx_ref,
+            transactionId: id,
           },
         },
       },

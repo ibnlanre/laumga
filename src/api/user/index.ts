@@ -34,6 +34,7 @@ import type {
 import { getFirebaseErrorMessage } from "@/utils/firebase-errors";
 import { tryCatch } from "@/utils/try-catch";
 import { firebase } from "@/api/firebase";
+import { feed } from "@/api/feed";
 import {
   buildServerQuery,
   getServerQueryDoc,
@@ -41,6 +42,7 @@ import {
   serverCollection,
 } from "@/client/core-query/server";
 import { serverRecord } from "@/utils/server-record";
+import { FieldValue } from "firebase-admin/firestore";
 
 const list = createServerFn({ method: "GET" })
   .inputValidator(createVariablesSchema(userSchema))
@@ -107,19 +109,30 @@ const createUserDoc = createServerFn({ method: "POST" })
     }
 
     await userRef.set(payload);
+
+    await feed.$use.create({
+      data: {
+        location: data.address,
+        timestamp: FieldValue.serverTimestamp(),
+        amount: null,
+        gender: data.gender,
+        userId: id,
+        type: "registration",
+      },
+    });
   });
 
 async function create(variables: CreateUserVariables) {
   const { data } = variables;
   const { password, confirmPassword: _, ...profile } = data;
 
+  const emailExists = await checkEmail({ data: profile.email });
+
+  if (emailExists) {
+    throw new Error("Email is already registered. Please sign in instead.");
+  }
+
   const result = await tryCatch(async () => {
-    const emailExists = await checkEmail({ data: profile.email });
-
-    if (emailExists) {
-      throw new Error("Email is already registered. Please sign in instead.");
-    }
-
     await setPersistence(auth, browserLocalPersistence);
     const credential = await createUserWithEmailAndPassword(
       auth,

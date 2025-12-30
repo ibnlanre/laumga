@@ -72,7 +72,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
       <header
         className={`sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 ${className}`}
       >
-        <Section>
+        <section className="lg:container mx-auto px-4 sm:px-6 lg:px-8">
           <Group justify="space-between" h={70}>
             {/* Logo */}
             <Link
@@ -112,6 +112,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
             {isPublic ? (
               <Group gap="md" visibleFrom="md">
                 <Button
+                  radius="xl"
                   variant="subtle"
                   component={Link}
                   to="/login"
@@ -120,6 +121,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
                   Login
                 </Button>
                 <Button
+                  radius="xl"
                   component={Link}
                   to="/register"
                   className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white"
@@ -129,6 +131,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
               </Group>
             ) : (
               <Button
+                radius="xl"
                 type="button"
                 variant="outline"
                 className="hidden border-deep-forest text-deep-forest md:inline-flex"
@@ -148,14 +151,14 @@ export function Header({ variant, className = "" }: HeaderProps) {
               color="gray.7"
             />
           </Group>
-        </Section>
+        </section>
       </header>
 
       {/* Mobile Drawer */}
       <Drawer
         opened={opened}
         onClose={close}
-        size="100%"
+        size={500}
         padding="xl"
         title={
           <div className="flex items-center gap-2">
@@ -169,7 +172,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
             </span>
           </div>
         }
-        className="md:hidden"
+        className="lg:hidden"
       >
         <Stack gap="md">
           {items.map((item) => (
@@ -198,7 +201,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
                 to="/login"
                 onClick={close}
                 size="lg"
-                radius="lg"
+                radius="xl"
                 fullWidth
                 className="border-gray-300 text-gray-700 text-base"
               >
@@ -209,7 +212,7 @@ export function Header({ variant, className = "" }: HeaderProps) {
                 to="/register"
                 onClick={close}
                 size="lg"
-                radius="lg"
+                radius="xl"
                 fullWidth
                 className="bg-vibrant-lime-500 hover:bg-vibrant-lime-600 text-white text-base"
               >

@@ -1,9 +1,4 @@
-import {
-  createFileRoute,
-  Link,
-  useLoaderData,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   AlertCircle,
   CalendarClock,
@@ -30,13 +25,55 @@ import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "@/utils/currency";
 import { Section } from "@/components/section";
 
+import type { FlutterwaveTransaction } from "@/api/flutterwave/types";
+import { listFlutterwaveTransactionOptions } from "@/api/flutterwave/options";
+import { createColumnHelper } from "@tanstack/react-table";
+import { formatDate } from "@/utils/date";
+import clsx from "clsx";
+import { DataTable } from "@/components/data-table";
+import { getMandateOptions } from "@/api/mandate/options";
+
+const columnHelper = createColumnHelper<FlutterwaveTransaction>();
+
+const columns = [
+  columnHelper.accessor("created_at", {
+    header: "Date",
+    cell: (info) => formatDate(info.getValue()),
+  }),
+  columnHelper.accessor("status", {
+    header: "Status",
+    cell: (info) => (
+      <span
+        className={clsx(
+          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+          info.getValue() === "successful"
+            ? "bg-vibrant-lime-100 text-vibrant-lime-800"
+            : "bg-red-100 text-red-800"
+        )}
+      >
+        {info.getValue()}
+      </span>
+    ),
+  }),
+  columnHelper.accessor("amount", {
+    header: "Amount",
+    cell: (info) => formatCurrency(info.getValue()),
+  }),
+  columnHelper.accessor("narration", {
+    header: "Narration",
+    cell: (info) => (
+      <span className="text-sm text-gray-500">{info.getValue()}</span>
+    ),
+  }),
+];
+
 export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const { user } = useAuth();
-  const { activeMandate } = useLoaderData({ from: "/_auth/mandate/_layout" });
+  const { data: activeMandate } = useQuery(getMandateOptions(user?.id));
 
   const navigate = useNavigate({ from: "/mandate/dashboard" });
 
@@ -45,6 +82,15 @@ function RouteComponent() {
     isLoading: feedLoading,
     isError: feedError,
   } = useQuery(listFeedOptions());
+
+  const { data: transactionsResponse, isLoading: transactionsLoading } =
+    useQuery(
+      listFlutterwaveTransactionOptions({
+        tx_ref: activeMandate?.transactionReference,
+      })
+    );
+
+  const transactions = transactionsResponse?.data || [];
 
   const pauseMutation = usePauseMandate();
   const reinstateMutation = useReinstateMandate();
@@ -73,7 +119,12 @@ function RouteComponent() {
         </Text>
       ),
       labels: { confirm: "Pause", cancel: "Cancel" },
-      confirmProps: { color: "dark", size: "md", radius: "xl" },
+      confirmProps: {
+        color: "dark",
+        size: "md",
+        radius: "xl",
+        loading: pauseMutation.isPending,
+      },
       cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
         if (!user) return;
@@ -97,7 +148,12 @@ function RouteComponent() {
         </Text>
       ),
       labels: { confirm: "Resume", cancel: "Cancel" },
-      confirmProps: { color: "green", size: "md", radius: "xl" },
+      confirmProps: {
+        color: "green",
+        size: "md",
+        radius: "xl",
+        loading: reinstateMutation.isPending,
+      },
       cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
         if (!user) return;
@@ -127,7 +183,12 @@ function RouteComponent() {
         </div>
       ),
       labels: { confirm: "Cancel Mandate", cancel: "Keep It" },
-      confirmProps: { color: "red", size: "md", radius: "xl" },
+      confirmProps: {
+        color: "red",
+        size: "md",
+        radius: "xl",
+        loading: cancelMutation.isPending,
+      },
       cancelProps: { variant: "default", size: "md", radius: "xl" },
       onConfirm: async () => {
         if (!user) return;
@@ -208,12 +269,16 @@ function RouteComponent() {
                       {status === "active" && (
                         <Button
                           size="lg"
-                          className="inline-flex items-center gap-2 rounded-full border-2 border-deep-forest/20 bg-white text-sm font-semibold text-deep-forest transition hover:bg-deep-forest/5 hover:border-deep-forest/40"
+                          variant="white"
+                          className="inline-flex items-center rounded-full border-2 border-deep-forest/20 bg-deep-forest/5 text-sm font-semibold text-deep-forest transition hover:bg-deep-forest/10 hover:border-deep-forest/40"
+                          classNames={{ label: "gap-2" }}
                           type="button"
                           onClick={handlePauseMandate}
+                          loading={pauseMutation.isPending}
+                          loaderProps={{ color: "black" }}
                         >
                           <Pause size={18} />
-                          Pause mandate
+                          <span>Pause mandate</span>
                         </Button>
                       )}
 
@@ -221,8 +286,11 @@ function RouteComponent() {
                         <Button
                           size="lg"
                           className="inline-flex items-center gap-2 rounded-full border-2 border-vibrant-lime bg-vibrant-lime/10 text-sm font-semibold text-institutional-green transition hover:bg-vibrant-lime/20"
+                          classNames={{ label: "gap-2" }}
                           type="button"
                           onClick={handleResumeMandate}
+                          loading={reinstateMutation.isPending}
+                          loaderProps={{ color: "vibrant-lime" }}
                         >
                           <Play size={18} />
                           Resume mandate
@@ -232,8 +300,10 @@ function RouteComponent() {
                       <Button
                         size="lg"
                         className="inline-flex items-center gap-2 rounded-full border-2 border-red-200 bg-red-50 text-sm font-semibold text-red-700 transition hover:bg-red-100 hover:border-red-300"
+                        classNames={{ label: "gap-2" }}
                         type="button"
                         onClick={handleCancelMandate}
+                        loading={cancelMutation.isPending}
                       >
                         <X size={18} />
                         Cancel mandate
@@ -261,6 +331,30 @@ function RouteComponent() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+                    History
+                  </p>
+                  <h2 className="text-2xl font-bold text-deep-forest">
+                    Transaction History
+                  </h2>
+                  <p className="text-sm text-deep-forest/70">
+                    Your recent contributions and charges.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <DataTable
+                  data={transactions}
+                  columns={columns}
+                  loading={transactionsLoading}
+                />
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-sage-green/40 bg-white/95 p-6 shadow-lg">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
                     Community activity
                   </p>
                   <h2 className="text-2xl font-bold text-deep-forest">
@@ -273,12 +367,10 @@ function RouteComponent() {
               </div>
 
               {feedLoading ? (
-                <div className="py-12">
-                  <LoadingState
-                    type="spinner"
-                    message="Gathering latest activity..."
-                  />
-                </div>
+                <LoadingState
+                  type="spinner"
+                  message="Gathering latest activity..."
+                />
               ) : feedError ? (
                 <div className="pt-6">
                   <EmptyState
@@ -289,22 +381,39 @@ function RouteComponent() {
                 </div>
               ) : feedData.length ? (
                 <ul className="mt-6 space-y-4">
-                  {feedData.map((item, index) => (
-                    <li
-                      key={`${item.timestamp}-${index}`}
-                      className="flex flex-col gap-2 rounded-2xl border border-sage-green/40 bg-mist-green/30 px-4 py-3 text-deep-forest"
-                    >
-                      <span className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
-                        {item.type === "donation" ? "Mandate" : "Registration"}
-                      </span>
+                  {feedData.map((item, index) => {
+                    const formattedDate = formatDate(item.timestamp);
 
-                      <p className="text-sm text-deep-forest/80">
-                        {item.type === "donation"
-                          ? `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${item.location} donated`
-                          : `🚀 New member from ${item.location} registered`}
-                      </p>
-                    </li>
-                  ))}
+                    let message = "";
+                    if (item.type === "donation") {
+                      const amountText = item.amount
+                        ? formatCurrency(item.amount)
+                        : "";
+                      message = `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${item.location} ${amountText ? `pledged ${amountText}` : "made a donation"}`;
+                    } else if (item.type === "registration") {
+                      message = `🎉 New member from ${item.location} joined the community`;
+                    }
+
+                    return (
+                      <li
+                        key={`${item.timestamp}-${index}`}
+                        className="flex flex-col gap-2 rounded-2xl border border-sage-green/40 bg-mist-green/30 px-4 py-3 text-deep-forest"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+                            {item.type === "donation"
+                              ? "Mandate"
+                              : "Registration"}
+                          </span>
+                          <span className="text-xs text-deep-forest/50">
+                            {formattedDate}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-deep-forest/80">{message}</p>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <div className="pt-6">
