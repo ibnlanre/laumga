@@ -296,7 +296,7 @@ export const flutterwavePaymentPlanCreateResponseSchema = z.object({
 
 export const flutterwaveSubscriptionCustomerSchema = z.object({
   id: z.union([z.number(), z.string()]).nullable().optional(),
-  customer_email: z.string().email().nullable().optional(),
+  customer_email: z.email().nullable().optional(),
 });
 
 export const flutterwaveSubscriptionPlanSchema = z.object({

@@ -1,6 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Button, Text, Container } from "@mantine/core";
-import { AlertCircle } from "lucide-react";
+import { ErrorPage } from "./error-page";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -34,22 +33,7 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <Container className="text-center py-12">
-            <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <Text size="lg" fw={700} c="deep-forest" mb="xs">
-              Something went wrong
-            </Text>
-            <Text c="dimmed" size="sm" mb="xl">
-              {this.state.error?.message || "An unexpected error occurred"}
-            </Text>
-            <Button
-              variant="outline"
-              color="deep-forest"
-              onClick={this.handleReset}
-            >
-              Try Again
-            </Button>
-          </Container>
+          <ErrorPage error={this.state.error} resetError={this.handleReset} />
         )
       );
     }

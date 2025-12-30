@@ -13,6 +13,7 @@ import { Notifications } from "@mantine/notifications";
 
 import styles from "../styles.css?url";
 import { NotFound } from "@/components/not-found";
+import { ErrorPage } from "@/components/error-page";
 import { AuthProvider } from "@/contexts/auth-provider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/routing/query-client";
@@ -104,6 +105,7 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   notFoundComponent: NotFound,
+  errorComponent: ErrorPage,
   pendingComponent: PageLoader,
 });
 
