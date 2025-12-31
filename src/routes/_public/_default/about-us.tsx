@@ -11,6 +11,32 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/about-us")({
+  head: () => ({
+    meta: [
+      {
+        title: "About Us - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Learn about LAUMGA's history, mission, and values since 1997. Discover how we unite LAUTECH Muslim alumni for spiritual growth and community development.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA history, about LAUMGA, Muslim alumni association, LAUTECH Muslim community, Islamic values",
+      },
+      {
+        property: "og:title",
+        content: "About Us - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Learn about LAUMGA's history, mission, and values since 1997.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

@@ -6,6 +6,22 @@ import { MandateCertificateView } from "@/layouts/mandate/certificate-view";
 
 export const Route = createFileRoute("/_auth/mandate/_layout/certificate")({
   ssr: false,
+  head: () => ({
+    meta: [
+      {
+        title: "Mandate Certificate - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "View and download your LAUMGA membership mandate certificate. Official recognition of your contribution to the community.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

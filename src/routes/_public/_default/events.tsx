@@ -10,6 +10,32 @@ import { listEventOptions } from "@/api/event/options";
 import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_public/_default/events")({
+  head: () => ({
+    meta: [
+      {
+        title: "Events - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Discover upcoming LAUMGA events including conventions, seminars, iftar programs, sports activities, and da'wah initiatives. Connect with fellow alumni.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA events, alumni events, Islamic seminars, conventions, iftar programs, community gatherings, LAUTECH Muslim events",
+      },
+      {
+        property: "og:title",
+        content: "Events - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Discover upcoming LAUMGA events and connect with fellow alumni.",
+      },
+    ],
+  }),
   component: EventsPage,
 });
 

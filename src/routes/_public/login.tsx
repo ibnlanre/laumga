@@ -5,6 +5,22 @@ import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
 
 export const Route = createFileRoute("/_public/login")({
+  head: () => ({
+    meta: [
+      {
+        title: "Login - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Sign in to your LAUMGA account to access your profile, connect with peers, and manage your membership.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

@@ -20,6 +20,32 @@ const bulletinSearchSchema = z.object({
 
 export const Route = createFileRoute("/_public/_default/bulletin/")({
   validateSearch: bulletinSearchSchema,
+  head: () => ({
+    meta: [
+      {
+        title: "Bulletin - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Browse LAUMGA's latest articles, news, and updates. Stay informed about community events, Islamic teachings, campus news, and alumni achievements.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA bulletin, alumni news, Islamic articles, campus updates, community news, LAUTECH Muslim articles",
+      },
+      {
+        property: "og:title",
+        content: "Bulletin - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Browse LAUMGA's latest articles, news, and updates from the community.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

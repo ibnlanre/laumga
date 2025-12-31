@@ -8,6 +8,32 @@ import { Section } from "@/components/section";
 import guideText from "~/docs/user-guide.md?raw";
 
 export const Route = createFileRoute("/_public/_default/user-guide")({
+  head: () => ({
+    meta: [
+      {
+        title: "User Guide - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Complete guide to using the LAUMGA platform. Learn how to register, manage your profile, connect with alumni, and access member resources.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA user guide, platform help, how to use LAUMGA, member resources, registration guide",
+      },
+      {
+        property: "og:title",
+        content: "User Guide - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Complete guide to using the LAUMGA platform and accessing member resources.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

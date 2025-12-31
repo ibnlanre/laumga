@@ -14,12 +14,65 @@ import { listArticleOptions } from "@/api/article/options";
 import { useQuery } from "@tanstack/react-query";
 import { listEventOptions } from "@/api/event/options";
 import { Section } from "@/components/section";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { useElementSize } from "@mantine/hooks";
 
 export const Route = createFileRoute("/_public/")({
+  head: () => ({
+    meta: [
+      {
+        title: "LAUMGA - Uniting Alumni, Empowering the Ummah",
+      },
+      {
+        name: "description",
+        content:
+          "Join a thriving network of LAUTECH Muslim alumni dedicated to spiritual growth and community development. Connect with professionals, mentors, and friends across generations.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA, LAUTECH, Muslim alumni, Islamic community, alumni network, professional development, spiritual growth, Ogbomoso",
+      },
+      {
+        property: "og:title",
+        content: "LAUMGA - Uniting Alumni, Empowering the Ummah",
+      },
+      {
+        property: "og:description",
+        content:
+          "Join a thriving network of LAUTECH Muslim alumni dedicated to spiritual growth and community development.",
+      },
+      {
+        property: "og:url",
+        content: "https://laumga.org",
+      },
+      {
+        name: "twitter:title",
+        content: "LAUMGA - Uniting Alumni, Empowering the Ummah",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Join a thriving network of LAUTECH Muslim alumni dedicated to spiritual growth and community development.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 
+// useSpring(, {
+//   stiffness: 100,
+//   damping: 30,
+//   restDelta: 0.001,
+// });
+
 function RouteComponent() {
+  const target = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target });
+  const { height, ref } = useElementSize();
+  const y = useTransform(scrollYProgress, [0, 1], [0, height]);
+
   const { data: articles } = useQuery(
     listArticleOptions({
       filterBy: [{ field: "status", operator: "==", value: "published" }],
@@ -40,16 +93,21 @@ function RouteComponent() {
   );
 
   return (
-    <main>
-      <section className="relative w-full flex items-center justify-center text-center bg-gray-900">
-        <img
+    <main ref={target}>
+      <section
+        ref={ref}
+        className="relative w-full flex items-center justify-center text-center bg-gray-900 overflow-hidden"
+      >
+        <motion.img
           alt="Diverse alumni and students on LAUTECH campus"
-          className="absolute inset-0 w-full h-full object-cover opacity-80"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsXODsNA_Hj4RWAPlRFfMgAXUpN3mxDLkwJBGhiGD_dk9C47kDamzg5sKnMMrdRkkcZIIL2ANIw4PqoxGa7VRgGTirvD1q2_FhiM0J_JwUCCgIvrkNsd40xQTa_fzd6ZeGFW03M5WDhc4n5YhIZrYoiYWzKP893FikoqFZ1g5ltL_wZaIfWbbSp-UX0txyBlKKD_wA93TOVDj7chcYw7F5XTkHjn5hUC16FRBf9ajclBxy9ukTwao8s4wH1dOKtxBTBlIOyX68Jsw"
+          className="absolute top-0 inset-0 w-full object-cover opacity-80 object-top"
+          src="/images/lautech-main-gate.png"
+          style={{ y, minHeight: height }}
         />
+
         <div className="absolute inset-0 bg-linear-to-r from-black/60 to-black/20"></div>
 
-        <Section className="relative z-10 text-white justify-center grid py-20 sm:py-42 justify-items-center">
+        <Section className="relative z-10 text-white justify-center grid py-20 sm:py-42 lg:pt-[18vw] justify-items-center">
           <h1 className="text-4xl md:text-6xl font-black tracking-wider font-serif">
             Connecting Generations.
           </h1>
@@ -233,8 +291,8 @@ function RouteComponent() {
             <div className="flex justify-center items-center">
               <img
                 alt="LAUMGA Member ID Card Mockup"
-                className="w-full max-w-md rounded-2xl rotate-3 shadow-2xl filter-[drop-shadow(0_20px_25px_rgba(0,0,0,0.4))]"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHXd9K4nYV26NX_lOwuPJ72BmAPX8QY26kLE6H6MZlq5YpF4bnsnnpuDVoQtIw8qYtWOPtUPZXdSsBPhOycks9vQS-QzIkbXVqDMZl80mHq1epH-tz5cOo1_elc-mPOOx6j_-vTPRgWMYQvtY7XADPodogHScJ0rp5E7p4R4kr6y3FlBghzfcU8oBTPDGAJ1YkOaMeybh5zc9RW9CWQY3mpQkeuT20NxBZzh9yh9dYUsMLSbJsZGFolPRtswI_Fh3rFYNntRzckVk"
+                className="w-full max-w-md rounded-2xl aspect-square object-contain shadow-2xl filter-[drop-shadow(0_20px_25px_rgba(0,0,0,0.4))]"
+                src="/images/membership-card.jpeg"
               />
             </div>
           </div>

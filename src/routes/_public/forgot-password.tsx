@@ -4,6 +4,22 @@ import { AuthLayout } from "@/layouts/auth/layout";
 import { AuthSidebar } from "@/layouts/auth/sidebar";
 
 export const Route = createFileRoute("/_public/forgot-password")({
+  head: () => ({
+    meta: [
+      {
+        title: "Forgot Password - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Reset your LAUMGA account password. We'll help you regain access to your account securely.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

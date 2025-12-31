@@ -102,6 +102,22 @@ export const Route = createFileRoute("/_auth/mandate/_layout/pledge")({
     if (!subscriptionList) throw redirect({ to: "/mandate/pledge" });
     return { paymentPlans, verification, subscriptionList };
   },
+  head: () => ({
+    meta: [
+      {
+        title: "Create Mandate - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Set up your LAUMGA membership pledge. Choose a giving tier and commitment level to support community initiatives.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

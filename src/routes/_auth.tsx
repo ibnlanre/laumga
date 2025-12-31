@@ -14,6 +14,14 @@ export const Route = createFileRoute("/_auth")({
       });
     }
   },
+  head: () => ({
+    meta: [
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: AuthLayout,
   pendingComponent: PageLoader,
 });

@@ -2,6 +2,32 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MailOpen, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/_public/_default/newsletter")({
+  head: () => ({
+    meta: [
+      {
+        title: "An-Naseehah Newsletter - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Subscribe to An-Naseehah, LAUMGA's quarterly newsletter. Join 5,000+ alumni receiving insights on faith, society, and professional growth.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA newsletter, An-Naseehah, Islamic insights, alumni newsletter, quarterly publication, Muslim community",
+      },
+      {
+        property: "og:title",
+        content: "An-Naseehah Newsletter - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Subscribe to An-Naseehah, LAUMGA's quarterly newsletter with insights on faith, society, and professional growth.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

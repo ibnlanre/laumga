@@ -18,6 +18,14 @@ export const Route = createFileRoute("/_auth/mandate/_layout")({
 
     return { activeMandate };
   },
+  head: () => ({
+    meta: [
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

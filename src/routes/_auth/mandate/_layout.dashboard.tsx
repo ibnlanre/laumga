@@ -68,6 +68,22 @@ const columns = [
 ];
 
 export const Route = createFileRoute("/_auth/mandate/_layout/dashboard")({
+  head: () => ({
+    meta: [
+      {
+        title: "Mandate Dashboard - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Manage your LAUMGA mandate. View transaction history, activity feed, and control your membership pledge.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

@@ -10,6 +10,22 @@ const resetPasswordSearchSchema = z.object({
 
 export const Route = createFileRoute("/_public/reset-password")({
   validateSearch: resetPasswordSearchSchema,
+  head: () => ({
+    meta: [
+      {
+        title: "Reset Password - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Set a new password for your LAUMGA account to regain access to member-only features.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

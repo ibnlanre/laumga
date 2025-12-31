@@ -18,6 +18,22 @@ const CATEGORY_LABELS: Record<(typeof MEDIA_CATEGORIES)[number], string> = {
 };
 
 export const Route = createFileRoute("/_auth/gallery")({
+  head: () => ({
+    meta: [
+      {
+        title: "Gallery - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Explore photos and media from LAUMGA events, conventions, humanitarian activities, and campus life. Relive memorable moments with fellow alumni.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: GalleryPage,
 });
 

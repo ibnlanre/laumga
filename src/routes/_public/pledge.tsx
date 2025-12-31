@@ -168,6 +168,32 @@ export const Route = createFileRoute("/_public/pledge")({
     const paymentPlans = planResponse.pages.flatMap(({ data }) => data);
     return { paymentPlans };
   },
+  head: () => ({
+    meta: [
+      {
+        title: "Make a Pledge - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Support LAUMGA's mission through monthly donations. Choose from Supporter, Builder, Guardian, or Champion tiers to fund welfare, scholarships, and community projects.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA donation, alumni contribution, monthly pledge, support Muslim community, LAUTECH alumni donation",
+      },
+      {
+        property: "og:title",
+        content: "Make a Pledge - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Support LAUMGA's mission through monthly donations. Fund welfare, scholarships, and community projects.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

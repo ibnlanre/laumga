@@ -25,6 +25,26 @@ import {
 } from "@/components/notifications";
 
 export const Route = createFileRoute("/_public/_default/events/$eventId")({
+  head: ({ params }) => ({
+    meta: [
+      {
+        title: `Event Details - LAUMGA`,
+      },
+      {
+        name: "description",
+        content:
+          "View details for this LAUMGA event including date, location, and registration information. Join fellow alumni for community activities.",
+      },
+      {
+        property: "og:title",
+        content: `Event Details - LAUMGA`,
+      },
+      {
+        property: "og:type",
+        content: "event",
+      },
+    ],
+  }),
   component: EventDetailPage,
 });
 

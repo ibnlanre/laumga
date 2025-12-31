@@ -126,6 +126,32 @@ const testimonials = [
 ];
 
 export const Route = createFileRoute("/_public/_default/membership")({
+  head: () => ({
+    meta: [
+      {
+        title: "Membership - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Explore LAUMGA membership tiers and benefits. Choose from Supporter, Builder, Guardian, or Champion levels to support student welfare, scholarships, and community development.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA membership, alumni membership tiers, join LAUMGA, supporter benefits, guardian tier, champion level",
+      },
+      {
+        property: "og:title",
+        content: "Membership - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Explore LAUMGA membership tiers and benefits. Support student welfare, scholarships, and community development.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

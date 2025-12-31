@@ -18,6 +18,22 @@ import { Section } from "@/components/section";
 import clsx from "clsx";
 
 export const Route = createFileRoute("/_auth/mandate/_layout/")({
+  head: () => ({
+    meta: [
+      {
+        title: "My Mandate - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "View your LAUMGA membership mandate. Track your contributions, view impact statistics, and manage your giving commitment.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

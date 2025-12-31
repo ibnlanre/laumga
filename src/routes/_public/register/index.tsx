@@ -8,10 +8,11 @@ import {
   FileInput,
   Button,
   Stack,
-  Loader, PasswordInput,
+  Loader,
+  PasswordInput,
   Text,
   Avatar,
-  Textarea
+  Textarea,
 } from "@mantine/core";
 import {
   ArrowLeft,
@@ -52,6 +53,22 @@ import { listChapterOptions } from "@/api/chapter/options";
 import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/register/")({
+  head: () => ({
+    meta: [
+      {
+        title: "Register - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Join the LAUMGA community of LAUTECH Muslim alumni. Register to connect with fellow graduates and access exclusive member benefits.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 
@@ -348,9 +365,7 @@ function LocationDetailsStep() {
   const { data: chapter } = useQuery({
     ...listChapterOptions(),
     select: (data) =>
-      data.find(
-        ({ state }) => state === form.values.stateOfResidence
-      ),
+      data.find(({ state }) => state === form.values.stateOfResidence),
   });
 
   const isNigeriaResidence = form.values.countryOfResidence === "Nigeria";

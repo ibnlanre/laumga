@@ -10,6 +10,22 @@ import { listExecutiveTenureOptions } from "@/api/executive-tenure/options";
 import { SearchCheckIcon, MapPin, Sparkles, User } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/alumni")({
+  head: () => ({
+    meta: [
+      {
+        title: "Alumni Directory - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Browse LAUMGA's alumni directory. Connect with fellow graduates, view executive members, and explore professional networks across chapters.",
+      },
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

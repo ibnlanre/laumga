@@ -10,6 +10,27 @@ export const Route = createFileRoute("/_public")({
       throw redirect({ to: "/mandate" });
     }
   },
+  head: () => ({
+    meta: [
+      {
+        name: "description",
+        content:
+          "LAUMGA - Ladoke Akintola University of Technology Muslim Graduates Association. Connecting alumni, empowering the Ummah through spiritual growth and community development.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:site_name",
+        content: "LAUMGA",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+    ],
+  }),
   component: Layout,
   pendingComponent: PageLoader,
 });

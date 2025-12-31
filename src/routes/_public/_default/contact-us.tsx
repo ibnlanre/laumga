@@ -35,6 +35,32 @@ import type { NotificationForm } from "@/api/notification/types";
 import { useAuth } from "@/contexts/use-auth";
 
 export const Route = createFileRoute("/_public/_default/contact-us")({
+  head: () => ({
+    meta: [
+      {
+        title: "Contact Us - LAUMGA",
+      },
+      {
+        name: "description",
+        content:
+          "Get in touch with LAUMGA. Find our contact information, office hours, and send us a message. We're here to help connect alumni and serve the community.",
+      },
+      {
+        name: "keywords",
+        content:
+          "LAUMGA contact, reach LAUMGA, alumni support, contact information, get in touch",
+      },
+      {
+        property: "og:title",
+        content: "Contact Us - LAUMGA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Get in touch with LAUMGA. We're here to help connect alumni and serve the community.",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 

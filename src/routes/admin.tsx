@@ -5,6 +5,14 @@ import { AuthSidebar } from "@/layouts/auth/sidebar";
 import { AdminAppShell } from "@/layouts/admin/layout";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({
+    meta: [
+      {
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+    ],
+  }),
   component: AdminLayout,
 });
 

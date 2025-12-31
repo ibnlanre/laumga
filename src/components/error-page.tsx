@@ -26,7 +26,7 @@ export function ErrorPage({ error, resetError }: ErrorPageProps) {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-deep-forest">
-      <div className="absolute inset-0 bg-[url('/backgrounds/arabesque-tile.png')] opacity-[0.1]" />
+      <div className="absolute inset-0 bg-[url('/patterns/arabesque-tile.png')] opacity-[0.1]" />
 
       <div className="flex h-full grow flex-col relative">
         <div className="flex flex-1 sm:items-center justify-center px-4 py-10 sm:px-8 md:px-20 lg:px-40">

@@ -10,6 +10,26 @@ import {
 } from "@/api/article/options";
 
 export const Route = createFileRoute("/_public/_default/bulletin/$article")({
+  head: ({ params }) => ({
+    meta: [
+      {
+        title: `Article - LAUMGA Bulletin`,
+      },
+      {
+        name: "description",
+        content:
+          "Read the latest article from LAUMGA's bulletin covering news, Islamic teachings, and community updates.",
+      },
+      {
+        property: "og:title",
+        content: `Article - LAUMGA Bulletin`,
+      },
+      {
+        property: "og:type",
+        content: "article",
+      },
+    ],
+  }),
   component: RouteComponent,
 });
 
