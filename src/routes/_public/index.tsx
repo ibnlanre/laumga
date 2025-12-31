@@ -160,7 +160,7 @@ function RouteComponent() {
               <img
                 alt="Mr. Goke Aruna, Chairman LAUMGA Foundation"
                 className="rounded-lg size-full object-cover shadow-2xl aspect-4/3"
-                src="/laumga-chairman-photo.png"
+                src="/images/laumga-chairman-photo.png"
               />
             </div>
           </div>
