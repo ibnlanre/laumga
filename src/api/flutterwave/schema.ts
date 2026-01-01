@@ -98,6 +98,17 @@ export const flutterwaveTokenStatusSchema = z.enum([
   "DELETED",
 ]);
 
+export const flutterwaveTransactionMetaSchema = z.object({
+  __CheckoutInitAddress: z.string().optional(),
+  __FingerprintConfidenceScore: z.union([z.string(), z.number()]).optional(),
+  userId: z.string().optional(),
+  cadence: mandateFrequencySchema,
+  amount: z.union([z.string(), z.number()]).optional(),
+  paymentPlanId: z.union([z.number(), z.string()]).nullable(),
+  platform: z.string().optional(),
+  subaccount_split: z.string().optional(),
+});
+
 export const flutterwaveTransactionSchema = z.object({
   id: z.number(),
   tx_ref: z.string(),
@@ -127,7 +138,7 @@ export const flutterwaveTransactionSchema = z.object({
       expiry: z.string(),
     })
     .optional(),
-  meta: z.any().nullable(),
+  meta: flutterwaveTransactionMetaSchema,
   amount_settled: z.number(),
   customer: z.object({
     id: z.number(),
@@ -240,7 +251,7 @@ export const flutterwavePlanCheckoutRequestSchema = z.object({
   paymentPlanId: z.number().nullable().default(null),
   customer: flutterwavePlanCheckoutCustomerSchema,
   customizations: flutterwavePlanCheckoutCustomizationSchema.optional(),
-  meta: z.record(z.string(), z.any()).optional(),
+  meta: flutterwaveTransactionMetaSchema,
   paymentOptions: z.string().optional().default("card"),
 });
 
@@ -361,16 +372,7 @@ export const flutterwaveTransactionVerifyDataSchema = z.object({
       expiry: z.string(),
     })
     .optional(),
-  meta: z.object({
-    __CheckoutInitAddress: z.url(),
-    __FingerprintConfidenceScore: z.string(),
-    userId: z.string(),
-    cadence: mandateFrequencySchema,
-    amount: z.string(),
-    paymentPlanId: z.number(),
-    platform: z.string(),
-    subaccount_split: z.string(),
-  }),
+  meta: flutterwaveTransactionMetaSchema,
   plan: z.number().optional(),
   amount_settled: z.number(),
   customer: z.object({

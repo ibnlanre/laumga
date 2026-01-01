@@ -225,7 +225,7 @@ const paymentPlanCreate = createServerFn({ method: "POST" })
 
     return response.data;
   });
-    
+
 const subscriptionList = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
@@ -291,9 +291,7 @@ const transactionVerify = createServerFn({ method: "GET" })
     const response = await flutterwaveClient
       .get<FlutterwaveTransactionVerifyResponse>(
         `/v3/transactions/verify_by_reference`,
-        {
-          params: { tx_ref: txRef },
-        }
+        { params: { tx_ref: txRef } }
       )
       .catch((error: AxiosError<FlutterwaveErrorResponse>) => {
         const flutterwaveError = error.response?.data;

@@ -251,7 +251,6 @@ function RouteComponent() {
           cadence: frequency,
           amount,
           paymentPlanId,
-          source: "public_pledge",
         },
         customizations: {
           title: `${capitalize(frequency)} pledge`,
