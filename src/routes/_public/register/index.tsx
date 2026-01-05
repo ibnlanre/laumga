@@ -12,22 +12,18 @@ import {
   PasswordInput,
   Text,
   Avatar,
-  Textarea,
 } from "@mantine/core";
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
   Edit,
-  Globe,
-  Home,
   Info,
   Mail,
-  MapPin,
   Shield,
   Upload,
 } from "lucide-react";
-import { DateInput, YearPickerInput } from "@mantine/dates";
+import { YearPickerInput } from "@mantine/dates";
 import { Form } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { RegistrationLayout } from "@/components/registration-layout";
@@ -37,20 +33,16 @@ import {
   useRegistration,
   useRegistrationForm,
 } from "@/contexts/registration-context";
-import { useCountryOptions, useStateOptions } from "@/services/location";
 import { formatDate } from "@/utils/date";
 import { useUserImageUpload } from "@/api/upload/hooks";
 import { useCreateUser } from "@/api/user/hooks";
 import {
   accountCredentialsSchema,
+  branches,
   departmentsByFaculty,
   faculties,
-  locationDetailsSchema,
   personalDetailsSchema,
 } from "@/api/registration/schema";
-import { useQuery } from "@tanstack/react-query";
-import { listChapterOptions } from "@/api/chapter/options";
-import dayjs from "dayjs";
 
 export const Route = createFileRoute("/_public/register/")({
   head: () => ({
@@ -97,10 +89,6 @@ function StepsPanel() {
 
   if (currentStep === 1) {
     return <PersonalDetailsStep />;
-  }
-
-  if (currentStep === 2) {
-    return <LocationDetailsStep />;
   }
 
   return <CredentialsStep />;
@@ -248,18 +236,18 @@ function PersonalDetailsStep() {
           )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <DateInput
-              label="Date of Birth"
-              placeholder="Select date"
-              maxDate={dayjs().subtract(18, "years").toDate()}
-              valueFormat="YYYY-MM-DD"
-              {...form.getInputProps("dateOfBirth")}
-              autoComplete="section-personal bday"
+            <Select
+              label="Branch"
+              placeholder="Select your branch"
+              data={branches}
+              withAsterisk
+              searchable
+              {...form.getInputProps("branch")}
+              autoComplete="section-personal address-level2"
               labelProps={{ lh: 2, fz: "sm" }}
               radius="lg"
               size="lg"
             />
-
             <PhoneInput
               label="Phone Number"
               placeholder="080XXXXXXXX"
@@ -346,193 +334,6 @@ function PersonalDetailsStep() {
   );
 }
 
-function LocationDetailsStep() {
-  const form = useRegistrationForm();
-  const { previousStep, nextStep, markStepComplete } = useRegistration();
-  const { countryOptions, countryOptionsLoading } = useCountryOptions();
-  const {
-    stateOptions: originStateOptions,
-    stateOptionsLoading: isLoadingOriginStates,
-  } = useStateOptions(form.values.countryOfOrigin);
-  const {
-    stateOptions: residenceStateOptions,
-    stateOptionsLoading: isLoadingResidenceStates,
-  } = useStateOptions(form.values.countryOfResidence);
-  const hasOriginStateSelect =
-    originStateOptions.length || isLoadingOriginStates;
-  const hasResidenceStateSelect =
-    residenceStateOptions.length || isLoadingResidenceStates;
-  const { data: chapter } = useQuery({
-    ...listChapterOptions(),
-    select: (data) =>
-      data.find(({ state }) => state === form.values.stateOfResidence),
-  });
-
-  const isNigeriaResidence = form.values.countryOfResidence === "Nigeria";
-
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (evt) => {
-    evt.preventDefault();
-    if (validateLocationDetails(form)) return;
-
-    form.clearErrors();
-    markStepComplete(2);
-    nextStep();
-  };
-
-  return (
-    <RegistrationLayout
-      sidebarTitle="Expand Your Network."
-      sidebarDescription="Connecting you to the chapter closest to your residence."
-    >
-      <Form form={form} onSubmitCapture={handleSubmit} className="space-y-6">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-deep-forest mb-2">
-            Network Details
-          </h2>
-          <p className="text-gray-600">
-            Where you're from and how to reach you
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Country of Origin"
-              placeholder="Select country..."
-              data={countryOptions}
-              {...form.getInputProps("countryOfOrigin")}
-              autoComplete="section-origin country-name"
-              clearable
-              searchable
-              withAsterisk
-              leftSection={<Globe size={16} />}
-              labelProps={{ lh: 2, fz: "sm" }}
-              radius="lg"
-              size="lg"
-            />
-
-            {hasOriginStateSelect ? (
-              <Select
-                label="State of Origin"
-                placeholder="Select your state..."
-                data={originStateOptions}
-                clearable
-                searchable
-                withAsterisk
-                {...form.getInputProps("stateOfOrigin")}
-                autoComplete="section-origin address-level1"
-                disabled={isLoadingOriginStates}
-                rightSection={
-                  isLoadingOriginStates ? <Loader size="sm" /> : undefined
-                }
-                nothingFoundMessage="No state options"
-                labelProps={{ lh: 2, fz: "sm" }}
-                radius="lg"
-                size="lg"
-              />
-            ) : (
-              <TextInput
-                label="State/Region of Origin"
-                placeholder="e.g. California, Ontario, etc."
-                withAsterisk
-                {...form.getInputProps("stateOfOrigin")}
-                autoComplete="section-origin address-level1"
-                labelProps={{ lh: 2, fz: "sm" }}
-                radius="lg"
-                size="lg"
-              />
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Country of Residence"
-              placeholder="Select country..."
-              data={countryOptions}
-              clearable
-              searchable
-              withAsterisk
-              leftSection={<Globe size={16} />}
-              {...form.getInputProps("countryOfResidence")}
-              autoComplete="section-residence country-name"
-              disabled={countryOptionsLoading}
-              rightSection={
-                countryOptionsLoading ? <Loader size="sm" /> : undefined
-              }
-              nothingFoundMessage="No country found"
-              labelProps={{ lh: 2, fz: "sm" }}
-              radius="lg"
-              size="lg"
-            />
-
-            {hasResidenceStateSelect ? (
-              <Select
-                label="State of Residence"
-                placeholder="Select your state..."
-                data={residenceStateOptions}
-                clearable
-                searchable
-                withAsterisk
-                {...form.getInputProps("stateOfResidence")}
-                autoComplete="section-residence address-level1"
-                disabled={isLoadingResidenceStates}
-                rightSection={
-                  isLoadingResidenceStates ? <Loader size="sm" /> : undefined
-                }
-                nothingFoundMessage="No state options"
-                labelProps={{ lh: 2, fz: "sm" }}
-                radius="lg"
-                size="lg"
-              />
-            ) : (
-              <TextInput
-                label="State/Region of Residence"
-                placeholder="e.g. Texas, London, etc."
-                withAsterisk
-                {...form.getInputProps("stateOfResidence")}
-                autoComplete="section-residence address-level1"
-                labelProps={{ lh: 2, fz: "sm" }}
-                radius="lg"
-                size="lg"
-              />
-            )}
-          </div>
-        </div>
-
-        <Textarea
-          label="Residential Address"
-          placeholder="Your full address"
-          autosize
-          withAsterisk
-          leftSection={<Home size={16} />}
-          {...form.getInputProps("address")}
-          autoComplete="section-residence street-address"
-          labelProps={{ lh: 2, fz: "sm" }}
-          radius="lg"
-          size="lg"
-        />
-
-        <div className="flex items-center justify-between pt-4">
-          <button
-            type="button"
-            onClick={previousStep}
-            className="flex items-center gap-2 font-semibold text-deep-forest transition hover:text-institutional-green"
-          >
-            <ArrowLeft size={16} />
-            Back to Personal Details
-          </button>
-          <button
-            type="submit"
-            className="rounded-lg bg-vibrant-lime py-4 px-8 text-base font-bold uppercase tracking-wider text-deep-forest transition hover:brightness-105 focus:outline-none focus:ring-4 focus:ring-vibrant-lime/50"
-          >
-            Continue to Credentials
-          </button>
-        </div>
-      </Form>
-    </RegistrationLayout>
-  );
-}
-
 function CredentialsStep() {
   const form = useRegistrationForm();
   const { previousStep, markStepComplete, openReviewPanel } = useRegistration();
@@ -546,7 +347,7 @@ function CredentialsStep() {
     if (validateCredentials(form)) return;
 
     form.clearErrors();
-    markStepComplete(3);
+    markStepComplete(2);
     openReviewPanel();
   };
 
@@ -619,7 +420,7 @@ function CredentialsStep() {
             className="flex items-center gap-2 font-semibold text-deep-forest transition hover:text-institutional-green"
           >
             <ArrowLeft size={16} />
-            Back to Network Details
+            Back to Personal Details
           </button>
           <Button
             type="submit"
@@ -640,19 +441,13 @@ function CredentialsStep() {
 }
 
 function ReviewPanel() {
-  const {
-    form,
-    personalDetails,
-    locationDetails,
-    credentials,
-    closeReviewPanel,
-    goToStep,
-  } = useRegistration();
+  const { form, personalDetails, credentials, closeReviewPanel, goToStep } =
+    useRegistration();
 
   const { mutate, isPending } = useCreateUser();
   const navigate = useNavigate();
 
-  const handleEdit = (step: 1 | 2 | 3) => {
+  const handleEdit = (step: 1 | 2) => {
     closeReviewPanel();
     goToStep(step);
   };
@@ -662,8 +457,8 @@ function ReviewPanel() {
       { data },
       {
         onSuccess() {
-          const salutation = data.title?.trim()
-            ? `${data.title.trim()} `
+          const salutation = data.title
+            ? data.title + " "
             : data.gender === "male"
               ? "Bro. "
               : "Sis. ";
@@ -788,16 +583,10 @@ function ReviewPanel() {
                   </p>
                 )}
                 <p>
-                  <span className="font-semibold text-deep-forest">DOB:</span>{" "}
-                  {personalDetails?.dateOfBirth
-                    ? formatDate(personalDetails.dateOfBirth, "MMM d, yyyy")
-                    : "N/A"}
-                </p>
-                <p>
                   <span className="font-semibold text-deep-forest">
-                    Nationality:
+                    Branch:
                   </span>{" "}
-                  {locationDetails.countryOfOrigin}
+                  {personalDetails?.branch}
                 </p>
                 <p>
                   <span className="font-semibold text-deep-forest">Phone:</span>{" "}
@@ -819,7 +608,7 @@ function ReviewPanel() {
         <div className="relative rounded-lg bg-white p-6 shadow-lg border border-sage-green">
           <button
             type="button"
-            onClick={() => handleEdit(3)}
+            onClick={() => handleEdit(2)}
             className="absolute top-4 right-4 text-institutional-green transition-transform hover:scale-110"
             aria-label="Edit account credentials"
           >
@@ -848,78 +637,10 @@ function ReviewPanel() {
           </div>
         </div>
 
-        <div className="relative rounded-lg bg-mist-green p-6">
-          <button
-            type="button"
-            onClick={() => handleEdit(2)}
-            className="absolute top-4 right-4 text-institutional-green transition-transform hover:scale-110"
-            aria-label="Edit location details"
-          >
-            <Edit className="h-5 w-5" />
-          </button>
-          <div className="flex items-start gap-4">
-            <MapPin className="h-5 w-5 text-institutional-green shrink-0 mt-1" />
-            <div className="grow space-y-4">
-              <div>
-                {locationDetails.countryOfResidence === "Nigeria" ? (
-                  <>
-                    <p className="text-sm text-gray-600">
-                      Based on residence in {locationDetails.stateOfResidence},
-                      Nigeria.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-semibold text-deep-forest">
-                      International Member
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Based in {locationDetails.stateOfResidence},{" "}
-                      {locationDetails.countryOfResidence}.
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-sage-green pt-4 text-sm">
-                <p>
-                  <span className="font-semibold text-deep-forest">
-                    Country of Origin:
-                  </span>{" "}
-                  {locationDetails.countryOfOrigin}
-                </p>
-                <p>
-                  <span className="font-semibold text-deep-forest">
-                    State/Region of Origin:
-                  </span>{" "}
-                  {locationDetails.stateOfOrigin}
-                </p>
-                <p>
-                  <span className="font-semibold text-deep-forest">
-                    Country of Residence:
-                  </span>{" "}
-                  {locationDetails.countryOfResidence}
-                </p>
-                <p>
-                  <span className="font-semibold text-deep-forest">
-                    State/Region of Residence:
-                  </span>{" "}
-                  {locationDetails.stateOfResidence}
-                </p>
-                <p className="sm:col-span-2">
-                  <span className="font-semibold text-deep-forest">
-                    Address:
-                  </span>{" "}
-                  {locationDetails.address}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="flex items-center justify-between pt-4">
           <button
             type="button"
-            onClick={() => handleEdit(3)}
+            onClick={() => handleEdit(2)}
             className="flex items-center gap-2 font-semibold text-deep-forest transition hover:text-institutional-green"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -941,12 +662,6 @@ function ReviewPanel() {
 function validatePersonalDetails(form: ReturnType<typeof useRegistrationForm>) {
   const { errors } = form.validate();
   const { options } = personalDetailsSchema.keyof();
-  return options.some((field) => field in errors);
-}
-
-function validateLocationDetails(form: ReturnType<typeof useRegistrationForm>) {
-  const { errors } = form.validate();
-  const { options } = locationDetailsSchema.keyof();
   return options.some((field) => field in errors);
 }
 

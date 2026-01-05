@@ -121,6 +121,24 @@ export const departmentsByFaculty: Record<string, string[]> = {
   ],
 };
 
+export const branches = [
+  "Oyo",
+  "Ibadan",
+  "Saki",
+  "Niger",
+  "Kaduna",
+  "Katsina",
+  "Port Harcourt",
+  "Diaspora",
+  "Lagos",
+  "Abeokuta",
+  "Ilorin",
+  "Osogbo",
+  "Ede",
+  "Ogbomosho",
+  "Abuja",
+];
+
 export const personalDetailsSchema = z.object({
   title: z.string().trim().optional(),
   firstName: z.string().trim().min(1, "First name is required"),
@@ -131,6 +149,13 @@ export const personalDetailsSchema = z.object({
   gender: z.enum(["male", "female"], { message: "Gender is required" }),
   photoUrl: z.string().nullable().default(null),
   dateOfBirth: isoDateTimeString.nullable().default(null),
+  branch: z
+    .string()
+    .trim()
+    .min(1, "Branch is required")
+    .refine((value) => branches.includes(value), {
+      message: "Invalid branch selected",
+    }),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   faculty: z.string().refine((val) => faculties.includes(val), {
     message: "Invalid faculty selected",
@@ -147,12 +172,28 @@ export const personalDetailsSchema = z.object({
     }),
 });
 
+const optionalLocationField = (min: number, message: string) => {
+  return z
+    .string()
+    .trim()
+    .min(min, message)
+    .or(z.literal(""))
+    .optional()
+    .default("");
+};
+
 export const locationDetailsSchema = z.object({
-  countryOfOrigin: z.string().min(1, "Country of origin is required"),
-  stateOfOrigin: z.string().min(1, "State of origin is required"),
-  countryOfResidence: z.string().min(1, "Country of residence is required"),
-  stateOfResidence: z.string().min(1, "State/Region of residence is required"),
-  address: z.string().min(10, "Address must be at least 10 characters"),
+  countryOfOrigin: optionalLocationField(1, "Country of origin is required"),
+  stateOfOrigin: optionalLocationField(1, "State of origin is required"),
+  countryOfResidence: optionalLocationField(
+    1,
+    "Country of residence is required"
+  ),
+  stateOfResidence: optionalLocationField(
+    1,
+    "State/Region of residence is required"
+  ),
+  address: optionalLocationField(10, "Address must be at least 10 characters"),
 });
 
 export const accountCredentialsSchema = z

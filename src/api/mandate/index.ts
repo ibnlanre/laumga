@@ -99,7 +99,7 @@ const create = createServerFn({ method: "POST" })
 
     await feed.$use.create({
       data: {
-        location: user.address,
+        location: user.branch,
         timestamp: FieldValue.serverTimestamp(),
         amount: data.amount,
         gender: user.gender,

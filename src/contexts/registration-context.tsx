@@ -12,14 +12,13 @@ import { registrationSchema } from "@/api/registration/schema";
 import type {
   RegistrationFormValues,
   PersonalDetailsFormValues,
-  LocationDetailsFormValues,
   AccountCredentialsFormValues,
 } from "@/api/registration/types";
 
-export type RegistrationStep = 1 | 2 | 3;
+export type RegistrationStep = 1 | 2;
 type RegistrationPanel = "steps" | "review";
 
-const TOTAL_STEPS: RegistrationStep = 3;
+const TOTAL_STEPS: RegistrationStep = 2;
 
 export const [
   RegistrationFormProvider,
@@ -55,13 +54,14 @@ const initialFormValues: RegistrationFormValues = {
   gender: "male",
   photoUrl: "",
   dateOfBirth: null,
+  branch: "",
   phoneNumber: "",
   classSet: null,
   faculty: "",
   department: "",
-  countryOfOrigin: "Nigeria",
+  countryOfOrigin: "",
   stateOfOrigin: "",
-  countryOfResidence: "Nigeria",
+  countryOfResidence: "",
   stateOfResidence: "",
   address: "",
   email: "",
@@ -157,6 +157,7 @@ function selectPersonalDetails(
     gender,
     photoUrl,
     dateOfBirth,
+    branch,
     phoneNumber,
     faculty,
     department,
@@ -173,31 +174,12 @@ function selectPersonalDetails(
     gender,
     photoUrl,
     dateOfBirth,
+    branch,
     phoneNumber,
     faculty,
     department,
     classSet,
   } satisfies PersonalDetailsFormValues;
-}
-
-function selectLocationDetails(
-  values: RegistrationFormValues
-): LocationDetailsFormValues {
-  const {
-    countryOfOrigin,
-    stateOfOrigin,
-    countryOfResidence,
-    stateOfResidence,
-    address,
-  } = values;
-
-  return {
-    countryOfOrigin,
-    stateOfOrigin,
-    countryOfResidence,
-    stateOfResidence,
-    address,
-  } satisfies LocationDetailsFormValues;
 }
 
 function selectCredentials(
@@ -227,7 +209,6 @@ export function useRegistration() {
     ...context,
     form,
     personalDetails: selectPersonalDetails(values),
-    locationDetails: selectLocationDetails(values),
     credentials: selectCredentials(values),
   };
 }

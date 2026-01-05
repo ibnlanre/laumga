@@ -61,7 +61,6 @@ export function RegistrationLayout({
                 label="Personal Details"
                 description="Tell us about yourself"
               />
-              <Stepper.Step label="Location" description="Where you are now" />
               <Stepper.Step
                 label="Credentials"
                 description="Secure your access"

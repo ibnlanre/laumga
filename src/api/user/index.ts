@@ -112,7 +112,7 @@ const createUserDoc = createServerFn({ method: "POST" })
 
     await feed.$use.create({
       data: {
-        location: data.address,
+        location: data.branch,
         timestamp: FieldValue.serverTimestamp(),
         amount: null,
         gender: data.gender,

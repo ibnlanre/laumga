@@ -399,15 +399,16 @@ function RouteComponent() {
                 <ul className="mt-6 space-y-4">
                   {feedData.map((item, index) => {
                     const formattedDate = formatDate(item.timestamp);
+                    const locationDescriptor = `${item.location} Branch`;
 
                     let message = "";
                     if (item.type === "donation") {
                       const amountText = item.amount
                         ? formatCurrency(item.amount)
                         : "";
-                      message = `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${item.location} ${amountText ? `pledged ${amountText}` : "made a donation"}`;
+                      message = `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${locationDescriptor} ${amountText ? `pledged ${amountText}` : "made a donation"}`;
                     } else if (item.type === "registration") {
-                      message = `🎉 New member from ${item.location} joined the community`;
+                      message = `🎉 New member from ${locationDescriptor} joined the community`;
                     }
 
                     return (
