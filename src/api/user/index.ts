@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   setPersistence,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -181,6 +182,21 @@ async function login(variables: LoginVariables) {
   return result.data;
 }
 
+async function loginAnonymousUser() {
+  let anonymousUser = auth.currentUser;
+
+  if (!anonymousUser || !anonymousUser.isAnonymous) {
+    try {
+      const userCredential = await signInAnonymously(auth);
+      anonymousUser = userCredential.user;
+    } catch (error) {
+      throw new Error("Unable to create anonymous session. Please try again.");
+    }
+  }
+
+  return anonymousUser.uid;
+}
+
 async function loginWithProvider(provider: AuthProvider) {
   const result = await tryCatch(async () => {
     await setPersistence(auth, browserLocalPersistence);
@@ -255,8 +271,10 @@ export const user = createBuilder(
     get,
     create,
     update,
+    checkEmail,
     login,
     loginWithProvider,
+    loginAnonymousUser,
     resetPassword,
     applyPasswordReset,
     logout,

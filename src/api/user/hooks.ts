@@ -13,6 +13,16 @@ export function useUpdateUser() {
   });
 }
 
+export function useCheckEmail() {
+  return useMutation({
+    mutationKey: user.checkEmail.$get(),
+    mutationFn: useServerFn(user.$use.checkEmail),
+    meta: {
+      errorMessage: "Failed to check email. Please try again.",
+    },
+  });
+}
+
 export function useCreateUser() {
   return useMutation({
     mutationKey: user.create.$get(),
@@ -31,6 +41,17 @@ export function useLogin() {
     meta: {
       errorMessage: "Login failed. Please try again.",
       successMessage: "Logged in successfully.",
+    },
+  });
+}
+
+export function useLoginAnonymousUser() {
+  return useMutation({
+    mutationKey: user.loginAnonymousUser.$get(),
+    mutationFn: user.$use.loginAnonymousUser,
+    meta: {
+      errorMessage: "Anonymous login failed. Please try again.",
+      successMessage: "Logged in anonymously.",
     },
   });
 }
