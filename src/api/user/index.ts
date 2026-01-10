@@ -12,6 +12,8 @@ import {
   signInWithPopup,
   signOut,
   updateCurrentUser,
+  linkWithCredential,
+  EmailAuthProvider,
   type AuthProvider,
 } from "firebase/auth";
 import { auth } from "@/services/firebase";
@@ -43,7 +45,6 @@ import {
   serverCollection,
 } from "@/client/core-query/server";
 import { serverRecord } from "@/utils/server-record";
-import { FieldValue } from "firebase-admin/firestore";
 
 const list = createServerFn({ method: "GET" })
   .inputValidator(createVariablesSchema(userSchema))
@@ -54,8 +55,9 @@ const list = createServerFn({ method: "GET" })
   });
 
 const get = createServerFn({ method: "GET" })
-  .inputValidator(z.string())
+  .inputValidator(z.string().optional())
   .handler(async ({ data: userId }) => {
+    if (!userId) throw new Error("User ID is required");
     const docRef = serverCollection<User>(USERS_COLLECTION).doc(userId);
     return getServerQueryDoc(docRef, userSchema);
   });
@@ -114,7 +116,6 @@ const createUserDoc = createServerFn({ method: "POST" })
     await feed.$use.create({
       data: {
         location: data.branch,
-        timestamp: FieldValue.serverTimestamp(),
         amount: null,
         gender: data.gender,
         userId: id,
@@ -135,13 +136,23 @@ async function create(variables: CreateUserVariables) {
 
   const result = await tryCatch(async () => {
     await setPersistence(auth, browserLocalPersistence);
-    const credential = await createUserWithEmailAndPassword(
-      auth,
-      profile.email,
-      password
-    );
 
-    const userId = credential.user.uid;
+    let userId: string;
+    const currentUser = auth.currentUser;
+
+    if (currentUser && currentUser.isAnonymous) {
+      const credential = EmailAuthProvider.credential(profile.email, password);
+      const userCredential = await linkWithCredential(currentUser, credential);
+      userId = userCredential.user.uid;
+    } else {
+      const credential = await createUserWithEmailAndPassword(
+        auth,
+        profile.email,
+        password
+      );
+      userId = credential.user.uid;
+    }
+
     await createUserDoc({ data: { id: userId, data: profile } });
   });
 

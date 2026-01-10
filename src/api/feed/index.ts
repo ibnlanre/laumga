@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createBuilder } from "@ibnlanre/builder";
+import { FieldValue } from "firebase-admin/firestore";
 
 import {
   buildServerQuery,
@@ -22,7 +23,8 @@ const create = createServerFn({ method: "POST" })
   .inputValidator(createFeedSchema)
   .handler(async ({ data }) => {
     const feedRef = serverCollection<CreateFeedData>(FEED_COLLECTION);
-    await feedRef.add(data);
+    const timestamp = FieldValue.serverTimestamp();
+    await feedRef.add({ ...data, timestamp });
   });
 
 export const feed = createBuilder(

@@ -216,6 +216,10 @@ export function PaymentPlanForm({
       paymentPlanId: paymentPlansByFrequency["monthly"].id,
     },
     validate: zod4Resolver(paymentPlanSchema),
+    onValuesChange: (values) => {
+      const selectedPlan = paymentPlansByFrequency[values.frequency];
+      pledgeForm.setFieldValue("paymentPlanId", selectedPlan.id);
+    },
   });
 
   pledgeForm.watch("amount", ({ value }) => {

@@ -14,8 +14,8 @@ export const feedSchema = feedDataSchema.extend({
   id: z.string(),
 });
 
-export const createFeedSchema = feedDataSchema.extend({
-  timestamp: fieldValueCodec,
+export const createFeedSchema = feedDataSchema.omit({ timestamp: true }).extend({
+  timestamp: fieldValueCodec.optional(),
 });
 
 export const updateFeedSchema = createFeedSchema.partial();

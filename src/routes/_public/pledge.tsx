@@ -1,10 +1,9 @@
-import { useMemo, useEffect } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useForm } from "@mantine/form";
 import { zod4Resolver } from "mantine-form-zod-resolver";
 import { Button, NumberInput, Select, TextInput, Stack } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import {
   Heart,
   GraduationCap,
@@ -12,7 +11,6 @@ import {
   Shield,
   Star,
   TrendingUp,
-  CheckCircle2,
   AlertCircle,
 } from "lucide-react";
 import { z } from "zod";
@@ -32,6 +30,10 @@ import type {
 import type { GetNextPageParamFunction } from "@tanstack/react-query";
 import { useCheckEmail, useLoginAnonymousUser } from "@/api/user/hooks";
 import { LoadingState } from "@/components/loading-state";
+import { branches } from "@/api/registration/schema";
+import { mandate } from "@/api/mandate";
+import { feed } from "@/api/feed";
+import { firebase } from "@/api/firebase";
 
 const TIER_AMOUNTS = {
   supporter: 5000,
@@ -111,6 +113,8 @@ const publicPledgeSchema = z.object({
   fullName: z.string().min(3, "Full name is required"),
   phoneNumber: z.string().min(10, "Valid phone number is required"),
   email: z.email("Valid email is required"),
+  branch: z.string().min(1, "Branch is required"),
+  gender: z.enum(["male", "female"], { message: "Gender is required" }),
   amount: z.number().min(1000, "Minimum amount is ₦1,000"),
   frequency: frequencySchema,
   paymentPlanId: z.number().nullable().default(null),
@@ -159,14 +163,28 @@ const inputClassNames = {
     "h-14 rounded-2xl border-2 border-sage-green/60 bg-white text-base text-deep-forest placeholder:text-deep-forest/40 focus:border-deep-forest focus:ring-0",
 };
 
-const pledgeSearchSchema = z.object({
-  status: z.enum(["successful", "cancelled"]).optional(),
-  tx_ref: z.string().optional(),
-});
+const pledgeSearchSchema = z
+  .object({
+    branch: z.string(),
+    gender: z.enum(["male", "female"]),
+    status: z.enum(["successful", "cancelled"]),
+    transaction_id: z.number(),
+    tx_ref: z.string(),
+  })
+  .partial();
 
 export const Route = createFileRoute("/_public/pledge")({
   validateSearch: zodValidator(pledgeSearchSchema),
-  loader: async () => {
+  loaderDeps: ({ search }) => ({
+    txRef: search.tx_ref,
+    transactionId: search.transaction_id,
+    status: search.status,
+    branch: search.branch,
+    gender: search.gender,
+  }),
+  loader: async ({ deps }) => {
+    const { status, txRef, transactionId, branch, gender } = deps;
+
     const planResponse = await queryClient.ensureInfiniteQueryData({
       queryKey: flutterwave.paymentPlan.list.$get({ status: "active" }),
       initialPageParam: 1,
@@ -178,7 +196,77 @@ export const Route = createFileRoute("/_public/pledge")({
     });
 
     const paymentPlans = planResponse.pages.flatMap(({ data }) => data);
-    return { paymentPlans };
+    if (!deps.txRef) return { paymentPlans };
+
+    const verification = await flutterwave.$use.transaction
+      .verify({ data: deps.txRef })
+      .catch(() => null);
+
+    if (!verification) throw redirect({ to: "/pledge" });
+    const { amount, meta } = verification.data;
+
+    if (
+      verification.data.status !== status ||
+      verification.data.tx_ref !== txRef ||
+      verification.data.id !== transactionId
+    ) {
+      return { paymentPlans };
+    }
+
+    const subscriptionList = await flutterwave.$use.subscription
+      .list({
+        data: {
+          email: verification.data.customer.email,
+          transaction_id: verification.data.id,
+          status: "active",
+        },
+      })
+      .catch(() => null);
+
+    if (!subscriptionList) throw redirect({ to: "/pledge" });
+
+    const subscription = subscriptionList.data[0];
+    const session = await firebase.$use.getSession();
+
+    if (!session) return { paymentPlans };
+    const { uid, email } = session;
+
+    await mandate.$use
+      .create({
+        data: {
+          user: {
+            id: verification.data.meta.userId || uid!,
+            fullName: session.displayName || "Anonymous User",
+            photoUrl: session.photoURL || null,
+          },
+          data: {
+            amount,
+            customerEmail: email!,
+            frequency: meta.cadence,
+            paymentPlanId: meta.paymentPlanId,
+            subscriptionId: subscription.id,
+            transactionReference: txRef,
+            transactionId,
+          },
+        },
+      })
+      .catch(() => {
+        throw redirect({ to: "/pledge" });
+      });
+
+    await feed.$use
+      .create({
+        data: {
+          amount,
+          location: branch!,
+          userId: uid!,
+          gender: gender!,
+          type: "donation",
+        },
+      })
+      .catch(() => null);
+
+    throw redirect({ to: "/pledge" });
   },
   head: () => ({
     meta: [
@@ -211,38 +299,10 @@ export const Route = createFileRoute("/_public/pledge")({
 
 function RouteComponent() {
   const { paymentPlans } = Route.useLoaderData();
-  const { status, tx_ref } = Route.useSearch();
 
   const checkEmail = useCheckEmail();
   const loginAnonymousUser = useLoginAnonymousUser();
   const planCheckout = useCreateFlutterwavePlanCheckout();
-
-  useEffect(() => {
-    console.log("📧 Email check result:", {
-      isPending: checkEmail.isPending,
-      data: checkEmail.data,
-      error: checkEmail.error,
-    });
-  }, [checkEmail.isPending, checkEmail.data, checkEmail.error]);
-
-  useEffect(() => {
-    if (status === "successful" && tx_ref) {
-      notifications.show({
-        title: "Pledge Created Successfully!",
-        message:
-          "Thank you for your commitment. Your recurring pledge is now active.",
-        color: "green",
-        icon: <CheckCircle2 size={20} />,
-      });
-    } else if (status === "cancelled") {
-      notifications.show({
-        title: "Pledge Cancelled",
-        message: "Your pledge setup was cancelled. You can try again anytime.",
-        color: "yellow",
-        icon: <AlertCircle size={20} />,
-      });
-    }
-  }, [status, tx_ref]);
 
   const paymentPlansByFrequency = useMemo(() => {
     return paymentPlans.reduce<Record<string, FlutterwavePaymentPlan>>(
@@ -255,10 +315,13 @@ function RouteComponent() {
   }, [paymentPlans]);
 
   const pledgeForm = useForm<PublicPledgeFormValues>({
+    mode: "uncontrolled",
     initialValues: {
       fullName: "",
       phoneNumber: "",
       email: "",
+      branch: "",
+      gender: "male",
       amount: 5000,
       frequency: "monthly",
       paymentPlanId: paymentPlansByFrequency["monthly"].id,
@@ -266,55 +329,34 @@ function RouteComponent() {
     validate: zod4Resolver(publicPledgeSchema),
     onValuesChange: (values) => {
       const selectedPlan = paymentPlansByFrequency[values.frequency];
-      pledgeForm.setFieldValue(
-        "paymentPlanId",
-        selectedPlan ? selectedPlan.id : null
-      );
+      pledgeForm.setFieldValue("paymentPlanId", selectedPlan.id);
 
-      const validated = z.email().safeParse(values.email);
-      console.log("🔍 Email validation:", {
-        email: values.email,
-        isValid: validated.success,
-        validatedEmail: validated.success ? validated.data : null,
-      });
-      if (validated.success) {
-        console.log("✅ Checking email:", validated.data);
-        checkEmail.mutate({ data: validated.data });
-      } else {
-        checkEmail.reset();
-      }
+      const { data, success } = z.email().safeParse(values.email);
+      if (success) checkEmail.mutate({ data });
+      else checkEmail.reset();
     },
   });
 
-  const handleSubmit = async ({
-    fullName,
-    phoneNumber,
-    email,
-    amount,
-    frequency,
-    paymentPlanId,
-  }: PublicPledgeFormValues) => {
-    console.log("🚀 Form submitted", {
+  const handleSubmit = async (values: PublicPledgeFormValues) => {
+    const {
+      fullName,
+      phoneNumber,
       email,
-      emailExists: checkEmail.data,
-    });
+      branch,
+      gender,
+      amount,
+      frequency,
+      paymentPlanId,
+    } = values;
 
-    if (checkEmail.data) {
-      console.log("❌ Email exists, blocking submission");
-      notifications.show({
-        title: "Account Already Exists",
-        message: "Please sign in to create a mandate with your account.",
-        color: "red",
-      });
-      return;
-    }
-
-    console.log("🔐 Creating anonymous user...");
     const userId = await loginAnonymousUser.mutateAsync();
-    console.log("✅ Anonymous user created:", userId);
     const cleanPhone = phoneNumber.replace(/\D/g, "");
     const txRef = `LAUMGA_PUBLIC_${cleanPhone}_${Date.now()}`;
     const url = new URL(location.origin + location.pathname);
+
+    url.searchParams.set("branch", branch);
+    url.searchParams.set("gender", gender);
+
     const redirectUrl = url.toString();
 
     const response = await planCheckout.mutateAsync({
@@ -427,6 +469,7 @@ function RouteComponent() {
 
                 <Stack gap="md">
                   <TextInput
+                    key={pledgeForm.key("fullName")}
                     label="Full Name"
                     placeholder="Enter your full name"
                     classNames={inputClassNames}
@@ -436,6 +479,7 @@ function RouteComponent() {
                   />
 
                   <PhoneInput
+                    key={pledgeForm.key("phoneNumber")}
                     label="Phone Number"
                     placeholder="Enter your phone number"
                     classNames={inputClassNames}
@@ -445,6 +489,7 @@ function RouteComponent() {
                   />
 
                   <TextInput
+                    key={pledgeForm.key("email")}
                     label="Email Address"
                     type="email"
                     placeholder="your@email.com"
@@ -457,6 +502,40 @@ function RouteComponent() {
                         : pledgeForm.errors.email
                     }
                     {...pledgeForm.getInputProps("email")}
+                  />
+
+                  <Select
+                    key={pledgeForm.key("branch")}
+                    label="Branch"
+                    placeholder="Select your branch"
+                    data={branches}
+                    classNames={{
+                      ...inputClassNames,
+                      dropdown:
+                        "bg-white/95 border-2 border-sage-green/60 rounded-lg",
+                    }}
+                    withAsterisk
+                    size="lg"
+                    searchable
+                    {...pledgeForm.getInputProps("branch")}
+                  />
+
+                  <Select
+                    key={pledgeForm.key("gender")}
+                    label="Gender"
+                    placeholder="Select gender"
+                    data={[
+                      { value: "male", label: "Male" },
+                      { value: "female", label: "Female" },
+                    ]}
+                    classNames={{
+                      ...inputClassNames,
+                      dropdown:
+                        "bg-white/95 border-2 border-sage-green/60 rounded-lg",
+                    }}
+                    withAsterisk
+                    size="lg"
+                    {...pledgeForm.getInputProps("gender")}
                   />
                 </Stack>
 
@@ -629,6 +708,7 @@ function RouteComponent() {
                             </div>
 
                             <NumberInput
+                              key={pledgeForm.key("amount")}
                               aria-label="Custom pledge amount"
                               placeholder="Enter amount"
                               min={minimumPaymentAmount}
@@ -658,6 +738,8 @@ function RouteComponent() {
                             </div>
 
                             <Select
+                              key={pledgeForm.key("frequency")}
+                              aria-label="Payment frequency"
                               searchable
                               placeholder="Choose frequency"
                               nothingFoundMessage="No options found"

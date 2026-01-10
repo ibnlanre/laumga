@@ -20,10 +20,7 @@ import {
 import type { CreateMandateData, Mandate } from "./types";
 import { determineTier } from "./utils";
 import { flutterwave } from "../flutterwave";
-import { userSchema, USERS_COLLECTION } from "../user/schema";
-import type { User } from "../user/types";
-import { feed } from "../feed";
-import { FieldValue } from "firebase-admin/firestore";
+import { userSchema } from "../user/schema";
 
 const list = createServerFn({ method: "GET" })
   .inputValidator(createVariablesSchema(mandateSchema))
@@ -31,26 +28,7 @@ const list = createServerFn({ method: "GET" })
     const mandatesRef = serverCollection<Mandate>(MANDATES_COLLECTION);
     const query = buildServerQuery(mandatesRef, variables);
     const mandates = await getServerQueryDocs(query, mandateSchema);
-
-    const userIds = [...new Set(mandates.map((m) => m.userId))];
-
-    if (userIds.length === 0) return mandates;
-
-    const usersRef = serverCollection<User>(USERS_COLLECTION);
-    const userDocs = await Promise.all(
-      userIds.map((id) => usersRef.doc(id).get())
-    );
-
-    const userMap = new Map(
-      userDocs
-        .filter((doc) => doc.exists)
-        .map((doc) => [doc.id, userSchema.parse({ id: doc.id, ...doc.data() })])
-    );
-
-    return mandates.map((m) => ({
-      ...m,
-      user: userMap.get(m.userId),
-    }));
+    return mandates;
   });
 
 const get = createServerFn({ method: "GET" })
@@ -58,16 +36,17 @@ const get = createServerFn({ method: "GET" })
   .handler(async ({ data: id }) => {
     const ref = serverCollection<Mandate>(MANDATES_COLLECTION).doc(id);
     const mandate = await getServerQueryDoc(ref, mandateSchema);
-
-    if (!mandate) return null;
-
     return mandate;
   });
 
 const create = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      user: userSchema,
+      user: z.looseObject({
+        id: z.string(),
+        fullName: z.string(),
+        photoUrl: z.string().nullable(),
+      }),
       data: createMandateSchema,
     })
   )
@@ -95,17 +74,6 @@ const create = createServerFn({ method: "POST" })
       customerEmail: data.customerEmail,
       created: serverRecord(user),
       updated: null,
-    });
-
-    await feed.$use.create({
-      data: {
-        location: user.branch,
-        timestamp: FieldValue.serverTimestamp(),
-        amount: data.amount,
-        gender: user.gender,
-        userId: user.id,
-        type: "donation",
-      },
     });
   });
 
