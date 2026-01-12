@@ -223,29 +223,29 @@ function RouteComponent() {
   };
 
   return (
-    <div className="w-full flex-1 bg-linear-to-b from-mist-green/70 via-white to-white pt-24 sm:pt-8 pb-10 sm:pb-12">
+    <div className="w-full flex-1 bg-linear-to-b from-mist-green/70 via-white to-white pt-6 sm:pt-8 pb-6 sm:pb-12">
       <div className="flex w-full flex-col gap-8">
         <MandateHeader />
 
         <Section>
-          <main className="flex flex-col gap-10 rounded-4xl border border-sage-green/40 bg-white/95 p-6 shadow-[0px_30px_80px_rgba(0,35,19,0.08)] sm:p-10">
+          <main className="flex flex-col gap-10 rounded-4xl border border-sage-green/40 bg-white/95 p-4 sm:p-6 lg:p-10 shadow-[0px_30px_80px_rgba(0,35,19,0.08)]">
             <header className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.4em] text-deep-forest/70">
                 stewardship
               </p>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h1 className="text-3xl font-black tracking-[-0.03em] text-deep-forest sm:text-4xl">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-black tracking-[-0.03em] text-deep-forest sm:text-3xl lg:text-4xl">
                     The Stewardship Console
                   </h1>
-                  <p className="text-base text-deep-forest/70">
+                  <p className="mt-2 text-sm sm:text-base text-deep-forest/70">
                     Track your pledge rhythm and keep every contribution
                     intentional.
                   </p>
                 </div>
                 <Link
                   to="/mandate/pledge"
-                  className="inline-flex items-center justify-center rounded-full bg-deep-forest px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-deep-forest/90"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-deep-forest px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-deep-forest/90 shrink-0"
                 >
                   Adjust my pledge
                 </Link>

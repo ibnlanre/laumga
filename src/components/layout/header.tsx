@@ -1,7 +1,6 @@
 import { Group, Burger, Drawer, Button, Anchor, Stack } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Section } from "@/components/section";
 
 import { useLogout } from "@/api/user/hooks";
 
@@ -224,10 +223,14 @@ export function Header({ variant, className = "" }: HeaderProps) {
               <div className="border-t border-gray-200 my-4" />
               <Button
                 type="button"
-                variant="filled"
-                color="deep-forest"
+                variant="outline"
                 fullWidth
-                className="text-white"
+                size="lg"
+                radius="xl"
+                classNames={{
+                  root: "border-2 border-deep-forest text-deep-forest hover:bg-deep-forest/5",
+                  label: "font-semibold text-base",
+                }}
                 onClick={() => {
                   close();
                   handleLogout();

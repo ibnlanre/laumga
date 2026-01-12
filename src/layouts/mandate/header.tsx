@@ -42,7 +42,7 @@ export function MandateHeader({ isLanding, className }: MandateHeaderProps) {
     <Section className={className}>
       <nav
         className={clsx(
-          "flex w-full flex-nowrap items-center gap-2 overflow-x-auto rounded-full px-4 py-2 text-sm font-medium transition-all sm:flex-wrap sm:overflow-visible",
+          "flex w-full flex-nowrap items-center gap-2 overflow-x-auto rounded-full px-4 py-2 text-sm font-medium transition-all md:flex-wrap md:overflow-visible",
           {
             "pointer-events-auto border border-white/20 bg-deep-forest/50 text-white shadow-xl backdrop-blur":
               isLanding,

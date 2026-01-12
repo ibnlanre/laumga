@@ -164,7 +164,7 @@ function RouteComponent() {
 
   return (
     <div className="relative flex-1 flex w-full flex-col overflow-hidden bg-[#f8faf4] text-gray-900">
-      <section className="relative isolate overflow-hidden bg-linear-to-b from-[#05150d] via-deep-forest to-[#0f351f] text-white pt-24 sm:pt-8">
+      <section className="relative isolate overflow-hidden bg-linear-to-b from-[#05150d] via-deep-forest to-[#0f351f] text-white pt-6 sm:pt-8">
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -174,7 +174,7 @@ function RouteComponent() {
         />
         <MandateHeader isLanding className="px-4 sm:px-6 lg:px-8" />
 
-        <Section className="relative grid gap-12 py-28 lg:grid-cols-[1.15fr_0.85fr]">
+        <Section className="relative grid gap-12 py-10 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
             <p className="text-xs uppercase tracking-[0.4em] text-sage-green">
               Mandate · {new Date().getFullYear()}

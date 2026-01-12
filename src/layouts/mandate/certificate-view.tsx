@@ -136,7 +136,7 @@ export function MandateCertificateView() {
           certificate of mandate. Your certificate will unlock once your first
           mandate is active.
         </p>
-        
+
         <Button
           component={Link}
           to="/mandate/pledge"
@@ -234,7 +234,11 @@ export function MandateCertificateView() {
           variant="outline"
           radius="xl"
           size="lg"
-          className="flex-1 border-deep-forest text-deep-forest hover:bg-deep-forest/5"
+          fullWidth
+          classNames={{
+            root: "border-2 border-deep-forest text-deep-forest hover:bg-deep-forest/5 h-12",
+            label: "font-semibold",
+          }}
           onClick={() => toPDF()}
           leftSection={<Download size={16} />}
         >
@@ -245,7 +249,11 @@ export function MandateCertificateView() {
           to="/mandate/dashboard"
           radius="xl"
           size="lg"
-          className="flex-1 bg-deep-forest text-white hover:bg-deep-forest/90"
+          fullWidth
+          classNames={{
+            root: "bg-deep-forest text-white hover:bg-deep-forest/90 h-12",
+            label: "font-semibold",
+          }}
         >
           Go to donor dashboard
         </Button>
