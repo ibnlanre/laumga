@@ -97,7 +97,13 @@ function RouteComponent() {
     data: feedData = [],
     isLoading: feedLoading,
     isError: feedError,
-  } = useQuery(listFeedOptions());
+  } = useQuery(
+    listFeedOptions({
+      sortBy: [{ field: "timestamp", direction: "desc" }],
+    })
+  );
+
+  const limitedFeedData = feedData.slice(0, 15);
 
   const { data: transactionsResponse, isLoading: transactionsLoading } =
     useQuery(
@@ -395,43 +401,80 @@ function RouteComponent() {
                     message="We will retry shortly. Refresh if the issue persists."
                   />
                 </div>
-              ) : feedData.length ? (
-                <ul className="mt-6 space-y-4">
-                  {feedData.map((item, index) => {
-                    const formattedDate = formatDate(item.timestamp);
-                    const locationDescriptor = `${item.location} Branch`;
+              ) : limitedFeedData.length ? (
+                <div className="mt-6 relative overflow-hidden">
+                  <div className="flex animate-marquee space-x-4">
+                    {[...limitedFeedData, ...limitedFeedData].map(
+                      (item, index) => {
+                        const formattedDate = formatDate(item.timestamp);
+                        const gender =
+                          item.gender === "male" ? "brother" : "sister";
 
-                    let message = "";
-                    if (item.type === "donation") {
-                      const amountText = item.amount
-                        ? formatCurrency(item.amount)
-                        : "";
-                      message = `📍 A ${item.gender === "male" ? "brother" : "sister"} from ${locationDescriptor} ${amountText ? `pledged ${amountText}` : "made a donation"}`;
-                    } else if (item.type === "registration") {
-                      message = `🎉 New member from ${locationDescriptor} joined the community`;
-                    }
+                        let message: React.ReactNode = "";
+                        if (item.type === "donation") {
+                          const amountText = item.amount
+                            ? formatCurrency(item.amount)
+                            : "";
+                          message = (
+                            <>
+                              A{" "}
+                              <strong className="font-semibold">
+                                {gender}
+                              </strong>{" "}
+                              from{" "}
+                              <strong className="font-semibold">
+                                {item.location} Branch
+                              </strong>
+                              {amountText ? (
+                                <>
+                                  {" "}
+                                  pledged{" "}
+                                  <strong className="font-semibold">
+                                    {amountText}
+                                  </strong>
+                                </>
+                              ) : (
+                                " made a donation"
+                              )}
+                            </>
+                          );
+                        } else if (item.type === "registration") {
+                          message = (
+                            <>
+                              New member from{" "}
+                              <strong className="font-semibold">
+                                {item.location} Branch
+                              </strong>{" "}
+                              joined the community
+                            </>
+                          );
+                        }
 
-                    return (
-                      <li
-                        key={`${item.timestamp}-${index}`}
-                        className="flex flex-col gap-2 rounded-2xl border border-sage-green/40 bg-mist-green/30 px-4 py-3 text-deep-forest"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
-                            {item.type === "donation"
-                              ? "Mandate"
-                              : "Registration"}
-                          </span>
-                          <span className="text-xs text-deep-forest/50">
-                            {formattedDate}
-                          </span>
-                        </div>
+                        return (
+                          <div
+                            key={`${item.timestamp}-${index}`}
+                            className="flex min-w-[400px] flex-col gap-2 rounded-2xl border border-sage-green/40 bg-mist-green/30 px-4 py-3 text-deep-forest"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-deep-forest/60">
+                                {item.type === "donation"
+                                  ? "Mandate"
+                                  : "Registration"}
+                              </span>
+                              <span className="text-xs text-deep-forest/50">
+                                {formattedDate}
+                              </span>
+                            </div>
 
-                        <p className="text-sm text-deep-forest/80">{message}</p>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            <p className="text-sm text-deep-forest/80">
+                              {message}
+                            </p>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="pt-6">
                   <EmptyState
