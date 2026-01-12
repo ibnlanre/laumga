@@ -50,7 +50,7 @@ export function LoginForm() {
   const isLoading = isPending;
 
   return (
-    <div className="p-6 sm:p-8 lg:p-12 w-full flex-1 place-content-center">
+    <div className="p-6 sm:p-8 lg:p-12 w-full flex-1 place-content-center pt-16 lg:pt-12">
       <div className="w-full max-w-md space-y-8 place-self-center">
         <div className="flex w-full flex-col items-center justify-center rounded-4xl border border-sage-green bg-white p-8 sm:p-10 shadow-lg">
           <div className="w-full text-center mb-8">

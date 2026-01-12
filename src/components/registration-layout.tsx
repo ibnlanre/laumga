@@ -42,7 +42,7 @@ export function RegistrationLayout({
       }
       backgroundColor="bg-white"
     >
-      <div className="w-full max-w-3xl px-6 py-8">
+      <div className="w-full max-w-3xl px-6 py-8 pt-16 lg:pt-8">
         {/* Stepper */}
         {showStepper ? (
           <div className="mb-8">

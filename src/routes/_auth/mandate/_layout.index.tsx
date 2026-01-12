@@ -164,7 +164,7 @@ function RouteComponent() {
 
   return (
     <div className="relative flex-1 flex w-full flex-col overflow-hidden bg-[#f8faf4] text-gray-900">
-      <section className="relative isolate overflow-hidden bg-linear-to-b from-[#05150d] via-deep-forest to-[#0f351f] text-white pt-6 sm:pt-8">
+      <section className="relative isolate overflow-hidden bg-linear-to-b from-[#05150d] via-deep-forest to-[#0f351f] text-white pt-24 sm:pt-8">
         <div
           className="absolute inset-0 opacity-60"
           style={{

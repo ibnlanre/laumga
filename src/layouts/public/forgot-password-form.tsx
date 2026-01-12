@@ -30,7 +30,7 @@ export function ForgotPasswordForm() {
 
   if (isSuccess) {
     return (
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-8 pt-16 lg:pt-0">
         <div className="flex w-full flex-col items-center justify-center rounded-4xl border border-sage-green bg-white p-10 py-12 shadow-lg sm:p-14">
           <div className="w-full text-center">
             <div className="mb-6 flex justify-center">
@@ -68,7 +68,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="w-full max-w-md space-y-8 pt-16 lg:pt-0">
       <div className="flex w-full flex-col items-center justify-center rounded-4xl border border-sage-green bg-white p-10 py-12 shadow-lg sm:p-14">
         <div className="w-full text-center">
           <h1 className="text-deep-forest text-[22px] font-bold leading-tight tracking-[-0.015em] font-display">

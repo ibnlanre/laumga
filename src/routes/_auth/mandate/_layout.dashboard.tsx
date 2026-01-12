@@ -216,7 +216,7 @@ function RouteComponent() {
   };
 
   return (
-    <div className="w-full flex-1 bg-linear-to-b from-mist-green/70 via-white to-white pt-6 sm:pt-8 pb-10 sm:pb-12">
+    <div className="w-full flex-1 bg-linear-to-b from-mist-green/70 via-white to-white pt-24 sm:pt-8 pb-10 sm:pb-12">
       <div className="flex w-full flex-col gap-8">
         <MandateHeader />
 

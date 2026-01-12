@@ -161,7 +161,7 @@ function RouteComponent() {
   const { paymentPlans } = Route.useLoaderData();
 
   return (
-    <div className="relative flex-1 w-full bg-linear-to-b spacey-10 from-mist-green via-white to-sage-green/40 text-deep-forest pt-6 sm:pt-8 pb-10 sm:pb-12">
+    <div className="relative flex-1 w-full bg-linear-to-b spacey-10 from-mist-green via-white to-sage-green/40 text-deep-forest pt-24 sm:pt-8 pb-10 sm:pb-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
